@@ -1,0 +1,83 @@
+@(message: String, style: String = "scala")
+
+@defining(play.core.PlayVersion.current) { version =>
+
+<link rel="stylesheet" media="screen" href="/@@documentation/resources/style/main.css">
+
+<section id="top">
+  <div class="wrapper">
+    <h1><a href="https://playframework.com/documentation/@version/Home">@message</a></h1>
+  </div>
+</section>
+
+<div id="content" class="wrapper doc">
+<article>
+
+  <h1>Welcome to LWF Portal</h1>
+
+  <p>
+      Long-term Forest Ecosystem Research Programme LWF
+      LWF Logo
+      Swiss forests are exposed to changing environmental conditions. The consequences of air pollution and climate change on the forest are important questions which the Long-term Forest Ecosystem Research Programme LWF seeks to answer. Within a legally set framework of the LWF programme, Switzerland partakes in international research programmes such as The International Co-operative Programme on Assessment and Monitoring of Air Pollution Effects on Forests ICP-Forests or the Long-Term Ecosystem Research.
+  </p>
+
+  <blockquote>
+    <p>
+
+    </p>
+  </blockquote>
+
+  <h2>View the Data</h2>
+    <div class="container">
+
+        <div class="row">
+            <div class="col-md-12">
+                <div class="panel panel-info">
+                    <div class="panel-body">
+                        <div id="bubbleChart" class="chart-holder"></div>
+                    </div>
+                </div>
+
+            </div><!-- /span12 -->
+
+        </div><!-- /row -->
+
+    </div><!-- /container -->
+
+    <p>
+      The <code>below chart</code> shows the data </p>
+
+    <div class="container">
+
+        <div class="row">
+            <div class="col-md-12">
+                <div class="panel panel-info">
+                    <div class="panel-body">
+                        <div id="liveChart" class="chart-holder"></div>
+                    </div>
+                </div>
+
+            </div><!-- /span12 -->
+
+        </div><!-- /row -->
+
+    </div><!-- /container -->
+ 
+</article>
+
+<aside>
+  <h3>Browse</h3>
+  <ul>
+    <li><a href="http://www.wsl.ch/info/organisation/fpo/lwf/index_EN">LWF Home Page</a></li>
+  </ul>
+  <h3>Download here</h3>
+  <ul>
+    <li><a href="https://playframework.com/documentation/@version/PlayConsole">Click here to download the Live Data</a></li>
+    <li><a href="https://playframework.com/documentation/@version/IDE">Click here to download Data for one year</a></li>
+    <li><a href="https://playframework.com/download#examples">Click here to download the full data</a>
+  </ul>
+  
+</aside>
+
+</div>
+}

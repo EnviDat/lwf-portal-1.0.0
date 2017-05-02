@@ -1,0 +1,135 @@
+@import play.api.libs.json.Json
+@(message: String, style: String = "scala", allstations: Seq[models.domain.Station], meteoDataFor14Days: Seq[models.domain.MeteoDataRow], allMessArts: Seq[models.domain.MessArtRow])
+
+@defining(play.core.PlayVersion.current) { version =>
+
+<link rel="stylesheet" media="screen" href="/@@documentation/resources/style/main.css">
+<script src="@routes.Assets.versioned("javascripts/meteoData.js")" type="text/javascript"></script>
+<script src="@routes.Assets.versioned("javascripts/meteocharts.js")" type="text/javascript"></script>
+
+
+<section id="top">
+  <div class="wrapper">
+    <h1><a href="https://playframework.com/documentation/@version/Home">@message</a></h1>
+  </div>
+</section>
+
+<div id="content" class="wrapper doc">
+<article>
+
+  <h1>Welcome to LWF Portal</h1>
+
+  <p>
+      Long-term Forest Ecosystem Research Programme LWF
+      LWF Logo
+      Swiss forests are exposed to changing environmental conditions. The consequences of air pollution and climate change on the forest are important questions which the Long-term Forest Ecosystem Research Programme LWF seeks to answer. Within a legally set framework of the LWF programme, Switzerland partakes in international research programmes such as The International Co-operative Programme on Assessment and Monitoring of Air Pollution Effects on Forests ICP-Forests or the Long-Term Ecosystem Research.
+  </p>
+
+  <blockquote>
+    <p>
+        Meteo Data Visualization
+    </p>
+  </blockquote>
+    <div class="container">
+
+        <div class="row">
+            <div class="col-md-4">
+                <div class="panel panel-info">
+                    <div class="panel-body">
+                        <label>Station</label>
+                        <select name="stations" id="selectStationId" class="col-md-4">
+                            @for(station <- allstations) {
+                            <option value="@station.stationNumber"> @{station.stationsName}</option>
+                            }
+                        </select>
+
+                    </div>
+                </div>
+
+            </div><!-- /span12 -->
+
+        </div><!-- /row -->
+
+    </div><!-- /container -->
+
+    <br>
+
+    <div class="container">
+
+        <div class="row">
+            <div class="col-md-12">
+                <div class="panel panel-info">
+                    <div class="panel-body">
+                        <label>Measurement Parameter</label>
+                        <select name="meteoDataFor14Day" id="messArtSelected" class="col-md-4">
+                            @for(messArt <- allMessArts) {
+                            <option value="@messArt.code"> @{messArt.text}</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+
+            </div><!-- /span12 -->
+
+        </div><!-- /row -->
+
+    </div><!-- /container -->
+
+    <div class="container">
+
+        <div class="row">
+            <div class="col-md-12">
+                <div class="panel panel-info">
+                    <br>
+                    <br>
+
+                    <a id="getcsvAnchor" href="#">Download the Data</a>
+                    <br>
+                    <div class="panel-body">
+                        <div id="bubbleChart" class="chart-holder"></div>
+                    </div>
+                </div>
+
+            </div><!-- /span12 -->
+
+        </div><!-- /row -->
+
+    </div><!-- /container -->
+
+    <p>
+      The <code>below chart</code> shows the data </p>
+
+    <div class="container">
+
+        <div class="row">
+            <div class="col-md-12">
+                <div class="panel panel-info">
+                    <div class="panel-body">
+                        <div id="liveChart" class="chart-holder"></div>
+                    </div>
+                </div>
+
+            </div><!-- /span12 -->
+
+        </div><!-- /row -->
+
+    </div><!-- /container -->
+ 
+</article>
+
+<aside>
+  <h3>Browse</h3>
+  <ul>
+    <li><a href="http://www.wsl.ch/info/organisation/fpo/lwf/index_EN">LWF Home Page</a></li>
+  </ul>
+  <h3>Download here</h3>
+  <ul>
+    <li><a id="getcsvAnchor" href="#">Click here to download the Data from chart</a></li>
+    <li><a href="https://playframework.com/documentation/@version/IDE">Click here to download Data for one year</a></li>
+    <li><a href="https://playframework.com/download#examples">Click here to download the full data</a>
+  </ul>
+  
+</aside>
+
+</div>
+}

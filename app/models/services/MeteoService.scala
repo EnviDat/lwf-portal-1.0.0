@@ -1,0 +1,69 @@
+package models.services
+
+import javax.inject.Inject
+
+import anorm.SqlParser.get
+import models.domain.{MeteoDataRow, Station}
+import models.repositories.MeteoDataRepository
+import play.api.libs.json._
+import play.api.libs.functional.syntax._
+
+
+class MeteoService @Inject()(meteoRepo: MeteoDataRepository) {
+  implicit val stationReader: Reads[Station] = (
+    (__ \ "statnr").read[Int] and
+      (__ \ "beschr").read[String]
+    ) (Station.apply _)
+
+
+  implicit val documentWriter: Writes[Station] = (
+    (__ \ "statnr").write[Int] and
+      (__ \ "beschr").write[String]
+    ) (unlift(Station.unapply))
+
+  implicit val meteoDataReader: Reads[MeteoDataRow] = (
+    (__ \ "statnr").read[Int] and
+      (__ \ "messart").read[Int] and
+      (__ \ "konfnr").read[Int] and
+      (__ \ "messdate").read[String] and
+      (__ \ "messwert").read[BigDecimal] and
+      (__ \ "einfdate").read[String] and
+      (__ \ "ursprung").read[Int] and
+      (__ \ "manval").readNullable[Int]
+    ) (MeteoDataRow.apply _)
+
+  implicit val meteoDataWriter: Writes[MeteoDataRow] = (
+    (__ \ "statnr").write[Int] and
+      (__ \ "messart").write[Int] and
+      (__ \ "konfnr").write[Int] and
+      (__ \ "messdate").write[String] and
+      (__ \ "messwert").write[BigDecimal] and
+      (__ \ "einfdate").write[String] and
+      (__ \ "ursprung").write[Int] and
+      (__ \ "manval").writeNullable[Int]
+    ) (unlift(MeteoDataRow.unapply _))
+
+  def getAllStations =  meteoRepo.findAllStations().toSeq/*{
+    val listOfStations = meteoRepo.findAll()
+    listOfStations.map(Json.toJson(_)).toString()
+  }*/
+
+  def getAllMessWerts = meteoRepo.findAllMessArts()
+
+  def getMeteoData(id: Int): Seq[JsValue] =
+    {
+      val listOfStations = meteoRepo.findMeteoDataForStation(id)
+      listOfStations.map(Json.toJson(_))
+    }
+
+  def getAllMeteoData: Seq[MeteoDataRow] = meteoRepo.findMeteoDataForStation(192)
+
+  def getLatestMeteoData(stationNr: Int, messArtNr: Int): Seq[JsValue] =
+  {
+    val listOfStations = meteoRepo.findLastestMeteoDataForStation(stationNr, messArtNr)
+    listOfStations.map(Json.toJson(_))
+  }
+  def getLatestMeteoDataToWrite(stationNr: Int, messArtNr: Int) = meteoRepo.findLastestMeteoDataForStation(stationNr, messArtNr)
+
+
+}
