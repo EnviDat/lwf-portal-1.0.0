@@ -38,8 +38,8 @@ class HomeController @Inject()(meteoService: MeteoService) extends Controller {
 
   def index = Action {
     val allstations = meteoService.getAllStations
-    val allMessArts = meteoService.getAllMessWerts
-    val meteoDataFor14Days = meteoService.getAllMeteoData
+    val allMessArts = meteoService.getAllMessArts
+    val meteoDataFor14Days = meteoService.getAllMeteoData(192)
 
     Ok(views.html.index("WSL", allstations, meteoDataFor14Days, allMessArts))
   }
@@ -58,7 +58,7 @@ class HomeController @Inject()(meteoService: MeteoService) extends Controller {
   }
 
   def listMeteoData = Action {
-    val meteoDataFor14Days = meteoService.getAllMeteoData
+    val meteoDataFor14Days = meteoService.getAllMeteoData(192)
     val allstations = meteoService.getAllStations
     Ok(views.html.dashboard.render("stations", "", allstations, meteoDataFor14Days, Seq()))
 

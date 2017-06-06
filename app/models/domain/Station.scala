@@ -370,13 +370,14 @@ case object UnknownPeriode extends Periode {
 
 
 
-case class Station (stationNumber: Int, stationsName: String)
+case class Station (stationNumber: Int, stationsName: String, kurzNameCode: Option[Int])
 
 object Station {
   val parser: RowParser[Station] = {
     get[Int]("STATNR") ~
-      get[String]("BESCHR") map {
-      case stationNumber~stationsName => Station(stationNumber, stationsName)
+      get[String]("BESCHR") ~
+        get[Option[Int]]("STAT_GRUPPE") map {
+          case stationNumber~stationsName~kurzNameCode => Station(stationNumber, stationsName, kurzNameCode)
     }
   }
 }
@@ -420,27 +421,45 @@ object MessArt {
   }
 }
 
+case class MeteoStationConfiguration(station: Int,
+                                     messArt: Int,
+                                     configNumber: Int,
+                                     sensorNr: Option[Int],
+                                     validFromDate: String,
+                                     validToDate: Option[String],
+                                     folgeNr: Option[Int],
+                                     clusterNr: Option[Int]
+                                    )
+
 object MeteoStationConfiguration {
   val parser: RowParser[MeteoStationConfiguration] = {
-    Station.parser ~
-      MessArt.parser  ~
-        get[Int]("CONFNR") ~
-          Sensor.parser ~
-            get[LocalDate]("ABDATUM") ~
-              get[LocalDate] ("BISDATUM") map {
-                case station~messart~confnr~sensor~abdatum~bisdatum => MeteoStationConfiguration(station,messart,confnr,sensor,abdatum,bisdatum)
+    get[Int]("STATNR") ~
+      get[Int]("MESSART") ~
+        get[Int]("KONFNR") ~
+          get[Option[Int]]("SENSORNR") ~
+            get[String]("ABDATUM") ~
+              get[Option[String]]("BISDATUM") ~
+                get[Option[Int]]("FOLGENR") ~
+                  get[Option[Int]]("CLNR") map {
+                    case station ~ messart ~ confnr ~ sensor ~ abdatum ~ bisdatum ~ folgnr ~ clnr => MeteoStationConfiguration(station, messart, confnr, sensor, abdatum, bisdatum, folgnr, clnr)
     }
   }
 }
 
 
-case class MeteoStationConfiguration(station: Station,
-                                     messart: MessArt,
-                                     configNumber: Number,
-                                     sensor: Sensor,
-                                     validFromDate: LocalDate,
-                                     validToDate: LocalDate)
 
+
+
+case class StationAbbrevations(code: Int, kurzName: String, fullName: String)
+object StationAbbrevation {
+  val parser: RowParser[StationAbbrevations] = {
+    get[Int]("CODE") ~
+      get[String]("KURZ_BESCHR") ~
+      get[String]("BESCHREIBUNG") map {
+      case code ~ kurzName ~ name => StationAbbrevations(code, kurzName, name)
+    }
+  }
+}
 
 
 case class MeteoData(station: Station,
@@ -453,7 +472,22 @@ case class MeteoData(station: Station,
                      status: ManualValidation
                     )
 
-case class MessArtRow(code: Int,text: String, period: Int)
+
+case class MessArtRow(code: Int,text: String, period: Int, messProjNr: Option[Int], pDauer: Int)
+object MessArtRow {
+  val parser: RowParser[MessArtRow] = {
+    get[Int]("CODE") ~
+      get[String]("TEXT") ~
+      get[Int]("PERIODE") ~
+      get[Option[Int]]("MPROJNR") ~
+      get[Int]("PDAUER") map {
+      case code ~ text ~ periode ~ messprojnr ~ pDauer => {
+        MessArtRow(code, text, periode, messprojnr, pDauer)
+      }
+    }
+  }
+}
+
 case class MeteoDataRow(station: Int,
                         messArt: Int,
                         configuration: Int,
@@ -463,22 +497,7 @@ case class MeteoDataRow(station: Int,
                         methodApplied: Int,
                         status: Option[Int])
 
-object MessArtRow {
-  val parser: RowParser[MessArtRow] = {
-    get[Int]("CODE") ~
-      get[String]("TEXT") ~
-      get[Int]("PERIODE") map {
-      case code ~ text ~ periode => {
-        MessArtRow(code, text, periode)
-      }
-    }
-  }
-}
-
-
-
 object MeteoDataRow {
-  import models.util.AnormExtension._
   val parser: RowParser[MeteoDataRow] = {
     get[Int]("STATNR") ~
       get[Int]("MESSART") ~
@@ -490,8 +509,6 @@ object MeteoDataRow {
       get[Option[Int]]("MANVAL") map {
       case station ~ messart ~ config ~ messdate ~ messwert ~ einfdat ~ ursprung ~ status =>
         {
-          //val mdate = LocalDateTime.parse(messdate)
-          //print(mdate)
           MeteoDataRow(station, messart, config, messdate, messwert, einfdat, ursprung, status)
         }
     }

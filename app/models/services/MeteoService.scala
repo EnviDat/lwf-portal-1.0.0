@@ -12,13 +12,16 @@ import play.api.libs.functional.syntax._
 class MeteoService @Inject()(meteoRepo: MeteoDataRepository) {
   implicit val stationReader: Reads[Station] = (
     (__ \ "statnr").read[Int] and
-      (__ \ "beschr").read[String]
+      (__ \ "beschr").read[String] and
+        (__ \ "statgruppe").readNullable[Int]
+
     ) (Station.apply _)
 
 
   implicit val documentWriter: Writes[Station] = (
     (__ \ "statnr").write[Int] and
-      (__ \ "beschr").write[String]
+      (__ \ "beschr").write[String] and
+        (__ \ "statgruppe").writeNullable[Int]
     ) (unlift(Station.unapply))
 
   implicit val meteoDataReader: Reads[MeteoDataRow] = (
@@ -48,7 +51,7 @@ class MeteoService @Inject()(meteoRepo: MeteoDataRepository) {
     listOfStations.map(Json.toJson(_)).toString()
   }*/
 
-  def getAllMessWerts = meteoRepo.findAllMessArts()
+  def getAllMessArts = meteoRepo.findAllMessArts()
 
   def getMeteoData(id: Int): Seq[JsValue] =
     {
@@ -56,14 +59,18 @@ class MeteoService @Inject()(meteoRepo: MeteoDataRepository) {
       listOfStations.map(Json.toJson(_))
     }
 
-  def getAllMeteoData: Seq[MeteoDataRow] = meteoRepo.findMeteoDataForStation(192)
+  def getAllMeteoData(id: Int): Seq[MeteoDataRow] = meteoRepo.findMeteoDataForStation(id)
 
   def getLatestMeteoData(stationNr: Int, messArtNr: Int): Seq[JsValue] =
   {
     val listOfStations = meteoRepo.findLastestMeteoDataForStation(stationNr, messArtNr)
     listOfStations.map(Json.toJson(_))
   }
-  def getLatestMeteoDataToWrite(stationNr: Int, messArtNr: Int) = meteoRepo.findLastestMeteoDataForStation(stationNr, messArtNr)
+  def getLatestMeteoDataToWrite(stationNr: Int) = meteoRepo.findLastMeteoDataForStation(stationNr)
+
+  def getStatKonfForStation() = meteoRepo.getAllStatKonf()
+
+  def getAllStatAbbrevations() = meteoRepo.getStationAbbrevations()
 
 
 }

@@ -4,7 +4,7 @@ import javax.inject.{Inject, Singleton}
 
 import akka.actor.Actor
 import models.domain.MeteoDataRow
-import models.services.MeteoService
+import models.services.{FileGeneratorFromDB, MeteoService}
 import models.util.FtpConnector
 import parsers.DatFileWriter
 import play.api.{Configuration, Logger}
@@ -26,7 +26,7 @@ class SchedulerActor @Inject()(configuration: Configuration, meteoService: Meteo
     val passwordFtp = configuration.getString("ftpPasswordMeteo").get
     val pathForFtpFolder = configuration.getString("ftpPathForOutgoingFile").get
     val ftpUrlMeteo = configuration.getString("ftpUrlMeteo").get
-    FtpConnector.readFileFromFtp(userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo)
+//    FtpConnector.readFileFromFtp(userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo)
      //DatFileReader.readFilesFromFile(pathInputFile)
     Logger.debug(pathInputFile)
   }
@@ -38,9 +38,11 @@ class SchedulerActor @Inject()(configuration: Configuration, meteoService: Meteo
     val pathForFtpFolder = configuration.getString("ftpPathForOutgoingFile").get
     val ftpUrlMeteo = configuration.getString("ftpUrlMeteo").get
     Logger.debug("writing data task running")
-    val dataToWrite: Seq[MeteoDataRow] = meteoService.getLatestMeteoDataToWrite(192,1)
-    FtpConnector.writeFileToFtp(dataToWrite: Seq[MeteoDataRow], userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo)
-    DatFileWriter.writeDataIntoFile(pathInputFile, dataToWrite)
+    val fileInfos = new FileGeneratorFromDB(meteoService).generateFiles()
+    fileInfos.toList.map( ff => {
+        FtpConnector.writeFileToFtp(ff.meteoData, userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo, ff.fileName)
+      //DatFileWriter.writeDataIntoFile(pathInputFile + ff.fileName, ff.meteoData)
+    })
     Logger.debug("writing data task finished")
   }
 }
