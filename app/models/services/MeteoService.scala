@@ -1,10 +1,12 @@
 package models.services
 
+import java.time.LocalDateTime
 import javax.inject.Inject
 
 import anorm.SqlParser.get
 import models.domain.{MeteoDataRow, Station}
 import models.repositories.MeteoDataRepository
+import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 
@@ -66,11 +68,17 @@ class MeteoService @Inject()(meteoRepo: MeteoDataRepository) {
     val listOfStations = meteoRepo.findLastestMeteoDataForStation(stationNr, messArtNr)
     listOfStations.map(Json.toJson(_))
   }
-  def getLatestMeteoDataToWrite(stationNr: Int) = meteoRepo.findLastMeteoDataForStation(stationNr)
+  def getLatestMeteoDataToWrite(stationNr: Int, fromTime: Option[DateTime]) = meteoRepo.findLastMeteoDataForStation(stationNr, fromTime)
 
   def getStatKonfForStation() = meteoRepo.getAllStatKonf()
 
   def getAllStatAbbrevations() = meteoRepo.getStationAbbrevations()
+
+  def getLastDataSentInformation() = meteoRepo.findLogInfoForDataSentToOrganisations()
+
+  def getAllOrganisations() = meteoRepo.findAllOrganisations()
+
+  def getAllOrganisationStationsMappings() = meteoRepo.findOrganisationStationMapping()
 
 
 }

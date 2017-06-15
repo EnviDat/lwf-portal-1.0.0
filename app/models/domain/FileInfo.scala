@@ -1,3 +1,49 @@
 package models.domain
 
+import java.time.LocalDateTime
+
+import anorm.SqlParser.get
+import anorm.{RowParser, ~}
+import models.util.StringToDate
+import org.joda.time.DateTime
+
 case class FileInfo(fileName: String, header: String, meteoData: List[String])
+
+case class Organisation(organisationNr: Int, prefix: String, organisationName: String)
+object Organisations {
+  val parser: RowParser[Organisation] = {
+    get[Int]("ORGNR") ~
+      get[String]("~KURZNAME") ~
+      get[String]("ORGNAME") map {
+      case orgNr ~ prefix ~ orgName => Organisation(orgNr, prefix, orgName)
+    }
+  }
+}
+
+case class MeteoDataFileLogInfo(stationNr: Int, orgNr: Int, fileName: String, fromDate: DateTime, toDate: DateTime, numberOfLinesSent: Int)
+
+object MeteoDataFileLogsInfo {
+  val parser: RowParser[MeteoDataFileLogInfo] = {
+    get[Int]("STATNR")~
+      get[Int]("ORGNR") ~
+        get[String]("DATEINAME")~
+          get[String]("VONDATUM") ~
+            get[String]("BISDATUM") ~
+              get[Int]("REIHEGESENDET") map {
+              case stationnr~orgNr~dateiName~vonDatum~bisDatum~numberOfLines => MeteoDataFileLogInfo(stationnr,orgNr,dateiName,StringToDate.stringToDateConvert(vonDatum),StringToDate.stringToDateConvert(bisDatum), numberOfLines)
+            }
+  }
+}
+
+case class OrganisationStationMapping(statNr: Int, orgNr: Int, shouldSendData: Int, fileFormat: String)
+
+object OrganisationStationMappingS {
+  val parser: RowParser[OrganisationStationMapping] = {
+    get[Int]("STATNR") ~
+      get[Int]("ORGNR") ~
+        get[Int]("SENDDATEN") ~
+          get[String]("DATEIFORMAT")map {
+          case stationnr ~ orgNr ~ sendDaten ~fileFormat => OrganisationStationMapping(stationnr, orgNr, sendDaten, fileFormat)
+    }
+  }
+}

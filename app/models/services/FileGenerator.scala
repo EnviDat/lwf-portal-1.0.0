@@ -16,47 +16,68 @@ trait FileGenerator {
 }
 
 class FileGeneratorFromDB(meteoService: MeteoService) extends FileGenerator {
-  val listOfCR1000Stations = List(121,120,189,191,35,69,192,122)
 
-  val allStations = meteoService.getAllStations
+  val allOrganisations: Seq[Organisation] = meteoService.getAllOrganisations()
+  Logger.debug(s"All Organisations where data should be sent out: ${allStations.size}")
+
+  val allStations: Seq[Station] = meteoService.getAllStations
   Logger.debug(s"Number of stations found: ${allStations.size}")
   Logger.debug(s"Name of stations found are: ${allStations.map(_.stationsName).mkString(",")}")
-  val allAbbrevations = meteoService.getAllStatAbbrevations()
+
+  val allAbbrevations: List[StationAbbrevations] = meteoService.getAllStatAbbrevations()
   Logger.debug(s"Abbrevations for the stations found are: ${allAbbrevations.map(_.kurzName).mkString(",")}")
-  val allMessWerts = meteoService.getAllMessArts.filter(mw => {
+
+  val allMessWerts: Seq[MessArtRow] = meteoService.getAllMessArts.filter(mw => {
     val mProjNr = mw.messProjNr.getOrElse(0)
-    (mProjNr == 1 || mProjNr == 4 || mProjNr == 5)
+    mProjNr == 1 || mProjNr == 4 || mProjNr == 5
   })
   Logger.debug(s"All Messwerts for the stations found are: ${allMessWerts.mkString(",")}")
 
-  val allStationConfigs = meteoService.getStatKonfForStation().filter(sk => allMessWerts.map(_.code).contains( sk.messArt))
+  val lastTimeDataSentForStations: Seq[MeteoDataFileLogInfo] = meteoService.getLastDataSentInformation()
+  Logger.debug(s"All information about the station when data was sent out: ${lastTimeDataSentForStations.mkString(",")}")
+
+  val stationOrganisationMappings: Seq[OrganisationStationMapping] = meteoService.getAllOrganisationStationsMappings()
+  Logger.debug(s"All information about the organisation station configuration: ${stationOrganisationMappings.mkString(",")}")
+
+
+  val listOfCR1000Stations: Seq[Int] = stationOrganisationMappings.filter(_.fileFormat == "CR1000").map(_.statNr)
+
+  val allStationConfigs: List[MeteoStationConfiguration] = meteoService.getStatKonfForStation().filter(sk => allMessWerts.map(_.code).contains( sk.messArt))
   Logger.debug(s"All Configurations Loaded for the stations found are: ${allStationConfigs.mkString(",")}")
 
   val cr10Header = """Messperiode[Minuten], StationsID, ProjektID, Jahr[JJJJ], Tag im Jahr[TTT], Uhrzeit(UTC)[HH24]"""
   val toa5Header = """Datum[JJJJ.MM.DD HH24:MI:SS"], RecordID, StationsID, ProjektID, Messperiode[Minuten],"""
 
-  def generateFiles() = {
+  def generateFiles(): List[FileInfo] = {
+    allOrganisations.flatMap(o => {
 
-    val allFilesDataGenerated = allStations.map(station => {
-      val confForStation = allStationConfigs.filter(_.station == station.stationNumber)
-      Logger.debug(s"All config Loaded for the station: ${confForStation.mkString(",")}")
+      val configuredStationsForOrganisation = stationOrganisationMappings.filter(so => so.orgNr == o.organisationNr && so.shouldSendData == 1)
 
-      val folgeNrForStations = getFolegNrForStations(confForStation)
-      val trailor = folgeNrForStations.map(fl => allMessWerts.find(_.code == fl._2).map(_.text))
-      Logger.debug(s"header line of the file is: ${cr10Header + trailor.map(_.getOrElse(",")).mkString("\n")}")
+      val stationNumbersConfigured = configuredStationsForOrganisation.map(_.statNr)
+      val allFilesDataGenerated = allStations.filter(st => stationNumbersConfigured.contains(st.stationNumber)).map(station => {
 
-      val mapFolgNrToMessArt: Seq[(Int, Int)] = getMappingOfFolgeNrToMessArt(confForStation)
-      Logger.debug(s"mapping folgenr to messart details are: ${mapFolgNrToMessArt.mkString("\n")}")
 
-      val abbrevationForStation = allAbbrevations.find(_.code == station.kurzNameCode.getOrElse("NoMatch"))
-      Logger.debug(s"All abbrevations for the station: ${abbrevationForStation.mkString(",")}")
+        val confForStation = allStationConfigs.filter(_.station == station.stationNumber)
+        Logger.debug(s"All config Loaded for the station: ${confForStation.mkString(",")}")
 
-      val sortedMessArts: mutable.Map[Int, mutable.LinkedHashSet[MessArtRow]] = allMessWerts.filter(ma => confForStation.map(_.messArt).contains(ma.code)).groupByOrdered(_.pDauer)
+        val folgeNrForStations = getFolegNrForStations(confForStation)
+        val trailor = folgeNrForStations.map(fl => allMessWerts.find(_.code == fl._2).map(_.text))
+        Logger.debug(s"header line of the file is: ${cr10Header + trailor.map(_.getOrElse(",")).mkString("\n")}")
 
-      Logger.debug(s"All messarts for the station: ${sortedMessArts.mkString(",")}")
+        val mapFolgNrToMessArt: Seq[(Int, Int)] = getMappingOfFolgeNrToMessArt(confForStation)
+        Logger.debug(s"mapping folgenr to messart details are: ${mapFolgNrToMessArt.mkString("\n")}")
 
-      val latestMeteoDataForStation = meteoService.getLatestMeteoDataToWrite(station.stationNumber).sortBy(_.dateReceived)
-      //Logger.debug(s"All data Loaded for the station: ${latestMeteoDataForStation.mkString(",")}")
+        val abbrevationForStation = allAbbrevations.find(_.code == station.kurzNameCode.getOrElse("NoMatch"))
+        Logger.debug(s"All abbrevations for the station: ${abbrevationForStation.mkString(",")}")
+
+        val sortedMessArts: mutable.Map[Int, mutable.LinkedHashSet[MessArtRow]] = allMessWerts.filter(ma => confForStation.map(_.messArt).contains(ma.code)).groupByOrdered(_.pDauer)
+
+        Logger.debug(s"All messarts for the station: ${sortedMessArts.mkString(",")}")
+
+        val lastDateTimeDataWasSent = lastTimeDataSentForStations.find(lt => lt.orgNr == o.organisationNr && lt.stationNr== station.stationNumber).map(_.toDate)
+
+        val latestMeteoDataForStation = meteoService.getLatestMeteoDataToWrite(station.stationNumber, lastDateTimeDataWasSent).sortBy(_.dateReceived)
+        //Logger.debug(s"All data Loaded for the station: ${latestMeteoDataForStation.mkString(",")}")
 
       val groupMeteoDataDauer = sortedMessArts.map(smt => {
         (smt._1,
@@ -76,7 +97,7 @@ class FileGeneratorFromDB(meteoService: MeteoService) extends FileGenerator {
           else
             toa5Header + trailor.map(_.getOrElse(",")).mkString(",")
 
-      val fileName = abbrevationForStation.map(_.kurzName +
+      val fileName = abbrevationForStation.map(ab =>  o.prefix + ab.kurzName +
       new SimpleDateFormat("yyyyMMddHHmmss").format(new  java.util.Date()))
 
       val cr1000DataSortedDuration = valuesToBeWrittenForCR1000.toList
@@ -86,13 +107,14 @@ class FileGeneratorFromDB(meteoService: MeteoService) extends FileGenerator {
       val dataLinesToBeWrittenCR10 = cr10DataSortedDuration.map(dl => dl.duration + "," + dl.stationId + "," + dl.projectId + "," + dl.year + "," + dl.yearToDate + "," + dl.time + "," + dl.measurementValues.mkString(","))
 
       Logger.debug(s"Data lines to be written for CR1000 stations: ${dataLinesToBeWrittenCR1000.mkString("\n")}")
-      Logger.debug(s"Data lines to be written for CR1000 stations: ${dataLinesToBeWrittenCR10.mkString("\n")}")
+      Logger.debug(s"Data lines to be written for CR10x stations: ${dataLinesToBeWrittenCR10.mkString("\n")}")
 
       FileInfo(fileName.getOrElse("NewFile").toString, dataHeaderToBeWritten, dataLinesToBeWrittenCR1000 ::: dataLinesToBeWrittenCR10)
     })
     Logger.debug(s"All data and file names for the stations are: ${allFilesDataGenerated.filter(_.meteoData.nonEmpty).toList.mkString("\n")}")
 
     allFilesDataGenerated.filter(_.meteoData.nonEmpty).toList
+    }).toList
   }
 
   private def getCR10FormattedDataLines(groupMeteoDataDauer: mutable.Map[Int, mutable.Map[DateTime, mutable.LinkedHashSet[MeteoDataRow]]],
