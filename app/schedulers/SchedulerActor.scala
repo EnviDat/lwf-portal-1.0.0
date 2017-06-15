@@ -38,11 +38,15 @@ class SchedulerActor @Inject()(configuration: Configuration, meteoService: Meteo
     val pathForFtpFolder = configuration.getString("ftpPathForOutgoingFile").get
     val ftpUrlMeteo = configuration.getString("ftpUrlMeteo").get
     Logger.debug("writing data task running")
-    val fileInfos = new FileGeneratorFromDB(meteoService).generateFiles()
+    val fileGenerator =  new FileGeneratorFromDB(meteoService)
+    val fileInfos = fileGenerator.generateFiles()
+    val logInformation = fileInfos.map(_.logInformation)
     fileInfos.toList.map( ff => {
         FtpConnector.writeFileToFtp(ff.meteoData, userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo, ff.fileName)
       //DatFileWriter.writeDataIntoFile(pathInputFile + ff.fileName, ff.meteoData)
     })
+    fileGenerator.saveLogInfoOfGeneratedFiles(logInformation)
+
     Logger.debug("writing data task finished")
   }
 }

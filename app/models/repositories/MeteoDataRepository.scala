@@ -43,8 +43,9 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
 
     def findLastMeteoDataForStation(stationNumber: Int, fromTime: Option[DateTime]): Seq[MeteoDataRow] = db.withConnection { implicit connection => {
       fromTime.map(dt =>
-      SQL("select statnr, messart, konfnr, to_char(messdat, 'DD-MM-YYYY HH24:MI:SS') as messdate, messwert, to_char(einfdat, 'DD-MM-YYYY HH24:MI:SS') as einfdate,ursprung,manval from meteodat where STATNR = {stationNr} and messdat > {fromDate} order by messdat DESC").on("stationNr" -> stationNumber, "fromDate" -> dt.toString()).as(MeteoDataRow.parser *)
-    }.getOrElse(Seq())
+        SQL("select statnr, messart, konfnr, to_char(messdat, 'DD-MM-YYYY HH24:MI:SS') as messdate, messwert, to_char(einfdat, 'DD-MM-YYYY HH24:MI:SS') as einfdate,ursprung,manval from meteodat where STATNR = {stationNr} and messdat > {fromDate} order by messdat DESC").on("stationNr" -> stationNumber, "fromDate" -> dt.toString()).as(MeteoDataRow.parser *)
+      ).getOrElse(Seq())
+     }
     }
 
     def insertLogInfoForFilesSent(meteoLogInfo: List[MeteoDataFileLogInfo]) = {

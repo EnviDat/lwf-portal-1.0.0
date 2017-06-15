@@ -2,7 +2,7 @@ package models.services
 
 import models.domain._
 import models.util.GroupByOrderedImplicit._
-import models.util.StringToDate
+import models.util.{Joda, StringToDate}
 import org.joda.time.DateTime
 import play.api.Logger
 import java.text.SimpleDateFormat
@@ -11,11 +11,15 @@ import scala.collection.mutable
 
 
 
+
+
 trait FileGenerator {
   def generateFiles(): List[FileInfo]
+  def saveLogInfoOfGeneratedFiles(fileInfos: List[FileInfo])
 }
 
 class FileGeneratorFromDB(meteoService: MeteoService) extends FileGenerator {
+
 
   val allOrganisations: Seq[Organisation] = meteoService.getAllOrganisations()
   Logger.debug(s"All Organisations where data should be sent out: ${allStations.size}")
@@ -49,6 +53,7 @@ class FileGeneratorFromDB(meteoService: MeteoService) extends FileGenerator {
   val toa5Header = """Datum[JJJJ.MM.DD HH24:MI:SS"], RecordID, StationsID, ProjektID, Messperiode[Minuten],"""
 
   def generateFiles(): List[FileInfo] = {
+
     allOrganisations.flatMap(o => {
 
       val configuredStationsForOrganisation = stationOrganisationMappings.filter(so => so.orgNr == o.organisationNr && so.shouldSendData == 1)
@@ -74,9 +79,10 @@ class FileGeneratorFromDB(meteoService: MeteoService) extends FileGenerator {
 
         Logger.debug(s"All messarts for the station: ${sortedMessArts.mkString(",")}")
 
-        val lastDateTimeDataWasSent = lastTimeDataSentForStations.find(lt => lt.orgNr == o.organisationNr && lt.stationNr== station.stationNumber).map(_.toDate)
+        val lastDateTimeDataWasSent: Option[DateTime] = lastTimeDataSentForStations.find(lt => lt.orgNr == o.organisationNr && lt.stationNr== station.stationNumber).map(_.toDate)
 
         val latestMeteoDataForStation = meteoService.getLatestMeteoDataToWrite(station.stationNumber, lastDateTimeDataWasSent).sortBy(_.dateReceived)
+
         //Logger.debug(s"All data Loaded for the station: ${latestMeteoDataForStation.mkString(",")}")
 
       val groupMeteoDataDauer = sortedMessArts.map(smt => {
@@ -108,8 +114,13 @@ class FileGeneratorFromDB(meteoService: MeteoService) extends FileGenerator {
 
       Logger.debug(s"Data lines to be written for CR1000 stations: ${dataLinesToBeWrittenCR1000.mkString("\n")}")
       Logger.debug(s"Data lines to be written for CR10x stations: ${dataLinesToBeWrittenCR10.mkString("\n")}")
+        import Joda._
+        val allDates = latestMeteoDataForStation.map(lt => StringToDate.stringToDateConvert(lt.dateReceived)).sorted
+        val numberOfLinesSent = latestMeteoDataForStation.size
 
-      FileInfo(fileName.getOrElse("NewFile").toString, dataHeaderToBeWritten, dataLinesToBeWrittenCR1000 ::: dataLinesToBeWrittenCR10)
+        val logInformation = MeteoDataFileLogInfo(station.stationNumber, o.organisationNr, fileName.getOrElse("NewFile"), allDates.min.toDateTime(), allDates.max.toDateTime(),numberOfLinesSent)
+
+      FileInfo(fileName.getOrElse("NewFile").toString, dataHeaderToBeWritten, dataLinesToBeWrittenCR1000 ::: dataLinesToBeWrittenCR10, logInformation)
     })
     Logger.debug(s"All data and file names for the stations are: ${allFilesDataGenerated.filter(_.meteoData.nonEmpty).toList.mkString("\n")}")
 
@@ -170,4 +181,10 @@ class FileGeneratorFromDB(meteoService: MeteoService) extends FileGenerator {
   private def getFolegNrForStations(confForStation: List[MeteoStationConfiguration]) = {
     confForStation.map(conf => (conf.folgeNr, conf.messArt)).sortBy(c => c._1)
   }
+
+  def saveLogInfoOfGeneratedFiles(fileInfos: List[MeteoDataFileLogInfo]) = {
+    Logger.debug(s"saving log information in database: ${fileInfos.mkString(",")}")
+    meteoService.insertLogInformation(fileInfos)
+  }
+
 }

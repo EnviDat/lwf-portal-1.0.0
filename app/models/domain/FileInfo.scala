@@ -7,7 +7,7 @@ import anorm.{RowParser, ~}
 import models.util.StringToDate
 import org.joda.time.DateTime
 
-case class FileInfo(fileName: String, header: String, meteoData: List[String])
+case class FileInfo(fileName: String, header: String, meteoData: List[String], logInformation: MeteoDataFileLogInfo)
 
 case class Organisation(organisationNr: Int, prefix: String, organisationName: String)
 object Organisations {
