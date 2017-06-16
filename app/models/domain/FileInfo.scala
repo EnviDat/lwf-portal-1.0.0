@@ -1,7 +1,5 @@
 package models.domain
 
-import java.time.LocalDateTime
-
 import anorm.SqlParser.get
 import anorm.{RowParser, ~}
 import models.util.StringToDate
@@ -13,7 +11,7 @@ case class Organisation(organisationNr: Int, prefix: String, organisationName: S
 object Organisations {
   val parser: RowParser[Organisation] = {
     get[Int]("ORGNR") ~
-      get[String]("~KURZNAME") ~
+      get[String]("KURZNAME") ~
       get[String]("ORGNAME") map {
       case orgNr ~ prefix ~ orgName => Organisation(orgNr, prefix, orgName)
     }

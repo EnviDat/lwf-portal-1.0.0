@@ -4,7 +4,9 @@ import javax.inject.Inject
 
 import anorm._
 import models.domain.{MeteoDataFileLogInfo, _}
+import models.util.StringToDate
 import org.joda.time.DateTime
+import play.api.Logger
 import play.api.db.DBApi
 
 
@@ -20,7 +22,7 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
      SQL("SELECT * FROM ORG").as(Organisations.parser *)}
 
     def findLogInfoForDataSentToOrganisations(): Seq[MeteoDataFileLogInfo] = db.withConnection{ implicit connection =>
-      SQL("SELECT * FROM METEODATALOGINFO ORDER BY STATNR,BISDATUM DESC").as(MeteoDataFileLogsInfo.parser *)}
+      SQL("SELECT statnr,orgnr,to_char(vondatum, 'DD-MM-YYYY HH24:MI:SS') as vondatum, to_char(bisdatum, 'DD-MM-YYYY HH24:MI:SS') as bisdatum,dateiname,reihegesendet FROM METEODATALOGINFO ORDER BY STATNR,BISDATUM DESC").as(MeteoDataFileLogsInfo.parser *)}
 
     def findOrganisationStationMapping() : Seq[OrganisationStationMapping] = db.withConnection{ implicit connection =>
       SQL("SELECT * FROM STATORGKONF ORDER BY ORGNR,STATNR").as(OrganisationStationMappingS.parser *)}
@@ -42,28 +44,32 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
       SQL("select statnr, messart, konfnr, to_char(messdat, 'DD-MM-YYYY HH24:MI:SS') as messdate, messwert, to_char(einfdat, 'DD-MM-YYYY HH24:MI:SS') as einfdate,ursprung,manval from meteodat where STATNR = {stationNr} and messart = {messartNr} and messdat > (sysdate-0.25) -(30/1440) order by messdat DESC").on("stationNr" -> stationNumber, "messartNr" -> messartNr).as(MeteoDataRow.parser *)}
 
     def findLastMeteoDataForStation(stationNumber: Int, fromTime: Option[DateTime]): Seq[MeteoDataRow] = db.withConnection { implicit connection => {
-      fromTime.map(dt =>
-        SQL("select statnr, messart, konfnr, to_char(messdat, 'DD-MM-YYYY HH24:MI:SS') as messdate, messwert, to_char(einfdat, 'DD-MM-YYYY HH24:MI:SS') as einfdate,ursprung,manval from meteodat where STATNR = {stationNr} and messdat > {fromDate} order by messdat DESC").on("stationNr" -> stationNumber, "fromDate" -> dt.toString()).as(MeteoDataRow.parser *)
-      ).getOrElse(Seq())
+      fromTime.map(dt => {
+        Logger.debug(s"from Date is:${StringToDate.oracleDateFormat.print(dt)} ")
+        SQL("select statnr, messart, konfnr, to_char(messdat, 'DD-MM-YYYY HH24:MI:SS') as messdate, messwert, to_char(einfdat, 'DD-MM-YYYY HH24:MI:SS') as einfdate,ursprung,manval from meteodat where STATNR = {stationNr} and messdat >  to_date({fromDate}, 'DD.MM.YYYY HH24:MI:SS') order by messdat DESC").on("stationNr" -> stationNumber, "fromDate" -> StringToDate.oracleDateFormat.print(dt)).as(MeteoDataRow.parser *)
+      }).getOrElse(Seq())
+
      }
     }
 
-    def insertLogInfoForFilesSent(meteoLogInfo: List[MeteoDataFileLogInfo]) = {
+  def insertLogInfoForFilesSent(meteoLogInfo: List[MeteoDataFileLogInfo]) = {
 
-      db.withConnection { implicit c => {
-        meteoLogInfo.map(ml => {
-          SQL("INSERT INTO METEODATALOGINFO values({statnr}, {orgnr}, {vondatum}, {bisdatum}, {dateiname}, {reihegesendet})")
-            .on("statnr" -> ml.stationNr,
-              "orgnr" -> ml.orgNr,
-              "vondatum" -> ml.fromDate.toString(),
-              "bisdatum" -> ml.toDate.toString(),
-              "dateiname" -> ml.fileName,
-              "reihegesendet" -> ml.numberOfLinesSent
-            )
-            .executeInsert()
-        })
-      }
-      }
-    }
+    val conn = db.getConnection()
+    val stmt = conn.createStatement()
+
+    meteoLogInfo.map(ml => {
+
+      val fromDate = s"to_date('${StringToDate.oracleDateFormat.print(ml.fromDate)}', 'DD.MM.YYYY HH24:MI:SS')"
+      val toDate = s"to_date('${StringToDate.oracleDateFormat.print(ml.toDate)}', 'DD.MM.YYYY HH24:MI:SS')"
+
+      val insertStatement = s"INSERT INTO METEODATALOGINFO (statnr, orgnr, vondatum, bisdatum, dateiname, reihegesendet) values(" +
+        s"${ml.stationNr}, ${ml.orgNr}, $fromDate, $toDate, '${ml.fileName}', ${ml.numberOfLinesSent})"
+      Logger.debug(s"statement to be executed: ${insertStatement}")
+
+      stmt.executeUpdate(insertStatement)
+    })
+    stmt.close()
+
+  }
 
 }

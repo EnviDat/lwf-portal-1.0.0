@@ -6,6 +6,7 @@ import org.joda.time.DateTime
 object StringToDate {
 
   import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
+  val oracleDateFormat: DateTimeFormatter = DateTimeFormat.forPattern("dd.MM.yyyy HH:mm:ss")
 
   val formatDate: DateTimeFormatter = DateTimeFormat.forPattern("dd-MM-yyyy HH:mm:ss")
 

@@ -15,14 +15,13 @@ import scala.collection.mutable
 
 trait FileGenerator {
   def generateFiles(): List[FileInfo]
-  def saveLogInfoOfGeneratedFiles(fileInfos: List[FileInfo])
+  def saveLogInfoOfGeneratedFiles(fileInfos: List[MeteoDataFileLogInfo])
 }
 
 class FileGeneratorFromDB(meteoService: MeteoService) extends FileGenerator {
 
-
   val allOrganisations: Seq[Organisation] = meteoService.getAllOrganisations()
-  Logger.debug(s"All Organisations where data should be sent out: ${allStations.size}")
+  Logger.debug(s"All Organisations where data should be sent out: ${allOrganisations.size}")
 
   val allStations: Seq[Station] = meteoService.getAllStations
   Logger.debug(s"Number of stations found: ${allStations.size}")
@@ -117,8 +116,11 @@ class FileGeneratorFromDB(meteoService: MeteoService) extends FileGenerator {
         import Joda._
         val allDates = latestMeteoDataForStation.map(lt => StringToDate.stringToDateConvert(lt.dateReceived)).sorted
         val numberOfLinesSent = latestMeteoDataForStation.size
+        val fromDate = if(allDates.nonEmpty) allDates.min.toDateTime() else new DateTime()
 
-        val logInformation = MeteoDataFileLogInfo(station.stationNumber, o.organisationNr, fileName.getOrElse("NewFile"), allDates.min.toDateTime(), allDates.max.toDateTime(),numberOfLinesSent)
+        val toDate = if(allDates.nonEmpty) allDates.max.toDateTime() else new DateTime()
+
+        val logInformation = MeteoDataFileLogInfo(station.stationNumber, o.organisationNr, fileName.getOrElse("NewFile"), fromDate, toDate,numberOfLinesSent)
 
       FileInfo(fileName.getOrElse("NewFile").toString, dataHeaderToBeWritten, dataLinesToBeWrittenCR1000 ::: dataLinesToBeWrittenCR10, logInformation)
     })
