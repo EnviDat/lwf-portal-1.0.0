@@ -45,7 +45,7 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
 
     def findLastMeteoDataForStation(stationNumber: Int, fromTime: Option[DateTime]): Seq[MeteoDataRow] = db.withConnection { implicit connection => {
       fromTime.map(dt => {
-        Logger.debug(s"from Date is:${StringToDate.oracleDateFormat.print(dt)} ")
+        Logger.info(s"from Date is:${StringToDate.oracleDateFormat.print(dt)} ")
         SQL("select statnr, messart, konfnr, to_char(messdat, 'DD-MM-YYYY HH24:MI:SS') as messdate, messwert, to_char(einfdat, 'DD-MM-YYYY HH24:MI:SS') as einfdate,ursprung,manval from meteodat where STATNR = {stationNr} and messdat >  to_date({fromDate}, 'DD.MM.YYYY HH24:MI:SS') order by messdat DESC").on("stationNr" -> stationNumber, "fromDate" -> StringToDate.oracleDateFormat.print(dt)).as(MeteoDataRow.parser *)
       }).getOrElse(Seq())
 
@@ -64,7 +64,7 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
 
       val insertStatement = s"INSERT INTO METEODATALOGINFO (statnr, orgnr, vondatum, bisdatum, dateiname, reihegesendet) values(" +
         s"${ml.stationNr}, ${ml.orgNr}, $fromDate, $toDate, '${ml.fileName}', ${ml.numberOfLinesSent})"
-      Logger.debug(s"statement to be executed: ${insertStatement}")
+      Logger.info(s"statement to be executed: ${insertStatement}")
 
       stmt.executeUpdate(insertStatement)
     })

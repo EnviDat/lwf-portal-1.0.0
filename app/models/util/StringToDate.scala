@@ -1,5 +1,7 @@
 package models.util
 
+import java.text.SimpleDateFormat
+
 import org.joda.time.DateTime
 
 
@@ -17,7 +19,10 @@ object StringToDate {
 
   }
 
+}
 
+object CurrentSysDateInSimpleFormat {
+  def dateNow = new SimpleDateFormat("yyyyMMddHHmmss").format(new  java.util.Date())
 }
 object Joda {
   implicit def dateTimeOrdering: Ordering[DateTime] = Ordering.fromLessThan(_ isBefore _)

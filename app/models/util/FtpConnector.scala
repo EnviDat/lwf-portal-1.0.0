@@ -3,8 +3,7 @@ package models.util
 import java.io.{File, FileInputStream, PrintWriter}
 
 import com.jcraft.jsch.{ChannelSftp, JSch, JSchException, SftpException}
-import models.domain.MeteoDataRow
-
+import org.apache.commons.io.FileUtils
 
 object FtpConnector {
   @throws[Exception]
@@ -46,9 +45,17 @@ object FtpConnector {
       val pw = new PrintWriter(file)
       pw.write(dataToWrite.mkString("\n"))
       pw.close
-      sftpChannel.put(new FileInputStream(file), file.getName)
+      val newFileStream: FileInputStream = new FileInputStream(file)
+      sftpChannel.put(newFileStream, file.getName)
       sftpChannel.exit()
       session.disconnect()
+      val srcFile = FileUtils.getFile(fileName + ".csv")
+      val destFile = FileUtils.getFile("generatedFiles/" + fileName + ".csv")
+      newFileStream.close()
+      if(!destFile.exists()) {
+        FileUtils.moveFileToDirectory(srcFile, destFile, true)
+        srcFile.delete()
+      }
     } catch {
       case e: JSchException =>
         e.printStackTrace()
