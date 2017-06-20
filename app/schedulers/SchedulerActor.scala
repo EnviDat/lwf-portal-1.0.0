@@ -14,30 +14,31 @@ import scala.concurrent.ExecutionContext
 class SchedulerActor @Inject()(configuration: Configuration, meteoService: MeteoService)(implicit ec: ExecutionContext) extends Actor {
   override def receive: Receive = {
     case "writeFile" =>  {
-      writeFile()
-      readFile()
+      val config = ConfigurationLoader.loadConfiguration(configuration)
+      writeFile(config)
+      //readFile(config)
     }
   }
 
-  def readFile(): Unit ={
-    val pathInputFile = configuration.getString("pathInputFile").get
-    val userNameFtp = configuration.getString("fptUserNameMeteo").get
-    val passwordFtp = configuration.getString("ftpPasswordMeteo").get
-    val pathForFtpFolder = configuration.getString("ftpPathForOutgoingFile").get
-    val ftpUrlMeteo = configuration.getString("ftpUrlMeteo").get
+  def readFile(config: ConfigurationMeteoSchweizData): Unit ={
+    val pathInputFile = config.pathInputFile
+    val userNameFtp = config.userNameFtp
+    val passwordFtp = config.passwordFtp
+    val pathForFtpFolder = config.pathForFtpFolder
+    val ftpUrlMeteo = config.ftpUrlMeteo
 //    FtpConnector.readFileFromFtp(userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo)
      //DatFileReader.readFilesFromFile(pathInputFile)
     Logger.info(pathInputFile)
   }
 
-  def writeFile(): Unit ={
-    val pathInputFile = configuration.getString("pathInputFile").get
-    val userNameFtp = configuration.getString("fptUserNameMeteo").get
-    val passwordFtp = configuration.getString("ftpPasswordMeteo").get
-    val pathForFtpFolder = configuration.getString("ftpPathForOutgoingFile").get
-    val ftpUrlMeteo = configuration.getString("ftpUrlMeteo").get
-    val pathForLocalWrittenFiles = configuration.getString("pathForLocalWrittenFiles").get
-    val pathForArchivedFiles = configuration.getString("pathForArchivedFiles").get
+  def writeFile(config: ConfigurationMeteoSchweizData): Unit ={
+    val pathInputFile = config.pathInputFile
+    val userNameFtp = config.userNameFtp
+    val passwordFtp = config.passwordFtp
+    val pathForFtpFolder = config.pathForFtpFolder
+    val ftpUrlMeteo = config.ftpUrlMeteo
+    val pathForLocalWrittenFiles = config.pathForLocalWrittenFiles
+    val pathForArchivedFiles = config.pathForArchivedFiles
     Logger.info("writing data task running")
     val fileGenerator =  new FileGeneratorFromDB(meteoService)
     val fileInfos = fileGenerator.generateFiles()

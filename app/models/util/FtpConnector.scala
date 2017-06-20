@@ -4,8 +4,10 @@ import java.io.{File, FileInputStream, PrintWriter}
 
 import com.jcraft.jsch.{ChannelSftp, JSch, JSchException, SftpException}
 import org.apache.commons.io.FileUtils
+import schedulers.ConfigurationLoader
 
 object FtpConnector {
+
   @throws[Exception]
   def readFileFromFtp(userNameFtp: String, passwordFtp: String, pathForFtpFolder: String, ftpUrlMeteo: String): Unit = {
     val jsch = new JSch

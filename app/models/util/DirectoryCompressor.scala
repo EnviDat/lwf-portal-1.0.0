@@ -26,19 +26,20 @@ object DirectoryCompressor {
     val fileList = FileUtils.listFiles(source, null, true)
 
     import scala.collection.JavaConversions._
-    for (file <- fileList) {
-      val entryName = getEntryName(source, file)
-      val entry = new ZipArchiveEntry(entryName)
-      archive.putArchiveEntry(entry)
-      val input = new BufferedInputStream(new FileInputStream(file))
-      IOUtils.copy(input, archive)
-      input.close()
-      archive.closeArchiveEntry()
+    if (fileList.size() > 1) {
+      for (file <- fileList) {
+        val entryName = getEntryName(source, file)
+        val entry = new ZipArchiveEntry(entryName)
+        archive.putArchiveEntry(entry)
+        val input = new BufferedInputStream(new FileInputStream(file))
+        IOUtils.copy(input, archive)
+        input.close()
+        archive.closeArchiveEntry()
+      }
+
+      archive.finish()
+      archiveStream.close()
     }
-
-    archive.finish()
-    archiveStream.close()
   }
-
 
 }
