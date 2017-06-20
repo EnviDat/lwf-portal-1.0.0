@@ -2,7 +2,7 @@ import com.google.inject.AbstractModule
 import java.time.Clock
 
 import play.api.libs.concurrent.AkkaGuiceSupport
-import schedulers.{Scheduler, SchedulerActor}
+import schedulers.{LogsSchedulerActor, Scheduler, SchedulerActor}
 import services.{ApplicationTimer, AtomicCounter, Counter}
 
 /**
@@ -26,6 +26,7 @@ class Module extends AbstractModule with AkkaGuiceSupport {
     // Set AtomicCounter as the implementation for Counter.
     bind(classOf[Counter]).to(classOf[AtomicCounter])
     bindActor[SchedulerActor]("scheduler-actor")
+    bindActor[LogsSchedulerActor]("log-scheduler-actor")
     bind(classOf[Scheduler]).asEagerSingleton()
   }
 

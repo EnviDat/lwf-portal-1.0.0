@@ -32,7 +32,7 @@ object FtpConnector {
   }
 
   @throws[Exception]
-  def writeFileToFtp(dataToWrite: List[String],userNameFtp: String, passwordFtp: String, pathForFtpFolder: String, ftpUrlMeteo: String, fileName: String): Unit = {
+  def writeFileToFtp(dataToWrite: List[String],userNameFtp: String, passwordFtp: String, pathForFtpFolder: String, ftpUrlMeteo: String, fileName: String, pathForLocalWrittenFiles: String): Unit = {
     val jsch = new JSch
     try {
       val session = jsch.getSession(userNameFtp, ftpUrlMeteo, 22)
@@ -52,7 +52,7 @@ object FtpConnector {
       sftpChannel.exit()
       session.disconnect()
       val srcFile = FileUtils.getFile(fileName + ".csv")
-      val destFile = FileUtils.getFile("generatedFiles/" + fileName + ".csv")
+      val destFile = FileUtils.getFile(pathForLocalWrittenFiles + fileName + ".csv")
       newFileStream.close()
       if(!destFile.exists()) {
         FileUtils.moveFileToDirectory(srcFile, destFile, true)

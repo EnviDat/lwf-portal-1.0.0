@@ -36,10 +36,11 @@ object DirectoryCompressor {
         input.close()
         archive.closeArchiveEntry()
       }
-
-      archive.finish()
-      archiveStream.close()
     }
+
+    archive.finish()
+    archiveStream.close()
+
   }
 
 }

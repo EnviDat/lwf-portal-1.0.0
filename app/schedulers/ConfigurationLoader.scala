@@ -2,7 +2,7 @@ package schedulers
 
 import play.api.Configuration
 
-case class ConfigurationMeteoSchweizData(frequency: Int, userNameFtp: String, passwordFtp: String, pathForFtpFolder: String, ftpUrlMeteo: String, pathInputFile: String, pathForLocalWrittenFiles: String, pathForArchivedFiles: String)
+case class ConfigurationMeteoSchweizData(frequency: Int, userNameFtp: String, passwordFtp: String, pathForFtpFolder: String, ftpUrlMeteo: String, pathInputFile: String, pathForLocalWrittenFiles: String, pathForArchivedFiles: String, pathForLogFiles: String, pathForArchivedLogFiles: String)
 object ConfigurationLoader {
 
 
@@ -15,7 +15,9 @@ object ConfigurationLoader {
     val pathInputFile = configuration.getString("pathInputFile").get
     val pathForLocalWrittenFiles = configuration.getString("pathForLocalWrittenFiles").get
     val pathForArchivedFiles = configuration.getString("pathForArchivedFiles").get
-    ConfigurationMeteoSchweizData(frequency, userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo, pathInputFile, pathForLocalWrittenFiles, pathForArchivedFiles)
+    val pathForLogFiles = configuration.getString("pathForLogFiles").get
+    val pathForArchivedLogFiles = configuration.getString("pathForArchivedLogFiles").get
+    ConfigurationMeteoSchweizData(frequency, userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo, pathInputFile, pathForLocalWrittenFiles, pathForArchivedFiles, pathForLogFiles, pathForArchivedLogFiles)
   }
 
 }
