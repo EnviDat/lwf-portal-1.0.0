@@ -69,6 +69,7 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
       stmt.executeUpdate(insertStatement)
     })
     stmt.close()
+    conn.close()
 
   }
 

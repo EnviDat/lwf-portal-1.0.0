@@ -44,14 +44,17 @@ class SchedulerActor @Inject()(configuration: Configuration, meteoService: Meteo
     val fileInfos = fileGenerator.generateFiles()
     val logInformation = fileInfos.map(_.logInformation)
     fileInfos.toList.map( ff => {
-
         FtpConnector.writeFileToFtp( ff.header :: ff.meteoData, userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo, ff.fileName, pathForLocalWrittenFiles)
     })
     val source = new File(pathForLocalWrittenFiles)
-    val destination = new File(pathForArchivedFiles + "generatedFiles" + CurrentSysDateInSimpleFormat.dateNow + ".zip")
+    Logger.info(s"Source for local written files pathForLocalWrittenFiles : ${source.getName} ")
+    val destination = new File(pathForArchivedFiles + "generatedArchivedFiles" + CurrentSysDateInSimpleFormat.dateNow + ".zip")
+    Logger.info(s"Destination for archive files ${pathForArchivedFiles + "generatedArchivedFiles" + CurrentSysDateInSimpleFormat.dateNow + ".zip"} ")
+
     destination.setReadable(true, false)
     destination.setExecutable(true, false)
     destination.setWritable(true, false)
+    Logger.info("Compressing the files generated")
     DirectoryCompressor.compressAllFiles(source,destination)
     //ZipUtil.packEntry(new File("\\csvFiles\\"), new File("\\csvFiles" + ".zip"))
     fileGenerator.saveLogInfoOfGeneratedFiles(logInformation)

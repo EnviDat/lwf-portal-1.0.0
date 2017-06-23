@@ -6,6 +6,7 @@ import org.apache.commons.compress.archivers.ArchiveStreamFactory
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry
 import org.apache.commons.compress.utils.IOUtils
 import org.apache.commons.io.FileUtils
+import play.api.Logger
 
 
 object DirectoryCompressor {
@@ -26,19 +27,20 @@ object DirectoryCompressor {
     val fileList = FileUtils.listFiles(source, null, true)
 
     import scala.collection.JavaConversions._
-    if (fileList.size() > 1) {
       for (file <- fileList) {
         val entryName = getEntryName(source, file)
         val entry = new ZipArchiveEntry(entryName)
         archive.putArchiveEntry(entry)
         val input = new BufferedInputStream(new FileInputStream(file))
+        Logger.info(s" source: ${source.getAbsolutePath.toString} ${destination.getAbsolutePath}: created zip entry :${entryName}")
         IOUtils.copy(input, archive)
         input.close()
         archive.closeArchiveEntry()
       }
-    }
+
 
     archive.finish()
+    archive.close()
     archiveStream.close()
 
   }
