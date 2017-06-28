@@ -68,7 +68,7 @@ class FileGeneratorFromDB(meteoService: MeteoService) extends FileGenerator {
         val mapFolgNrToMessArt: Seq[(Int, Int)] = getMappingOfFolgeNrToMessArt(confForStation)
         Logger.info(s"mapping folgenr to messart details are: ${mapFolgNrToMessArt.mkString("\n")}")
 
-        val abbrevationForStation = allAbbrevations.find(_.code == station.kurzNameCode.getOrElse("NoMatch"))
+        val abbrevationForStation = allAbbrevations.find(_.code == station.stationNumber)
         Logger.info(s"All abbrevations for the station: ${abbrevationForStation.mkString(",")}")
 
         val sortedMessArts: mutable.Map[Int, mutable.LinkedHashSet[MessArtRow]] = allMessWerts.filter(ma => confForStation.map(_.messArt).contains(ma.code)).groupByOrdered(_.pDauer)
@@ -95,11 +95,11 @@ class FileGeneratorFromDB(meteoService: MeteoService) extends FileGenerator {
 
       val dataHeaderToBeWritten =
         if(listOfCR1000Stations.contains(station.stationNumber))
-            cr10Header + trailor.map(_.getOrElse(",")).mkString(",")
-          else
             toa5Header + trailor.map(_.getOrElse(",")).mkString(",")
+          else
+            cr10Header + trailor.map(_.getOrElse(",")).mkString(",")
 
-      val fileName = abbrevationForStation.map(ab =>  o.prefix + ab.kurzName + timeStampForFileName)
+      val fileName = abbrevationForStation.map(ab =>  ab.kurzName + timeStampForFileName)
 
       val cr1000DataSortedDuration = valuesToBeWrittenForCR1000.toList
       val cr10DataSortedDuration = valuesToBeWrittenForCR10.toList.sortBy(_.duration)
@@ -118,7 +118,7 @@ class FileGeneratorFromDB(meteoService: MeteoService) extends FileGenerator {
 
         val logInformation = MeteoDataFileLogInfo(station.stationNumber, o.organisationNr, fileName.getOrElse("NewFile"), fromDate, toDate,numberOfLinesSent)
 
-      FileInfo(fileName.getOrElse("NewFile").toString, dataHeaderToBeWritten, dataLinesToBeWrittenCR1000 ::: dataLinesToBeWrittenCR10, logInformation)
+      FileInfo(fileName.getOrElse(o.prefix + station.stationsName + timeStampForFileName).toString, dataHeaderToBeWritten, dataLinesToBeWrittenCR1000 ::: dataLinesToBeWrittenCR10, logInformation)
     })
     Logger.info(s"All data and file names for the stations are: ${allFilesDataGenerated.filter(_.meteoData.nonEmpty).toList.mkString("\n")}")
 

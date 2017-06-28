@@ -56,11 +56,9 @@ object FtpConnector {
       val srcFile = FileUtils.getFile(fileName + ".csv")
       val destFile = FileUtils.getFile(pathForLocalWrittenFiles)
       newFileStream.close()
-      if(!destFile.exists()) {
-        FileUtils.moveFileToDirectory(srcFile, destFile, false)
+        FileUtils.moveFileToDirectory(srcFile, destFile, true)
         Logger.info(s"file is moved from source: ${srcFile.getAbsolutePath} destination:${destFile.getAbsolutePath} ")
         srcFile.delete()
-      }
     } catch {
       case e: JSchException =>
         e.printStackTrace()
