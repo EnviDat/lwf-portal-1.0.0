@@ -116,7 +116,7 @@ class FileGeneratorFromDB(meteoService: MeteoService) extends FileGenerator {
 
         val toDate = if(allDates.nonEmpty) allDates.max.toDateTime() else new DateTime()
 
-        val logInformation = MeteoDataFileLogInfo(station.stationNumber, o.organisationNr, fileName.getOrElse("NewFile"), fromDate, toDate,numberOfLinesSent)
+        val logInformation = MeteoDataFileLogInfo(station.stationNumber, o.organisationNr, fileName.getOrElse(o.prefix + station.stationsName + timeStampForFileName).toString, fromDate, toDate,numberOfLinesSent)
 
       FileInfo(fileName.getOrElse(o.prefix + station.stationsName + timeStampForFileName).toString, dataHeaderToBeWritten, dataLinesToBeWrittenCR1000 ::: dataLinesToBeWrittenCR10, logInformation)
     })
