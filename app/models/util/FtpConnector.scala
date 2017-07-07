@@ -44,7 +44,7 @@ object FtpConnector {
       channel.connect()
       val sftpChannel = channel.asInstanceOf[ChannelSftp]
       sftpChannel.cd(pathForFtpFolder)
-      val file = new File(fileName + ".csv")
+      val file = new File(fileName + ".DAT")
       Logger.info(s"Empty file before moving to ftp: ${file.getAbsolutePath}")
       val pw = new PrintWriter(file)
       pw.write(dataToWrite.mkString("\n"))
@@ -53,7 +53,7 @@ object FtpConnector {
       sftpChannel.put(newFileStream, file.getName)
       sftpChannel.exit()
       session.disconnect()
-      val srcFile = FileUtils.getFile(fileName + ".csv")
+      val srcFile = FileUtils.getFile(fileName + ".DAT")
       val destFile = FileUtils.getFile(pathForLocalWrittenFiles)
       newFileStream.close()
         FileUtils.moveFileToDirectory(srcFile, destFile, true)

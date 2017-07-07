@@ -31,7 +31,7 @@ class LogsSchedulerActor @Inject()(configuration: Configuration)(implicit ec: Ex
 
     if(source.exists()) {
       Logger.info(s"Source File Exist: ${source.getAbsolutePath}")
-      if (source.getName.endsWith(".gz") || source.getName.endsWith(".csv")) {
+      if (source.getName.endsWith(".gz") || source.getName.endsWith(".DAT")) {
         val diff = new java.util.Date().getTime - source.lastModified
         Logger.info(s"Time difference from now and File modified : ${source.getAbsolutePath}")
         if (diff > 1 * 24 * 60 * 60 * 1000) {
