@@ -18,7 +18,7 @@ object Organisations {
   }
 }
 
-case class MeteoDataFileLogInfo(stationNr: Int, orgNr: Int, fileName: String, fromDate: DateTime, toDate: DateTime, numberOfLinesSent: Int)
+case class MeteoDataFileLogInfo(stationNr: Int, orgNr: Int, fileName: String, fromDate: DateTime, toDate: DateTime, numberOfLinesSent: Int, lastEinfDat: DateTime)
 
 object MeteoDataFileLogsInfo {
   val parser: RowParser[MeteoDataFileLogInfo] = {
@@ -27,8 +27,9 @@ object MeteoDataFileLogsInfo {
         get[String]("DATEINAME")~
           get[String]("VONDATUM") ~
             get[String]("BISDATUM") ~
-              get[Int]("REIHEGESENDET") map {
-              case stationnr~orgNr~dateiName~vonDatum~bisDatum~numberOfLines => MeteoDataFileLogInfo(stationnr,orgNr,dateiName,StringToDate.stringToDateConvert(vonDatum),StringToDate.stringToDateConvert(bisDatum), numberOfLines)
+              get[Int]("REIHEGESENDET") ~
+                get[String]("LASTEINFDAT") map {
+              case stationnr~orgNr~dateiName~vonDatum~bisDatum~numberOfLines~lastEinfDat => MeteoDataFileLogInfo(stationnr,orgNr,dateiName,StringToDate.stringToDateConvert(vonDatum),StringToDate.stringToDateConvert(bisDatum), numberOfLines,StringToDate.stringToDateConvert(lastEinfDat))
             }
   }
 }

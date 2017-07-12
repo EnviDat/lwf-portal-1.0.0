@@ -65,8 +65,7 @@ class FileGeneratorFromDB(meteoService: MeteoService) extends FileGenerator {
         val trailor = folgeNrForStations.map(fl => allMessWerts.find(_.code == fl._2).map(_.text))
         Logger.info(s"header line of the file is: ${cr10Header + trailor.map(_.getOrElse(",")).mkString("\n")}")
 
-        val mapFolgNrToMessArt: Seq[(Int, Int)] = getMappingOfFolgeNrToMessArt(confForStation)
-        Logger.info(s"mapping folgenr to messart details are: ${mapFolgNrToMessArt.mkString("\n")}")
+
 
         val abbrevationForStation = allAbbrevations.find(_.code == station.stationNumber)
         Logger.info(s"All abbrevations for the station: ${abbrevationForStation.mkString(",")}")
@@ -74,6 +73,9 @@ class FileGeneratorFromDB(meteoService: MeteoService) extends FileGenerator {
         val sortedMessArts: mutable.Map[Int, mutable.LinkedHashSet[MessArtRow]] = allMessWerts.filter(ma => confForStation.map(_.messArt).contains(ma.code)).groupByOrdered(_.pDauer)
 
         Logger.info(s"All messarts for the station: ${sortedMessArts.mkString(",")}")
+
+        val mapFolgNrToMessArt: Seq[(Int, Int)] = getMappingOfFolgeNrToMessArt(confForStation)
+        Logger.info(s"mapping folgenr to messart details are: ${mapFolgNrToMessArt.mkString("\n")}")
 
         val lastDateTimeDataWasSent: Option[DateTime] = lastTimeDataSentForStations.find(lt => lt.orgNr == o.organisationNr && lt.stationNr== station.stationNumber).map(_.toDate)
 
@@ -112,11 +114,16 @@ class FileGeneratorFromDB(meteoService: MeteoService) extends FileGenerator {
         import Joda._
         val allDates = latestMeteoDataForStation.map(lt => StringToDate.stringToDateConvert(lt.dateReceived)).sorted
         val numberOfLinesSent = latestMeteoDataForStation.size
+        val allEinfDates = latestMeteoDataForStation.map(lt => StringToDate.stringToDateConvert(lt.dateOfInsertion)).sorted
+
         val fromDate = if(allDates.nonEmpty) allDates.min.toDateTime() else new DateTime()
 
         val toDate = if(allDates.nonEmpty) allDates.max.toDateTime() else new DateTime()
 
-        val logInformation = MeteoDataFileLogInfo(station.stationNumber, o.organisationNr, fileName.getOrElse(o.prefix + station.stationsName + timeStampForFileName).toString, fromDate, toDate,numberOfLinesSent)
+        val einfDate = if(allDates.nonEmpty) allEinfDates.max.toDateTime() else new DateTime()
+
+
+        val logInformation = MeteoDataFileLogInfo(station.stationNumber, o.organisationNr, fileName.getOrElse(o.prefix + station.stationsName + timeStampForFileName).toString, fromDate, toDate,numberOfLinesSent, einfDate)
 
       FileInfo(fileName.getOrElse(o.prefix + station.stationsName + timeStampForFileName).toString, dataHeaderToBeWritten, dataLinesToBeWrittenCR1000 ::: dataLinesToBeWrittenCR10, logInformation)
     })
@@ -132,26 +139,58 @@ class FileGeneratorFromDB(meteoService: MeteoService) extends FileGenerator {
                                         mapFolgNrToMessArt: Seq[(Int, Int)]) = {
     groupMeteoDataDauer.map(dataLine => {
       dataLine._2.map(dt => {
+        Logger.info(s"dataline: ${dt._1}${dt._2.mkString(",")}")
         val messArtFound = sortedMessArts.find(_._1 == dataLine._1)
+        Logger.info(s"messartfound: ${messArtFound.mkString(",")}")
+
+        val messartsForOnlyThisDuration = sortedMessArts.filter(_._1 == dataLine._1).values.flatMap(_.map(_.code)).toList
+        val numberOfMessarts = messartsForOnlyThisDuration.size
+
+        val folgNrToBeUsed = mapFolgNrToMessArt.filter(fNr => messartsForOnlyThisDuration.contains(fNr._2))
+        val folgenrset = folgNrToBeUsed.map(_._1).toSet
+        Logger.info(s"folgenumber to be used: ${folgNrToBeUsed}")
+
+        val listSeq  = 1 to folgNrToBeUsed.map(_._1).max
+        val missingFolgNr = listSeq.toSet.diff(folgenrset).toList.sorted
+        Logger.info(s"missing folgenumber: ${missingFolgNr}")
+
         val messArtRowFound = messArtFound.flatMap(_._2.find(_.pDauer == dataLine._1).flatMap(_.messProjNr))
+        Logger.info(s"messartrowfound: ${messArtRowFound}")
+
         val messProjNr: Int = messArtRowFound.getOrElse(0)
         val year = dt._1.year().get()
         val yearToDate = dt._1.dayOfYear().get()
         val hourOfDay = dt._1.getHourOfDay
         val minOfTheHour = dt._1.getMinuteOfHour
-        val measurementValues = mapFolgNrToMessArt.flatMap(fl => {
-          dt._2.find(m => m.messArt == fl._2).map(_.valueOfMeasurement)
+        val measurementValues = folgNrToBeUsed.map(fl => {
+          val valuetowrite = dt._2.find(m => m.messArt == fl._2).map(_.valueOfMeasurement).getOrElse(BigDecimal(-999))
+          valuetowrite
         }).toList
-          Cr10LinesFormat(dataLine._1,
+        var listVar = measurementValues
+        Logger.info(s"list initial ${listVar}")
+        val listWithMissingValues = missingFolgNr.map(mNr => {
+          val newListWithInsertion = insert(listVar, mNr-1, BigDecimal(-999)) //this magic number is to represent that this data was not read
+           listVar = newListWithInsertion
+          newListWithInsertion
+        })
+       val finalMeasurementValues =  if(missingFolgNr.isEmpty) measurementValues else if(listWithMissingValues.size > 1) listWithMissingValues.last else  listWithMissingValues.flatten
+
+        Logger.info(s"fimalMeasurementValues: ${finalMeasurementValues}")
+
+        Cr10LinesFormat(dataLine._1,
             station.stationNumber,
             messProjNr,
             year,
             yearToDate,
             f"${hourOfDay}%02d" + f"${minOfTheHour}%02d",
-            measurementValues
+            finalMeasurementValues
             )
       })
     })
+  }
+
+  def insert[BigDecimal](list: List[BigDecimal], i: Int, value: BigDecimal) :List[BigDecimal]= {
+    list.take(i) ++ List(value) ++ list.drop(i)
   }
 
   private def getTR05FormattedDataLines(groupMeteoDataDauer: mutable.Map[Int, mutable.Map[DateTime, mutable.LinkedHashSet[MeteoDataRow]]],
@@ -176,7 +215,7 @@ class FileGeneratorFromDB(meteoService: MeteoService) extends FileGenerator {
     confForStation.map(cf => (cf.folgeNr.getOrElse(-1), cf.messArt)).sortBy(_._1)
   }
 
-  private def getFolegNrForStations(confForStation: List[MeteoStationConfiguration]) = {
+  private def getFolegNrForStations(confForStation: List[MeteoStationConfiguration]): Seq[(Option[Int], Int)] = {
     confForStation.map(conf => (conf.folgeNr, conf.messArt)).sortBy(c => c._1)
   }
 
