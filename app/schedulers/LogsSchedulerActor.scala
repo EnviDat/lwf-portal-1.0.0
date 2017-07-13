@@ -15,7 +15,7 @@ class LogsSchedulerActor @Inject()(configuration: Configuration)(implicit ec: Ex
   override def receive: Receive = {
     case "moveArchiveLog" =>  {
       val config = ConfigurationLoader.loadConfiguration(configuration)
-      moveLogFile(config)
+      //moveLogFile(config)
       //readFile(config)
     }
   }
