@@ -65,8 +65,6 @@ class FileGeneratorFromDB(meteoService: MeteoService) extends FileGenerator {
         val trailor = folgeNrForStations.map(fl => allMessWerts.find(_.code == fl._2).map(_.text))
         Logger.info(s"header line of the file is: ${cr10Header + trailor.map(_.getOrElse(",")).mkString("\n")}")
 
-
-
         val abbrevationForStation = allAbbrevations.find(_.code == station.stationNumber)
         Logger.info(s"All abbrevations for the station: ${abbrevationForStation.mkString(",")}")
 
