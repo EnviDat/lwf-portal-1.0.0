@@ -1,8 +1,12 @@
 package models.util
 
 import java.text.SimpleDateFormat
+import java.time.format.DateTimeParseException
 
+import models.domain
+import models.domain.{CR1000Exceptions, CR1000InvalidDateException}
 import org.joda.time.DateTime
+import play.Logger
 
 
 object StringToDate {
@@ -12,10 +16,28 @@ object StringToDate {
 
   val formatDate: DateTimeFormatter = DateTimeFormat.forPattern("dd-MM-yyyy HH:mm:ss")
 
+  val formatCR1000Date: DateTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss")
+
+
   def stringToDateConvert(date: String) = {
-    //Logger.debug(s"input Date: $date")
-    //Logger.debug(s"converted Date: ${formatDate.parseDateTime(date)}")
-    formatDate.parseDateTime(date)
+      formatDate.parseDateTime(date)
+  }
+
+  def stringToDateConvertCR1000(date: String): Option[CR1000Exceptions] = {
+    try {
+    formatCR1000Date.parseDateTime(date)
+    None
+    }
+    catch {
+      case err: DateTimeParseException => {
+        Logger.info(s" is not parsable${date} errror Message: ${err}")
+        Some(CR1000InvalidDateException(4, s"date is not parsable${date} errror Message: ${err}"))
+      }
+      case err: IllegalArgumentException => {
+        Logger.info(s" is not parsable${date} errror Message: ${err}")
+        Some(CR1000InvalidDateException(4, s"date is not parsable${date} errror Message: ${err}"))
+      }
+    }
 
   }
 

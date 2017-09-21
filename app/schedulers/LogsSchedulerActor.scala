@@ -14,7 +14,7 @@ import scala.concurrent.ExecutionContext
 class LogsSchedulerActor @Inject()(configuration: Configuration)(implicit ec: ExecutionContext) extends Actor {
   override def receive: Receive = {
     case "moveArchiveLog" =>  {
-      val config = ConfigurationLoader.loadConfiguration(configuration)
+      val config = ConfigurationLoader.loadMeteoSchweizConfiguration(configuration)
       //moveLogFile(config)
       //readFile(config)
     }

@@ -2,6 +2,7 @@ package schedulers
 
 import java.io.File
 import javax.inject.{Inject, Singleton}
+
 import org.apache.commons.io.FileUtils
 import akka.actor.Actor
 import models.services.{FileGeneratorFromDB, MeteoService}
@@ -14,8 +15,8 @@ import scala.concurrent.ExecutionContext
 class SchedulerActor @Inject()(configuration: Configuration, meteoService: MeteoService)(implicit ec: ExecutionContext) extends Actor {
   override def receive: Receive = {
     case "writeFile" =>  {
-      val config = ConfigurationLoader.loadConfiguration(configuration)
-      writeFile(config)
+      val config = ConfigurationLoader.loadMeteoSchweizConfiguration(configuration)
+      //writeFile(config)
       //readFile(config)
     }
   }

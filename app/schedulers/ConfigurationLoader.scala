@@ -1,12 +1,41 @@
 package schedulers
 
+import com.typesafe.config.Config
+import play.api.Logger
 import play.api.Configuration
 
-case class ConfigurationMeteoSchweizData(frequency: Int, userNameFtp: String, passwordFtp: String, pathForFtpFolder: String, ftpUrlMeteo: String, pathInputFile: String, pathForLocalWrittenFiles: String, pathForArchivedFiles: String, pathForLogFiles: String, pathForArchivedLogFiles: String)
+import scala.collection.mutable
+
+case class StationKonfig(fileName: String, statNr: Int,  projs : List[ParametersProject])
+
+case class ParametersProject(projNr :Int, param :Int)
+
+
+case class ConfigurationMeteoSchweizData(frequency :Int,
+                                         userNameFtp :String,
+                                         passwordFtp :String,
+                                         pathForFtpFolder :String,
+                                         ftpUrlMeteo :String,
+                                         pathInputFile :String,
+                                         pathForLocalWrittenFiles :String,
+                                         pathForArchivedFiles :String,
+                                         pathForLogFiles :String,
+                                         pathForArchivedLogFiles :String)
+
+case class CR1000LoggerFileConfig(frequencyCR1000 :Int,
+                                  ftpUrlCR1000 :String,
+                                  fptUserNameCR1000 :String,
+                                  ftpPasswordCR1000 :String,
+                                  ftpPathForIncomingFileCR1000 :String,
+                                  ftpPathForCR1000FaultyFile :String,
+                                  ftpPathForCR1000ArchiveFiles :String,
+                                  stationConfigs: List[StationKonfig],
+                                  emailUserList: String
+                                 )
 object ConfigurationLoader {
 
 
-  def loadConfiguration(configuration: Configuration) = {
+  def loadMeteoSchweizConfiguration(configuration: Configuration) = {
     val frequency = configuration.getInt("frequency").get
     val userNameFtp = configuration.getString("fptUserNameMeteo").get
     val passwordFtp = configuration.getString("ftpPasswordMeteo").get
@@ -20,4 +49,39 @@ object ConfigurationLoader {
     ConfigurationMeteoSchweizData(frequency, userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo, pathInputFile, pathForLocalWrittenFiles, pathForArchivedFiles, pathForLogFiles, pathForArchivedLogFiles)
   }
 
-}
+  def loadCR1000Configuration(configuration: Configuration) = {
+    val frequencyCR1000 = configuration.getInt("frequencyCR1000").get
+    val ftpUrlCR1000 = configuration.getString("ftpUrlCR1000").get
+    val fptUserNameCR1000 = configuration.getString("fptUserNameCR1000").get
+    val ftpPasswordCR1000 = configuration.getString("ftpPasswordCR1000").get
+    val ftpPathForIncomingFileCR1000 = configuration.getString("ftpPathForIncomingFileCR1000").get
+    val ftpPathForCR1000FaultyFile = configuration.getString("ftpPathForCR1000FaultyFile").get
+    val ftpPathForCR1000ArchiveFiles = configuration.getString("ftpPathForCR1000ArchiveFiles").get
+    val cr1000EmailUserList = configuration.getString("cr1000EmailUserList").get
+    import scala.collection.JavaConversions._
+
+    val statKonfigs =  configuration.getConfigList("stationConfig").map { statKonfig =>
+      statKonfig.map(sk => {
+        val fileName = sk.getString("fileName").get
+        val stationNumber = sk.getInt("stationNumber").get
+        val params = sk.getConfigList("projectParam")
+          .map(pList => {
+         val ppList =  pList.map(pp => {
+            val projNr = pp.getInt("projNr").get
+            val numParams = pp.getInt("params").get
+            ParametersProject(projNr,numParams)
+          }).toList
+            ppList
+        })
+
+        StationKonfig(fileName, stationNumber, params.getOrElse(List()))
+
+      }).toList
+    }.getOrElse(List())
+    Logger.info(s"Station config are: ${statKonfigs.mkString("\n")}")
+
+    CR1000LoggerFileConfig(frequencyCR1000, ftpUrlCR1000, fptUserNameCR1000, ftpPasswordCR1000, ftpPathForIncomingFileCR1000, ftpPathForCR1000FaultyFile, ftpPathForCR1000ArchiveFiles, statKonfigs, cr1000EmailUserList)
+  }
+
+
+  }

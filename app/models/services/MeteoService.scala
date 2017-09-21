@@ -4,7 +4,7 @@ import java.time.LocalDateTime
 import javax.inject.Inject
 
 import anorm.SqlParser.get
-import models.domain.{MeteoDataFileLogInfo, MeteoDataRow, Station}
+import models.domain.{MeteoDataFileLogInfo, MeteoDataRow, MeteoDataRowTableInfo, Station}
 import models.repositories.MeteoDataRepository
 import org.joda.time.DateTime
 import play.api.libs.json._
@@ -81,6 +81,8 @@ class MeteoService @Inject()(meteoRepo: MeteoDataRepository) {
   def getAllOrganisationStationsMappings() = meteoRepo.findOrganisationStationMapping()
 
   def insertLogInformation(meteoLogInfos: List[MeteoDataFileLogInfo]) = meteoRepo.insertLogInfoForFilesSent(meteoLogInfos)
+
+  def insertMeteoDataCR1000(meteoData: Seq[MeteoDataRowTableInfo]) = meteoRepo.insertCR1000MeteoDataForFilesSent(meteoData)
 
 
 }

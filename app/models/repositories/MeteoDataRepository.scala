@@ -1,5 +1,6 @@
 package models.repositories
 
+import java.sql.{SQLException, Statement}
 import javax.inject.Inject
 
 import anorm._
@@ -8,6 +9,8 @@ import models.util.StringToDate
 import org.joda.time.DateTime
 import play.api.Logger
 import play.api.db.DBApi
+
+import scala.util.{Failure, Try}
 
 
 @javax.inject.Singleton
@@ -28,7 +31,7 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
       SQL("SELECT * FROM STATORGKONF ORDER BY ORGNR,STATNR").as(OrganisationStationMappingS.parser *)}
 
     def findAllMessArts() : Seq[MessArtRow] = db.withConnection { implicit connection =>
-      SQL("SELECT MT.CODE AS CODE, MT.TEXT  AS TEXT, MT.PERIODE AS PERIODE, MT.MPROJNR AS MPROJNR, P.PDAUER AS PDAUER FROM MESSART MT, PERIODE P WHERE MT.PERIODE = P.CODE  ORDER BY P.PDAUER").as(MessArtRow.parser *)}
+      SQL("SELECT MT.CODE AS CODE, MT.TEXT  AS TEXT, MT.PERIODE AS PERIODE, MT.MPROJNR AS MPROJNR, P.PDAUER AS PDAUER, MT.MULTI AS MULTI FROM MESSART MT, PERIODE P WHERE MT.PERIODE = P.CODE  ORDER BY P.PDAUER").as(MessArtRow.parser *)}
 
     def getAllStatKonf()= db.withConnection { implicit connection =>
       SQL("SELECT STATNR, MESSART, KONFNR, SENSORNR, konfnr, to_char(ABDATUM, 'DD-MM-YYYY HH24:MI:SS') as ABDATUM , to_char(BISDATUM, 'DD-MM-YYYY HH24:MI:SS') as BISDATUM, FOLGENR, CLNR FROM STATKONF WHERE BISDATUM IS NULL ORDER BY STATNR, MESSART").as(MeteoStationConfiguration.parser *)}
@@ -74,4 +77,63 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
 
   }
 
+  def insertCR1000MeteoDataForFilesSent(meteoData: Seq[MeteoDataRowTableInfo]) = {
+
+    val conn = db.getConnection()
+    val stmt: Statement = conn.createStatement()
+    try {
+      meteoData.map(m => {
+
+      val ml = m.meteoDataRow
+        //code that throws sql exception
+
+     m.multi match {
+          case Some(1) => {
+            val insertStatement = s"INSERT INTO METEODAT_V1  (statnr, messart, konfnr, messdat, messwert, ursprung, valstat, einfdat) values(" +
+              s"${ml.station}, ${ml.messArt}, ${ml.configuration}, ${ml.dateReceived}, ${ml.valueOfMeasurement}, ${ml.methodApplied}, ${ml.status.getOrElse(0)},${ml.dateOfInsertion})"
+            Logger.info(s"statement to be executed: ${insertStatement}")
+            stmt.executeUpdate(insertStatement)
+          }
+          case Some(2) => {
+            val insertStatement = s"INSERT INTO MDAT_V1  (statnr, messart, konfnr, messdat, messwert, ursprung, valstat, einfdat) values(" +
+              s"${ml.station}, ${ml.messArt}, ${ml.configuration}, ${ml.dateReceived}, ${ml.valueOfMeasurement}, ${ml.methodApplied}, ${ml.status.getOrElse(0)},${ml.dateOfInsertion})"
+            Logger.info(s"statement to be executed: ${insertStatement}")
+            stmt.executeUpdate(insertStatement)
+
+          }
+          case _ => None
+        }
+        //Insert information into MetaBlag
+        insertInfoIntoMetablag(meteoData, stmt)
+
+      } )} catch {
+      case ex: SQLException =>{
+        Logger.info("Data was already read. Primary key violation")
+      }
+
+
+    }
+    stmt.close()
+    conn.close()
+  }
+
+  def insertInfoIntoMetablag(meteoData: Seq[MeteoDataRowTableInfo],stmt: Statement) = {
+    meteoData.groupBy(_.filename).map(l => {
+      val fileName = l._1
+      val einfDat = l._2.map(_.meteoDataRow.dateOfInsertion).max
+      val fromDate = l._2.map(_.meteoDataRow.dateReceived).min
+      val toDate = l._2.map(_.meteoDataRow.dateReceived).max
+      val status = 1
+      val statNr = l._2.headOption.map(_.meteoDataRow.station)
+      statNr match {
+        case Some(stationNr) => {
+          val insertStatement = s"insert into metablag (statnr, einfdat, abdat, bisdat, bemerk, datei, ablstat) values(" +
+            s"${stationNr}, ${einfDat}, ${fromDate}, ${toDate}, 'CR1000 Data', ${fileName}, ${status})"
+          Logger.info(s"statement to be executed: ${insertStatement}")
+          stmt.executeUpdate(insertStatement)
+        }
+        case _ =>
+      }})
+  }
 }
+
