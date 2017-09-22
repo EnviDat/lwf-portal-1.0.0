@@ -3,7 +3,7 @@ package models.services
 import models.domain._
 import models.util.{NumberParser, StringToDate}
 import play.Logger
-import schedulers.StationKonfig
+import schedulers.{ParametersProject, StationKonfig}
 
 import scala.util.{Failure, Success, Try}
 
@@ -11,7 +11,7 @@ object CR1000FileValidator {
 
   def validateLine(fileName :String, lineToValidate :String, stationKonfigs: List[StationKonfig]) :List[CR1000Exceptions] = {
     Logger.info(s"Stat Konfig loaded ${stationKonfigs.mkString("\n")}")
-    val mapStatKonfig = stationKonfigs.filter(sk => fileName.toUpperCase.startsWith(sk.fileName)).headOption
+    val mapStatKonfig = stationKonfigs.filter(sk => fileName.toUpperCase.startsWith(sk.fileName))
     val words = lineToValidate.split(",")
     val notSufficentValues = if(words.length<6) Some(CR1000NotSufficientParameters(7, s"In sufficient values")) else None
     val date = words(0).replace("\"", "")
@@ -19,11 +19,17 @@ object CR1000FileValidator {
     val stationNumber =  NumberParser.parseNumber(words(2))
     val projectNumber =  NumberParser.parseNumber(words(3))
     val periode = validatePeriod(NumberParser.parseNumber(words(4)))
+    val projectsParam: Option[ParametersProject] = mapStatKonfig.flatMap(_.projs).find(p => {
+      periode.isEmpty
+      projectNumber.contains(p.projNr) &&
+        NumberParser.parseNumber(words(4)).contains(p.duration)
+    }).headOption
+
     val elements = words.drop(5).toList
-    val stationNumberError = validateStationNumber(fileName, stationNumber, mapStatKonfig)
-    val projectNumberError = validateProjectNumber(fileName, projectNumber, mapStatKonfig)
+    val stationNumberError = validateStationNumber(fileName, stationNumber, mapStatKonfig.headOption)
+    val projectNumberError = validateProjectNumber(fileName, projectNumber, mapStatKonfig.headOption)
     val dateError =  validateDateFormat(date)
-    val parametersError = validateNumberOfParameters(elements.length, projectNumber, mapStatKonfig)
+    val parametersError = validateNumberOfParameters(elements.length, projectNumber, mapStatKonfig.headOption, projectsParam)
     val parameterValuesError = validateValueOfParameters(elements)
     if(stationNumberError.isEmpty && projectNumberError.isEmpty && dateError.isEmpty && parametersError.isEmpty && parameterValuesError.isEmpty && notSufficentValues.isEmpty && periode.isEmpty)
       List()
@@ -32,12 +38,12 @@ object CR1000FileValidator {
   }
 
 
-  def validateNumberOfParameters(numberOfParameters :Int, projectNumber :Option[Int], stationKonfig: Option[StationKonfig]) :Option[CR1000Exceptions] = {
-    (stationKonfig,projectNumber) match {
-      case (None,_) => Some(CR1000ConfigNotFoundException(5, s"No Configuration Found for projectNumber: ${projectNumber} and parametets: ${numberOfParameters}"))
-      case (Some(konfig), Some(projNr)) if konfig.projs.filter(p => (p.projNr == projNr && p.param == numberOfParameters)).nonEmpty => None
-      case (_,None) => Some(CR1000InvalidIntegerFoundException(6, s"project number is not an Integer"))
-      case (_,_) => Some(CR1000InvalidNumberOfParametersException(1, s"Project number and parameters doesn't corresponds accroding to configuration: projectNumber: ${projectNumber} and parametets: ${numberOfParameters}"))
+  def validateNumberOfParameters(numberOfParameters :Int, projectNumber :Option[Int], stationKonfig: Option[StationKonfig], projectsParam: Option[ParametersProject]) :Option[CR1000Exceptions] = {
+    (stationKonfig,projectNumber, projectsParam) match {
+      case (None,_,_) => Some(CR1000ConfigNotFoundException(5, s"No Configuration Found for projectNumber: ${projectNumber} and parametets: ${numberOfParameters}"))
+      case (Some(konfig), Some(projNr), Some(params)) if params.projNr == projNr && params.param == numberOfParameters => None
+      case (_,None,_) => Some(CR1000InvalidIntegerFoundException(6, s"project number is not an Integer"))
+      case (_,_,_) => Some(CR1000InvalidNumberOfParametersException(1, s"Project number and parameters doesn't corresponds accroding to configuration: projectNumber: ${projectNumber} and parametets: ${numberOfParameters}"))
     }
   }
 

@@ -52,12 +52,15 @@ object FtpConnector {
           CR1000FileParser.parseAndSaveData(file.linesToSave, meteoService, file.fileName)
           sftpChannel.get(file.fileName, pathForArchiveFiles + file.fileName)
           sftpChannel.rm(file.fileName)
+          Thread.sleep(1000)
           s"File is processed successfully: ${file.fileName}"
         }
       })
 
       val emailList = emailUserList.split(";").toSeq
-      EmailService.sendEmail("CR 1000 Processor","simpal.kumar@wsl.ch",emailList,emailList,"CR 1000 Processing Report", s"${infoAboutFileProcessed.mkString("\n")}")
+      if(infoAboutFileProcessed.nonEmpty) {
+        EmailService.sendEmail("CR 1000 Processor", "simpal.kumar@wsl.ch", emailList, emailList, "CR 1000 Processing Report", s"file Processed Report${infoAboutFileProcessed.mkString("\n")}")
+      }
       Logger.info(s"list of files received: ${infoAboutFileProcessed.mkString("\n")}")
 
       sftpChannel.exit()

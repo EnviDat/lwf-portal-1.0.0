@@ -8,7 +8,7 @@ import scala.collection.mutable
 
 case class StationKonfig(fileName: String, statNr: Int,  projs : List[ParametersProject])
 
-case class ParametersProject(projNr :Int, param :Int)
+case class ParametersProject(projNr :Int, param :Int, duration: Int)
 
 
 case class ConfigurationMeteoSchweizData(frequency :Int,
@@ -69,7 +69,8 @@ object ConfigurationLoader {
          val ppList =  pList.map(pp => {
             val projNr = pp.getInt("projNr").get
             val numParams = pp.getInt("params").get
-            ParametersProject(projNr,numParams)
+            val duration = pp.getInt("duration").get
+           ParametersProject(projNr,numParams,duration)
           }).toList
             ppList
         })

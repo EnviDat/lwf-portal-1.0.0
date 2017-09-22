@@ -78,46 +78,51 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
   }
 
   def insertCR1000MeteoDataForFilesSent(meteoData: Seq[MeteoDataRowTableInfo]) = {
-
     val conn = db.getConnection()
-    val stmt: Statement = conn.createStatement()
     try {
-      meteoData.map(m => {
+      conn.setAutoCommit(false)
+      val stmt: Statement = conn.createStatement()
+        meteoData.map(m => {
 
-      val ml = m.meteoDataRow
-        //code that throws sql exception
+          val ml = m.meteoDataRow
+          //code that throws sql exception
 
-     m.multi match {
-          case Some(1) => {
-            val insertStatement = s"INSERT INTO METEODAT_V1  (statnr, messart, konfnr, messdat, messwert, ursprung, valstat, einfdat) values(" +
-              s"${ml.station}, ${ml.messArt}, ${ml.configuration}, ${ml.dateReceived}, ${ml.valueOfMeasurement}, ${ml.methodApplied}, ${ml.status.getOrElse(0)},${ml.dateOfInsertion})"
-            Logger.info(s"statement to be executed: ${insertStatement}")
-            stmt.executeUpdate(insertStatement)
+          m.multi match {
+            case Some(1) => {
+              val insertStatement = s"INSERT INTO METEODAT_V1  (statnr, messart, konfnr, messdat, messwert, ursprung, valstat, einfdat) values(" +
+                s"${ml.station}, ${ml.messArt}, ${ml.configuration}, ${ml.dateReceived}, ${ml.valueOfMeasurement}, ${ml.methodApplied}, ${ml.status.getOrElse(0)},${ml.dateOfInsertion})"
+              Logger.info(s"statement to be executed: ${insertStatement}")
+              stmt.executeUpdate(insertStatement)
+            }
+            case Some(2) => {
+              val insertStatement = s"INSERT INTO MDAT_V1  (statnr, messart, konfnr, messdat, messwert, ursprung, valstat, einfdat) values(" +
+                s"${ml.station}, ${ml.messArt}, ${ml.configuration}, ${ml.dateReceived}, ${ml.valueOfMeasurement}, ${ml.methodApplied}, ${ml.status.getOrElse(0)},${ml.dateOfInsertion})"
+              Logger.info(s"statement to be executed: ${insertStatement}")
+              stmt.executeUpdate(insertStatement)
+
+            }
+            case _ => None
           }
-          case Some(2) => {
-            val insertStatement = s"INSERT INTO MDAT_V1  (statnr, messart, konfnr, messdat, messwert, ursprung, valstat, einfdat) values(" +
-              s"${ml.station}, ${ml.messArt}, ${ml.configuration}, ${ml.dateReceived}, ${ml.valueOfMeasurement}, ${ml.methodApplied}, ${ml.status.getOrElse(0)},${ml.dateOfInsertion})"
-            Logger.info(s"statement to be executed: ${insertStatement}")
-            stmt.executeUpdate(insertStatement)
+          //Insert information into MetaBlag
 
-          }
-          case _ => None
-        }
-        //Insert information into MetaBlag
-        insertInfoIntoMetablag(meteoData, stmt)
+        })
 
-      } )} catch {
-      case ex: SQLException =>{
-        Logger.info("Data was already read. Primary key violation")
+      insertInfoIntoMetablag(meteoData, stmt)
+      stmt.close()
+      conn.commit()
+      conn.close()
+      } catch {
+      case ex: SQLException => {
+        Logger.info(s"Data was already read. Primary key violation or ${ex}")
+        conn.rollback()
       }
-
-
     }
-    stmt.close()
-    conn.close()
+
+
   }
 
   def insertInfoIntoMetablag(meteoData: Seq[MeteoDataRowTableInfo],stmt: Statement) = {
+    val groupedFiles = meteoData.groupBy(_.filename)
     meteoData.groupBy(_.filename).map(l => {
       val fileName = l._1
       val einfDat = l._2.map(_.meteoDataRow.dateOfInsertion).max
@@ -128,7 +133,7 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
       statNr match {
         case Some(stationNr) => {
           val insertStatement = s"insert into metablag (statnr, einfdat, abdat, bisdat, bemerk, datei, ablstat) values(" +
-            s"${stationNr}, ${einfDat}, ${fromDate}, ${toDate}, 'CR1000 Data', ${fileName}, ${status})"
+            s"${stationNr}, ${einfDat}, ${fromDate}, ${toDate}, 'CR1000 Data', '${fileName}', ${status})"
           Logger.info(s"statement to be executed: ${insertStatement}")
           stmt.executeUpdate(insertStatement)
         }
