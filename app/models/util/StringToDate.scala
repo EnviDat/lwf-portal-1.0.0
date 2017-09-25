@@ -13,6 +13,8 @@ object StringToDate {
 
   import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
   val oracleDateFormat: DateTimeFormatter = DateTimeFormat.forPattern("dd.MM.yyyy HH:mm:ss")
+  val oracleMetaBlagDateFormat: DateTimeFormatter = DateTimeFormat.forPattern("dd.MM.yyyy HH:mm:ss:ff")
+
 
   val formatDate: DateTimeFormatter = DateTimeFormat.forPattern("dd-MM-yyyy HH:mm:ss")
 

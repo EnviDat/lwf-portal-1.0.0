@@ -52,7 +52,7 @@ object FtpConnector {
           CR1000FileParser.parseAndSaveData(file.linesToSave, meteoService, file.fileName)
           sftpChannel.get(file.fileName, pathForArchiveFiles + file.fileName)
           sftpChannel.rm(file.fileName)
-          Thread.sleep(1000)
+          Thread.sleep(10)
           s"File is processed successfully: ${file.fileName}"
         }
       })

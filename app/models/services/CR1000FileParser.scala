@@ -43,7 +43,7 @@ object CR1000FileParser {
             for {
               valueMessart <- messartValueToSave
               messDate = s"to_date('${StringToDate.oracleDateFormat.print(date)}', 'DD.MM.YYYY HH24:MI:SS')"
-              einfDate = s"to_date('${StringToDate.oracleDateFormat.print(new DateTime())}', 'DD.MM.YYYY HH24:MI:SS')"
+              einfDate = s"to_date('${StringToDate.oracleMetaBlagDateFormat.print(new DateTime())}', 'DD.MM.YYYY HH24:MI:SS:FF')"
               mrow = MeteoDataRowTableInfo(MeteoDataRow(statNr,messart,configNum,messDate,valueMessart,einfDate,1,Some(1)),multi, fileName)
             } yield mrow
           })

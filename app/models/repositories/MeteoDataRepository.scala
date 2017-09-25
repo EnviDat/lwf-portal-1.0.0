@@ -89,13 +89,13 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
 
           m.multi match {
             case Some(1) => {
-              val insertStatement = s"INSERT INTO METEODAT_V1  (statnr, messart, konfnr, messdat, messwert, ursprung, valstat, einfdat) values(" +
+              val insertStatement = s"INSERT INTO METEODAT  (statnr, messart, konfnr, messdat, messwert, ursprung, valstat, einfdat) values(" +
                 s"${ml.station}, ${ml.messArt}, ${ml.configuration}, ${ml.dateReceived}, ${ml.valueOfMeasurement}, ${ml.methodApplied}, ${ml.status.getOrElse(0)},${ml.dateOfInsertion})"
               Logger.info(s"statement to be executed: ${insertStatement}")
               stmt.executeUpdate(insertStatement)
             }
             case Some(2) => {
-              val insertStatement = s"INSERT INTO MDAT_V1  (statnr, messart, konfnr, messdat, messwert, ursprung, valstat, einfdat) values(" +
+              val insertStatement = s"INSERT INTO MDAT  (statnr, messart, konfnr, messdat, messwert, ursprung, valstat, einfdat) values(" +
                 s"${ml.station}, ${ml.messArt}, ${ml.configuration}, ${ml.dateReceived}, ${ml.valueOfMeasurement}, ${ml.methodApplied}, ${ml.status.getOrElse(0)},${ml.dateOfInsertion})"
               Logger.info(s"statement to be executed: ${insertStatement}")
               stmt.executeUpdate(insertStatement)
