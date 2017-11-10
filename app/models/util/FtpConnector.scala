@@ -49,11 +49,16 @@ object FtpConnector {
           val errorstring = FormatMessage.formatErrorMessage(file.errors)
           s"File not processed: ${file.fileName} \n errors: ${errorstring} \n"
         } else {
-          CR1000FileParser.parseAndSaveData(file.linesToSave, meteoService, file.fileName)
-          sftpChannel.get(file.fileName, pathForArchiveFiles + file.fileName)
-          sftpChannel.rm(file.fileName)
-          Thread.sleep(10)
-          s"File is processed successfully: ${file.fileName}"
+          val caughtExceptions = CR1000FileParser.parseAndSaveData(file.linesToSave, meteoService, file.fileName)
+          caughtExceptions match {
+            case None =>  {
+              sftpChannel.get(file.fileName, pathForArchiveFiles + file.fileName)
+              sftpChannel.rm(file.fileName)
+              Thread.sleep(10)
+              s"File is processed successfully: ${file.fileName}"
+            }
+            case Some(x) => s"File is not processed successfully: ${file.fileName} reason: ${x.errorMessage}"
+          }
         }
       })
 

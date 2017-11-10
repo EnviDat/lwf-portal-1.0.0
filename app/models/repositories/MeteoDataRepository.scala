@@ -77,7 +77,7 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
 
   }
 
-  def insertCR1000MeteoDataForFilesSent(meteoData: Seq[MeteoDataRowTableInfo]) = {
+  def insertCR1000MeteoDataForFilesSent(meteoData: Seq[MeteoDataRowTableInfo]): Option[CR1000OracleError] = {
     val conn = db.getConnection()
     try {
       conn.setAutoCommit(false)
@@ -111,10 +111,20 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
       stmt.close()
       conn.commit()
       conn.close()
+      None
       } catch {
       case ex: SQLException => {
-        Logger.info(s"Data was already read. Primary key violation or ${ex}")
+        if(ex.getErrorCode() == 1){
+        Logger.info(s"Data was already read. Primary key violation ${ex}")
         conn.rollback()
+          conn.close()
+
+          None
+        } else {
+          conn.close()
+          Some(CR1000OracleError(8, s"Oracle Exception: ${ex}"))
+        }
+
       }
     }
 

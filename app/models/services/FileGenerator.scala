@@ -63,7 +63,7 @@ class FileGeneratorFromDB(meteoService: MeteoService) extends FileGenerator {
 
         val folgeNrForStations = getFolegNrForStations(confForStation)
         val trailor = folgeNrForStations.map(fl => allMessWerts.find(_.code == fl._2).map(_.text))
-        Logger.info(s"header line of the file is: ${cr10Header + trailor.map(_.getOrElse(",")).mkString("\n")}")
+        Logger.debug(s"header line of the file is: ${cr10Header + trailor.map(_.getOrElse(",")).mkString("\n")}")
 
         val abbrevationForStation = allAbbrevations.find(_.code == station.stationNumber)
         Logger.info(s"All abbrevations for the station: ${abbrevationForStation.mkString(",")}")
@@ -85,13 +85,13 @@ class FileGeneratorFromDB(meteoService: MeteoService) extends FileGenerator {
         (smt._1,
         latestMeteoDataForStation.filter(lt => smt._2.map(_.code).contains(lt.messArt)).groupByOrdered(mdat => StringToDate.stringToDateConvert(mdat.dateReceived)))
       })
-      Logger.info(s"All data for messarts is: ${groupMeteoDataDauer.map(_._2.mkString("\n")).mkString("\n")}")
+      Logger.debug(s"All data for messarts is: ${groupMeteoDataDauer.map(_._2.mkString("\n")).mkString("\n")}")
 
       val valuesToBeWrittenForCR10 = if(!listOfCR1000Stations.contains(station.stationNumber)) getCR10FormattedDataLines(groupMeteoDataDauer, sortedMessArts, station, mapFolgNrToMessArt).flatten else Seq()
       val valuesToBeWrittenForCR1000 = if(listOfCR1000Stations.contains(station.stationNumber)) getTR05FormattedDataLines(groupMeteoDataDauer, sortedMessArts, station, mapFolgNrToMessArt).flatten else Seq()
 
-      Logger.info(s"All data To be written for the  CR1000 stations: ${valuesToBeWrittenForCR1000.toList.sortBy(_.duration).mkString("\n")}")
-      Logger.info(s"All data To be written for the  CR10 stations: ${valuesToBeWrittenForCR10.toList.sortBy(_.duration).mkString("\n")}")
+      Logger.debug(s"All data To be written for the  CR1000 stations: ${valuesToBeWrittenForCR1000.toList.sortBy(_.duration).mkString("\n")}")
+      Logger.debug(s"All data To be written for the  CR10 stations: ${valuesToBeWrittenForCR10.toList.sortBy(_.duration).mkString("\n")}")
 
       val dataHeaderToBeWritten =
         if(listOfCR1000Stations.contains(station.stationNumber))
@@ -107,8 +107,8 @@ class FileGeneratorFromDB(meteoService: MeteoService) extends FileGenerator {
       val dataLinesToBeWrittenCR1000 = cr1000DataSortedDuration.map(dl => dl.measurementTime + "," + cr1000DataSortedDuration.indexOf(dl) + "," + dl.stationId + "," + dl.projectId + "," + dl.duration + "," + dl.measurementValues.mkString(","))
       val dataLinesToBeWrittenCR10 = cr10DataSortedDuration.map(dl => dl.duration + "," + dl.stationId + "," + dl.projectId + "," + dl.year + "," + dl.yearToDate + "," + dl.time + "," + dl.measurementValues.mkString(","))
 
-      Logger.info(s"Data lines to be written for CR1000 stations: ${dataLinesToBeWrittenCR1000.mkString("\n")}")
-      Logger.info(s"Data lines to be written for CR10x stations: ${dataLinesToBeWrittenCR10.mkString("\n")}")
+      Logger.debug(s"Data lines to be written for CR1000 stations: ${dataLinesToBeWrittenCR1000.mkString("\n")}")
+      Logger.debug(s"Data lines to be written for CR10x stations: ${dataLinesToBeWrittenCR10.mkString("\n")}")
         import Joda._
         val allDates = latestMeteoDataForStation.map(lt => StringToDate.stringToDateConvert(lt.dateReceived)).sorted
         val numberOfLinesSent = latestMeteoDataForStation.size
@@ -137,23 +137,23 @@ class FileGeneratorFromDB(meteoService: MeteoService) extends FileGenerator {
                                         mapFolgNrToMessArt: Seq[(Int, Int)]) = {
     groupMeteoDataDauer.map(dataLine => {
       dataLine._2.map(dt => {
-        Logger.info(s"dataline: ${dt._1}${dt._2.mkString(",")}")
+        Logger.debug(s"dataline: ${dt._1}${dt._2.mkString(",")}")
         val messArtFound = sortedMessArts.find(_._1 == dataLine._1)
-        Logger.info(s"messartfound: ${messArtFound.mkString(",")}")
+        Logger.debug(s"messartfound: ${messArtFound.mkString(",")}")
 
         val messartsForOnlyThisDuration = sortedMessArts.filter(_._1 == dataLine._1).values.flatMap(_.map(_.code)).toList
         val numberOfMessarts = messartsForOnlyThisDuration.size
 
         val folgNrToBeUsed = mapFolgNrToMessArt.filter(fNr => messartsForOnlyThisDuration.contains(fNr._2))
         val folgenrset = folgNrToBeUsed.map(_._1).toSet
-        Logger.info(s"folgenumber to be used: ${folgNrToBeUsed}")
+        Logger.debug(s"folgenumber to be used: ${folgNrToBeUsed}")
 
         val listSeq  = 1 to folgNrToBeUsed.map(_._1).max
         val missingFolgNr = listSeq.toSet.diff(folgenrset).toList.sorted
-        Logger.info(s"missing folgenumber: ${missingFolgNr}")
+        Logger.debug(s"missing folgenumber: ${missingFolgNr}")
 
         val messArtRowFound = messArtFound.flatMap(_._2.find(_.pDauer == dataLine._1).flatMap(_.messProjNr))
-        Logger.info(s"messartrowfound: ${messArtRowFound}")
+        Logger.debug(s"messartrowfound: ${messArtRowFound}")
 
         val messProjNr: Int = messArtRowFound.getOrElse(0)
         val year = dt._1.year().get()
@@ -165,7 +165,7 @@ class FileGeneratorFromDB(meteoService: MeteoService) extends FileGenerator {
           valuetowrite
         }).toList
         var listVar = measurementValues
-        Logger.info(s"list initial ${listVar}")
+        Logger.debug(s"list initial ${listVar}")
         val listWithMissingValues = missingFolgNr.map(mNr => {
           val newListWithInsertion = insert(listVar, mNr-1, BigDecimal(-999)) //this magic number is to represent that this data was not read
            listVar = newListWithInsertion
@@ -173,7 +173,7 @@ class FileGeneratorFromDB(meteoService: MeteoService) extends FileGenerator {
         })
        val finalMeasurementValues =  if(missingFolgNr.isEmpty) measurementValues else if(listWithMissingValues.size > 1) listWithMissingValues.last else  listWithMissingValues.flatten
 
-        Logger.info(s"fimalMeasurementValues: ${finalMeasurementValues}")
+        Logger.debug(s"fimalMeasurementValues: ${finalMeasurementValues}")
 
         Cr10LinesFormat(dataLine._1,
             station.stationNumber,

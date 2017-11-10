@@ -4,7 +4,7 @@ import java.time.LocalDateTime
 import javax.inject.Inject
 
 import anorm.SqlParser.get
-import models.domain.{MeteoDataFileLogInfo, MeteoDataRow, MeteoDataRowTableInfo, Station}
+import models.domain._
 import models.repositories.MeteoDataRepository
 import org.joda.time.DateTime
 import play.api.libs.json._
