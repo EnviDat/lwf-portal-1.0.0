@@ -39,7 +39,10 @@ object CR1000FileParser {
             val messart = element._1._2
             val multi = allMessWerts.find(_.code == messart).map(_.multi)
             val configNum = element._1._3
-            val messartValueToSave = NumberParser.parseBigDecimal(element._2)
+            val messartValueToSave = NumberParser.parseBigDecimal(element._2) match {
+              case Some(x) if x != BigDecimal(-9999) => Some(x)
+              case _ => None
+            }
             for {
               valueMessart <- messartValueToSave
               messDate = s"to_date('${StringToDate.oracleDateFormat.print(date)}', 'DD.MM.YYYY HH24:MI:SS')"
