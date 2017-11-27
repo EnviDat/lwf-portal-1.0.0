@@ -34,7 +34,7 @@ object NumberParser {
         None
       }
       case Success(s) => {
-        Some(s)
+        if (s == BigDecimal(-9999)) None else Some(s)
       }
     }
     parsedNumber
