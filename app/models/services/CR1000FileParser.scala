@@ -40,7 +40,7 @@ object CR1000FileParser {
             val multi = allMessWerts.find(_.code == messart).map(_.multi)
             val configNum = element._1._3
             val messartValueToSave = NumberParser.parseBigDecimal(element._2) match {
-              case Some(x) if x != BigDecimal(-9999) => Some(x)
+              case Some(x) if x != BigDecimal(-9999) &&  x != BigDecimal(-7999) && x != BigDecimal(-6999)  => Some(x)
               case _ => None
             }
             for {
