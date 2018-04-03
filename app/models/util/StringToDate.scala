@@ -5,7 +5,7 @@ import java.time.format.DateTimeParseException
 
 import models.domain
 import models.domain.{CR1000Exceptions, CR1000InvalidDateException}
-import org.joda.time.DateTime
+import org.joda.time.{DateTime, DateTimeZone}
 import play.Logger
 
 
@@ -22,12 +22,12 @@ object StringToDate {
 
 
   def stringToDateConvert(date: String) = {
-      formatDate.parseDateTime(date)
+      formatDate.withZone(DateTimeZone.UTC)parseDateTime(date)
   }
 
   def stringToDateConvertCR1000(date: String): Option[CR1000Exceptions] = {
     try {
-    formatCR1000Date.parseDateTime(date)
+    formatCR1000Date.withZone(DateTimeZone.UTC)parseDateTime(date)
     None
     }
     catch {
