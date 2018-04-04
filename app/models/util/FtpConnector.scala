@@ -47,7 +47,7 @@ object FtpConnector {
         listOfFiles.toList.map(file => {
         if(file.errors.flatMap(_._2).nonEmpty) {
           val errorstring = FormatMessage.formatErrorMessage(file.errors)
-          s"File not processed: ${file.fileName} \n errors: ${errorstring} \n"
+          (s"File not processed: ${file.fileName} \n errors: ${errorstring} \n",Some(errorstring))
         } else {
           val caughtExceptions = CR1000FileParser.parseAndSaveData(file.linesToSave, meteoService, file.fileName)
           caughtExceptions match {
@@ -55,18 +55,22 @@ object FtpConnector {
               sftpChannel.get(file.fileName, pathForArchiveFiles + file.fileName)
               sftpChannel.rm(file.fileName)
               Thread.sleep(10)
-              s"File is processed successfully: ${file.fileName}"
+              (s"File is processed successfully: ${file.fileName}",None)
             }
-            case Some(x) => s"File is not processed successfully: ${file.fileName} reason: ${x.errorMessage}"
+            case Some(x) => (s"File is not processed successfully: ${file.fileName} reason: ${x.errorMessage}",Some(x.errorMessage))
           }
         }
       })
 
       val emailList = emailUserList.split(";").toSeq
       if(infoAboutFileProcessed.nonEmpty) {
-        EmailService.sendEmail("CR 1000 Processor", "simpal.kumar@wsl.ch", emailList, emailList, "CR 1000 Processing Report", s"file Processed Report${infoAboutFileProcessed.mkString("\n")}")
+        if(infoAboutFileProcessed.exists(_._2.nonEmpty)) {
+          EmailService.sendEmail("CR 1000 Processor", "simpal.kumar@wsl.ch", emailList, emailList, "CR 1000 Processing Report With Errors", s"file Processed Report${infoAboutFileProcessed.map(_._1).mkString("\n")}")
+        } else {
+          EmailService.sendEmail("CR 1000 Processor", "simpal.kumar@wsl.ch", emailList, emailList, "CR 1000 Processing Report OK", s"file Processed Report${infoAboutFileProcessed.map(_._1).mkString("\n")}")
+        }
       }
-      Logger.info(s"list of files received: ${infoAboutFileProcessed.mkString("\n")}")
+      Logger.info(s"list of files received: ${infoAboutFileProcessed.map(_._1).mkString("\n")}")
 
       sftpChannel.exit()
       session.disconnect()
