@@ -22,12 +22,12 @@ object StringToDate {
 
 
   def stringToDateConvert(date: String) = {
-      formatDate.withZone(DateTimeZone.UTC)parseDateTime(date)
+      formatDate.withZone(DateTimeZone.UTC).parseDateTime(date)
   }
 
   def stringToDateConvertCR1000(date: String): Option[CR1000Exceptions] = {
     try {
-    formatCR1000Date.withZone(DateTimeZone.UTC)parseDateTime(date)
+    formatCR1000Date.withZone(DateTimeZone.UTC).parseDateTime(date)
     None
     }
     catch {

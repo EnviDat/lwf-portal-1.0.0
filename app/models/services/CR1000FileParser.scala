@@ -3,7 +3,7 @@ package models.services
 import models.domain._
 import models.util.{NumberParser, StringToDate}
 import models.util.StringToDate.formatCR1000Date
-import org.joda.time.DateTime
+import org.joda.time.{DateTime, DateTimeZone}
 
 import scala.collection.immutable
 
@@ -16,7 +16,7 @@ object CR1000FileParser {
 
     val allRowsToBeInserted = cr100FileData.flatMap(line => {
       val words = line.split(",")
-      val date = formatCR1000Date.parseDateTime(words(0).replace("\"", ""))
+      val date = formatCR1000Date.withZone(DateTimeZone.UTC).parseDateTime(words(0).replace("\"", ""))
       val recordNumber = NumberParser.parseNumber(words(1))
       val stationNumber =  NumberParser.parseNumber(words(2))
       val projectNumber =  NumberParser.parseNumber(words(3))
