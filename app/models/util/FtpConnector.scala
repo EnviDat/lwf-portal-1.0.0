@@ -32,7 +32,7 @@ object FtpConnector {
       sftpChannel.cd(pathForFtpFolder)
       Logger.info(s"Logged in to ftp folder")
       import scala.collection.JavaConverters._
-      val listOfFiles = sftpChannel.ls("*").asScala
+      val listOfFiles = sftpChannel.ls("*.crd").asScala
         .map(_.asInstanceOf[sftpChannel.LsEntry])
         .map(entry => {
           val stream = sftpChannel.get(entry.getFilename)
