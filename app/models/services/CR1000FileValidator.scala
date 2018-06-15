@@ -9,32 +9,41 @@ import scala.util.{Failure, Success, Try}
 
 object CR1000FileValidator {
 
-  def validateLine(fileName :String, lineToValidate :String, stationKonfigs: List[StationKonfig]) :List[CR1000Exceptions] = {
+  def validateLine(fileName: String, lineToValidate: String, stationKonfigs: List[StationKonfig]): List[CR1000Exceptions] = {
     Logger.info(s"Stat Konfig loaded ${stationKonfigs.mkString("\n")}")
     val mapStatKonfig = stationKonfigs.filter(sk => fileName.toUpperCase.startsWith(sk.fileName))
-    val words = lineToValidate.split(",")
-    val notSufficentValues = if(words.length<6) Some(CR1000NotSufficientParameters(7, s"In sufficient values")) else None
-    val date = words(0).replace("\"", "")
-    val recordNumber = words(1)
-    val stationNumber =  NumberParser.parseNumber(words(2))
-    val projectNumber =  NumberParser.parseNumber(words(3))
-    val periode = validatePeriod(NumberParser.parseNumber(words(4)))
-    val projectsParam: Option[ParametersProject] = mapStatKonfig.flatMap(_.projs).find(p => {
-      periode.isEmpty
-      projectNumber.contains(p.projNr) &&
-        NumberParser.parseNumber(words(4)).contains(p.duration)
-    }).headOption
 
-    val elements = words.drop(5).toList
-    val stationNumberError = validateStationNumber(fileName, stationNumber, mapStatKonfig.headOption)
-    val projectNumberError = validateProjectNumber(fileName, projectNumber, mapStatKonfig.headOption)
-    val dateError =  validateDateFormat(date)
-    val parametersError = validateNumberOfParameters(elements.length, projectNumber, mapStatKonfig.headOption, projectsParam)
-    val parameterValuesError = validateValueOfParameters(elements)
-    if(stationNumberError.isEmpty && projectNumberError.isEmpty && dateError.isEmpty && parametersError.isEmpty && parameterValuesError.isEmpty && notSufficentValues.isEmpty && periode.isEmpty)
-      List()
-    else
-      List(stationNumberError, projectNumberError, dateError, parametersError, notSufficentValues, periode).flatten ::: parameterValuesError
+    try {
+      val words = lineToValidate.split(",")
+      val notSufficentValues = if (words.length < 6) Some(CR1000NotSufficientParameters(7, s"In sufficient values")) else None
+      val date = words(0).replace("\"", "")
+      //val recordNumber = words(1)
+      val stationNumber = NumberParser.parseNumber(words(2))
+      val projectNumber = NumberParser.parseNumber(words(3))
+      val periode = validatePeriod(NumberParser.parseNumber(words(4)))
+      val projectsParam: Option[ParametersProject] = mapStatKonfig.flatMap(_.projs).find(p => {
+        periode.isEmpty
+        projectNumber.contains(p.projNr) &&
+          NumberParser.parseNumber(words(4)).contains(p.duration)
+      }).headOption
+
+      val elements = words.drop(5).toList
+      val stationNumberError = validateStationNumber(fileName, stationNumber, mapStatKonfig.headOption)
+      val projectNumberError = validateProjectNumber(fileName, projectNumber, mapStatKonfig.headOption)
+      val dateError = validateDateFormat(date)
+      val parametersError = validateNumberOfParameters(elements.length, projectNumber, mapStatKonfig.headOption, projectsParam)
+      val parameterValuesError = validateValueOfParameters(elements)
+      if (stationNumberError.isEmpty && projectNumberError.isEmpty && dateError.isEmpty && parametersError.isEmpty && parameterValuesError.isEmpty && notSufficentValues.isEmpty && periode.isEmpty)
+        List()
+      else
+        List(stationNumberError, projectNumberError, dateError, parametersError, notSufficentValues, periode).flatten ::: parameterValuesError
+    }
+  catch {
+    case e: ArrayIndexOutOfBoundsException =>
+      List(CR1000NotSufficientParameters(999, "File was either empty or contained lines with error values"))
+    case error : Throwable =>
+      List(CR1000FileError(-1, error.toString))
+    }
   }
 
 

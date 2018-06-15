@@ -32,6 +32,9 @@ case class CR1000OracleError(errorCode: Int,errorMessage: String) extends CR1000
   override def toString() = formatErrorString(errorMessage)
 }
 
+case class CR1000FileError(errorCode: Int,errorMessage: String) extends CR1000Exceptions {
+  override def toString() = formatErrorString(errorMessage)
+}
 
 
 case class CR1000ErrorFileInfo(fileName: String, errors : Seq[(Int, List[CR1000Exceptions])], linesToSave: List[String])
