@@ -25,7 +25,7 @@ object StringToDate {
       formatDate.withZone(DateTimeZone.UTC).parseDateTime(date)
   }
 
-  def stringToDateConvertCR1000(date: String): Option[CR1000Exceptions] = {
+  def stringToDateConvertCR1000(date: String, lineToValidate: String): Option[CR1000Exceptions] = {
     try {
     formatCR1000Date.withZone(DateTimeZone.UTC).parseDateTime(date)
     None
@@ -33,11 +33,11 @@ object StringToDate {
     catch {
       case err: DateTimeParseException => {
         Logger.info(s" is not parsable${date} errror Message: ${err}")
-        Some(CR1000InvalidDateException(4, s"date is not parsable${date} errror Message: ${err}"))
+        Some(CR1000InvalidDateException(4, s"date is not parsable${date} errror Message: ${err}, ${lineToValidate}"))
       }
       case err: IllegalArgumentException => {
         Logger.info(s" is not parsable${date} errror Message: ${err}")
-        Some(CR1000InvalidDateException(4, s"date is not parsable${date} errror Message: ${err}"))
+        Some(CR1000InvalidDateException(4, s"date is not parsable${date} errror Message: ${err},  ${lineToValidate}"))
       }
     }
 
@@ -47,6 +47,7 @@ object StringToDate {
 
 object CurrentSysDateInSimpleFormat {
   def dateNow = new SimpleDateFormat("yyyyMMddHHmmss").format(new  java.util.Date())
+  def dateRegex = raw"(\d{4})-(\d{2})-(\d{2})".r
 }
 object Joda {
   implicit def dateTimeOrdering: Ordering[DateTime] = Ordering.fromLessThan(_ isBefore _)

@@ -10,7 +10,7 @@ import scala.collection.immutable
 
 object CR1000FileParser {
 
-  def parseAndSaveData(cr100FileData: List[String], meteoService: MeteoService, fileName: String) = {
+  def parseAndSaveData(cr100FileData: List[String], meteoService: MeteoService, fileName: String): Option[CR1000OracleError] = {
     val allMessWerts: Seq[MessArtRow] = meteoService.getAllMessArts
     val allStationConfigs: List[MeteoStationConfiguration] = meteoService.getStatKonfForStation().filter(sk => allMessWerts.map(_.code).contains( sk.messArt))
 
@@ -53,7 +53,8 @@ object CR1000FileParser {
         } yield values
       valuesToBeInserted
     }).flatten.toList
-    meteoService.insertMeteoDataCR1000(allRowsToBeInserted)
+    //meteoService.insertMeteoDataCR1000(allRowsToBeInserted)
+  None
   }
 
   private def getMappingOfFolgeNrToMessArt(confForStation: List[MeteoStationConfiguration]) = {

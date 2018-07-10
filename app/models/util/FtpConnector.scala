@@ -38,8 +38,9 @@ object FtpConnector {
           val stream = sftpChannel.get(entry.getFilename)
           val br = new BufferedReader(new InputStreamReader(stream))
           val linesToParse = Stream.continually(br.readLine()).takeWhile(_ != null).toList
-          val errors: Seq[(Int, List[CR1000Exceptions])] = linesToParse.zipWithIndex.map(l => (l._2,CR1000FileValidator.validateLine(entry.getFilename,l._1,stationKonfigs)))
-          CR1000ErrorFileInfo(entry.getFilename,errors, linesToParse)
+          val validLines = linesToParse.filter(l => CurrentSysDateInSimpleFormat.dateRegex.findFirstIn(l).nonEmpty)
+          val errors: Seq[(Int, List[CR1000Exceptions])] = validLines.zipWithIndex.map(l => (l._2,CR1000FileValidator.validateLine(entry.getFilename,l._1,stationKonfigs)))
+          CR1000ErrorFileInfo(entry.getFilename,errors, validLines)
          }
         )
         .toList
