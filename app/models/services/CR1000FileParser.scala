@@ -53,8 +53,7 @@ object CR1000FileParser {
         } yield values
       valuesToBeInserted
     }).flatten.toList
-    //meteoService.insertMeteoDataCR1000(allRowsToBeInserted)
-  None
+    meteoService.insertMeteoDataCR1000(allRowsToBeInserted)
   }
 
   private def getMappingOfFolgeNrToMessArt(confForStation: List[MeteoStationConfiguration]) = {
