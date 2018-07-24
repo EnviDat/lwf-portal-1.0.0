@@ -1,5 +1,7 @@
 package models.domain
 
+import models.ozone.OzoneExceptions
+
 sealed trait CR1000Exceptions {
   def formatErrorString(s: String): String = {
         s"${s}\n"
@@ -41,9 +43,16 @@ case class CR1000ErrorFileInfo(fileName: String, errors : Seq[(Int, List[CR1000E
 
 object FormatMessage {
 
-  def formatErrorMessage(errors: Seq[(Int, List[CR1000Exceptions])]) : String = {
+  def formatCR1000ErrorMessage(errors: Seq[(Int, List[CR1000Exceptions])]) : String = {
     val groupByLine = errors.sortBy(_._1).groupBy(_._1)
      groupByLine.map(l => {
+      s"line number: ${l._1}  errors: ${l._2.map(_._2.toString()).mkString("\n")}"
+    }).mkString("\n")
+  }
+
+  def formatOzoneErrorMessage(errors: Seq[(Int, List[OzoneExceptions])]) : String = {
+    val groupByLine = errors.sortBy(_._1).groupBy(_._1)
+    groupByLine.map(l => {
       s"line number: ${l._1}  errors: ${l._2.map(_._2.toString()).mkString("\n")}"
     }).mkString("\n")
   }
