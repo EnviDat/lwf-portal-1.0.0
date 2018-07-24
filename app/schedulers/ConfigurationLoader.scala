@@ -32,6 +32,17 @@ case class CR1000LoggerFileConfig(frequencyCR1000 :Int,
                                   stationConfigs: List[StationKonfig],
                                   emailUserList: String
                                  )
+
+case class OzoneFileConfig(frequencyOzone :Int,
+                                  ftpUrlOzone :String,
+                                  fptUserNameOzone :String,
+                                  ftpPasswordOzone :String,
+                                  ftpPathForIncomingFileOzone :String,
+                                  ftpPathForOzoneFaultyFile :String,
+                                  ftpPathForOzoneArchiveFiles :String,
+                                  emailUserList: String
+                                 )
+
 object ConfigurationLoader {
 
 
@@ -84,5 +95,15 @@ object ConfigurationLoader {
     CR1000LoggerFileConfig(frequencyCR1000, ftpUrlCR1000, fptUserNameCR1000, ftpPasswordCR1000, ftpPathForIncomingFileCR1000, ftpPathForCR1000FaultyFile, ftpPathForCR1000ArchiveFiles, statKonfigs, cr1000EmailUserList)
   }
 
-
+  def loadOzoneConfiguration(configuration: Configuration) = {
+    val frequencyOzone = configuration.getInt("frequencyOzone").get
+    val ftpUrlOzone = configuration.getString("ftpUrlOzone").get
+    val fptUserNameOzone = configuration.getString("fptUserNameOzone").get
+    val ftpPasswordOzone = configuration.getString("ftpPasswordOzone").get
+    val ftpPathForIncomingFileOzone = configuration.getString("ftpPathForIncomingFileOzone").get
+    val ftpPathForOzoneFaultyFile = configuration.getString("ftpPathForOzoneFaultyFile").get
+    val ftpPathForOzoneArchiveFiles = configuration.getString("ftpPathForOzoneArchiveFiles").get
+    val ozoneEmailUserList = configuration.getString("emailUserListOzone").get
+    OzoneFileConfig(frequencyOzone, ftpUrlOzone, fptUserNameOzone, ftpPasswordOzone, ftpPathForIncomingFileOzone, ftpPathForOzoneFaultyFile, ftpPathForOzoneArchiveFiles, ozoneEmailUserList)
   }
+}

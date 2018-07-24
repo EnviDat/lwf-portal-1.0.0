@@ -33,7 +33,7 @@ class SchedulerActorCR1000 @Inject()(configuration: Configuration, meteoService:
     val stationKonfigs = config.stationConfigs
     val emailUserList = config.emailUserList
     Logger.info("processing data task running")
-    FtpConnector.readFileFromFtp(userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo, stationKonfigs, emailUserList, meteoService, pathForArchiveFiles)
+    FtpConnector.readCrdCR1000FileFromFtp(userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo, stationKonfigs, emailUserList, meteoService, pathForArchiveFiles)
 
     Logger.info("File processing task finished")
   }

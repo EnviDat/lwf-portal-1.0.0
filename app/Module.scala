@@ -30,6 +30,8 @@ class Module extends AbstractModule with AkkaGuiceSupport {
     bindActor[LogsSchedulerActor]("log-scheduler-actor")
     bind(classOf[Scheduler]).asEagerSingleton()
     bind(classOf[SchedulerCR1000]).asEagerSingleton()
+    bindActor[SchedulerActorOzone]("scheduler-actor-ozone")
+    bind(classOf[SchedulerOzone]).asEagerSingleton()
 
   }
 
