@@ -5,6 +5,7 @@ import java.util
 import java.util.stream
 
 import com.jcraft.jsch.{ChannelSftp, JSch, JSchException, SftpException}
+import models.domain.Ozone.OzoneKeysConfig
 import models.domain.{CR1000ErrorFileInfo, CR1000Exceptions, DataImport, FormatMessage}
 import models.ozone.{OzoneErrorFileInfo, OzoneExceptions, WSOzoneFileParser, WSOzoneFileValidator}
 import models.services.{CR1000FileParser, CR1000FileValidator, EmailService, MeteoService}
@@ -142,9 +143,15 @@ object FtpConnector {
           val stream = sftpChannel.get(entry.getFilename)
           val br = new BufferedReader(new InputStreamReader(stream))
           val linesToParse = Stream.continually(br.readLine()).takeWhile(_ != null).toList
-          val validLines = linesToParse.filter(l => CurrentSysDateInSimpleFormat.dateRegex.findFirstIn(l).nonEmpty)
-          val errors: Seq[(Int, List[OzoneExceptions])] = validLines.zipWithIndex.map(l => (l._2,WSOzoneFileValidator.validateLine(entry.getFilename,l._1)))
-          OzoneErrorFileInfo(entry.getFilename,errors, validLines)
+          val validLines = linesToParse.filterNot(l => OzoneKeysConfig.defaultInvalidLinesPrefix.exists(l.contains) || l.matches("^[;]+$"))
+          val validDataAndCommentsLines = validLines.filterNot(l => OzoneKeysConfig.defaultValidKeywords.exists(l.contains))
+          val validDataLines = validDataAndCommentsLines.filter(l => OzoneKeysConfig.defaultPlotConfigs.map(_.plotName).filter(l.startsWith(_)).nonEmpty)
+          val validKommentLines = validDataAndCommentsLines.filterNot(l => OzoneKeysConfig.defaultPlotConfigs.map(_.plotName).filter(l.startsWith(_)).nonEmpty)
+
+          val validFileHeaderLines: Seq[String] = validLines.filter(l => OzoneKeysConfig.defaultValidKeywords.exists(l.contains))
+          val fileLevelConfig = OzoneKeysConfig.prepareOzoneFileLevelInfo(validFileHeaderLines, validKommentLines, entry.getFilename)
+          val errors: Seq[(Int, List[OzoneExceptions])] = validDataLines.zipWithIndex.map(l => (l._2,WSOzoneFileValidator.validateLine(entry.getFilename,l._1)))
+          OzoneErrorFileInfo(entry.getFilename,errors, linesToParse)
         }
         )
         .toList

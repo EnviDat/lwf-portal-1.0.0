@@ -5,6 +5,7 @@ import java.time.format.DateTimeParseException
 
 import models.domain
 import models.domain.{CR1000Exceptions, CR1000InvalidDateException}
+import models.ozone.{OzoneExceptions, OzoneInvalidDateException}
 import org.joda.time.{DateTime, DateTimeZone}
 import play.Logger
 
@@ -19,6 +20,7 @@ object StringToDate {
   val formatDate: DateTimeFormatter = DateTimeFormat.forPattern("dd-MM-yyyy HH:mm:ss")
 
   val formatCR1000Date: DateTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss")
+  val formatOzoneDate: DateTimeFormatter = DateTimeFormat.forPattern("dd.MM.YYYY hh:mm:ss")
 
 
   def stringToDateConvert(date: String) = {
@@ -43,6 +45,23 @@ object StringToDate {
 
   }
 
+  def stringToDateConvertoZONE(date: String, lineToValidate: String): Option[OzoneExceptions] = {
+    try {
+      formatOzoneDate.withZone(DateTimeZone.UTC).parseDateTime(date)
+      None
+    }
+    catch {
+      case err: DateTimeParseException => {
+        Logger.info(s" is not parsable${date} errror Message: ${err}")
+        Some(OzoneInvalidDateException(4, s"date is not parsable${date} errror Message: ${err}, ${lineToValidate}"))
+      }
+      case err: IllegalArgumentException => {
+        Logger.info(s" is not parsable${date} errror Message: ${err}")
+        Some(OzoneInvalidDateException(4, s"date is not parsable${date} errror Message: ${err},  ${lineToValidate}"))
+      }
+    }
+
+  }
 }
 
 object CurrentSysDateInSimpleFormat {

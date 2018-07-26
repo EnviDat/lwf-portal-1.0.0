@@ -9,7 +9,7 @@ sealed trait OzoneExceptions {
 case class OzoneInvalidProjectNumberException(errorCode: Int,errorMessage: String) extends OzoneExceptions {
   override def toString() = formatErrorString(errorMessage)
 }
-case class OzoneInvalidStationNumberException(errorCode: Int,errorMessage: String) extends OzoneExceptions {
+case class OzoneInvalidPlotException(errorCode: Int,errorMessage: String) extends OzoneExceptions {
   override def toString() = formatErrorString(errorMessage)
 }
 case class OzoneInvalidNumberOfParametersException(errorCode: Int,errorMessage: String) extends OzoneExceptions {
@@ -21,7 +21,7 @@ case class OzoneInvalidDateException(errorCode: Int,errorMessage: String) extend
 case class OzoneConfigNotFoundException(errorCode: Int,errorMessage: String) extends OzoneExceptions {
   override def toString() = formatErrorString(errorMessage)
 }
-case class OzoneInvalidIntegerFoundException(errorCode: Int,errorMessage: String) extends OzoneExceptions {
+case class OzoneInvalidNumberFoundException(errorCode: Int,errorMessage: String) extends OzoneExceptions {
   override def toString() = formatErrorString(errorMessage)
 }
 case class OzoneNotSufficientParameters(errorCode: Int,errorMessage: String) extends OzoneExceptions {

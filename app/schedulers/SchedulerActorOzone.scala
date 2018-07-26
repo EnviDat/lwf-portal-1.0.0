@@ -15,7 +15,7 @@ import scala.concurrent.ExecutionContext
 @Singleton
 class SchedulerActorOzone @Inject()(configuration: Configuration, meteoService: MeteoService)(implicit ec: ExecutionContext) extends Actor {
   override def receive: Receive = {
-    case "processFile" =>  {
+    case "processOzoneFile" =>  {
 
       val config = ConfigurationLoader.loadOzoneConfiguration(configuration)
       processFile(config)

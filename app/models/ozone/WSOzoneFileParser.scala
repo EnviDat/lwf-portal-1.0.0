@@ -10,7 +10,7 @@ import org.joda.time.{DateTime, DateTimeZone}
 object WSOzoneFileParser {
 
   def parseAndSaveData(cr100FileData: List[String], meteoService: MeteoService, fileName: String): Option[OzoneOracleError] = {
-    val allMessWerts: Seq[MessArtRow] = meteoService.getAllMessArts
+    /*val allMessWerts: Seq[MessArtRow] = meteoService.getAllMessArts
     val allStationConfigs: List[MeteoStationConfiguration] = meteoService.getStatKonfForStation().filter(sk => allMessWerts.map(_.code).contains( sk.messArt))
 
     val allRowsToBeInserted = cr100FileData.flatMap(line => {
@@ -52,7 +52,8 @@ object WSOzoneFileParser {
         } yield values
       valuesToBeInserted
     }).flatten.toList
-    meteoService.insertMeteoDataCR1000(allRowsToBeInserted)
+    meteoService.insertMeteoDataCR1000(allRowsToBeInserted)*/
+    None
   }
 
   private def getMappingOfFolgeNrToMessArt(confForStation: List[MeteoStationConfiguration]) = {
