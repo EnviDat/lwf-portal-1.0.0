@@ -6,17 +6,17 @@ import javax.inject.Inject
 import anorm.SqlParser.get
 import models.domain.Ozone.{OzoneFileConfig, PassSammData}
 import models.domain._
-import models.repositories.MeteoDataRepository
+import models.repositories.{MeteoDataRepository, MeteorologyDataRepository}
 import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 
 
-class MeteoService @Inject()(meteoRepo: MeteoDataRepository) {
+class MeteorologyService @Inject()(meteoRepo: MeteorologyDataRepository) {
   implicit val stationReader: Reads[Station] = (
     (__ \ "statnr").read[Int] and
       (__ \ "beschr").read[String] and
-        (__ \ "statgruppe").readNullable[Int]
+      (__ \ "statgruppe").readNullable[Int]
 
     ) (Station.apply _)
 
@@ -24,7 +24,7 @@ class MeteoService @Inject()(meteoRepo: MeteoDataRepository) {
   implicit val documentWriter: Writes[Station] = (
     (__ \ "statnr").write[Int] and
       (__ \ "beschr").write[String] and
-        (__ \ "statgruppe").writeNullable[Int]
+      (__ \ "statgruppe").writeNullable[Int]
     ) (unlift(Station.unapply))
 
   implicit val meteoDataReader: Reads[MeteoDataRow] = (
@@ -57,10 +57,10 @@ class MeteoService @Inject()(meteoRepo: MeteoDataRepository) {
   def getAllMessArts = meteoRepo.findAllMessArts()
 
   def getMeteoData(id: Int): Seq[JsValue] =
-    {
-      val listOfStations = meteoRepo.findMeteoDataForStation(id)
-      listOfStations.map(Json.toJson(_))
-    }
+  {
+    val listOfStations = meteoRepo.findMeteoDataForStation(id)
+    listOfStations.map(Json.toJson(_))
+  }
 
   def getAllMeteoData(id: Int): Seq[MeteoDataRow] = meteoRepo.findMeteoDataForStation(id)
 
@@ -83,7 +83,7 @@ class MeteoService @Inject()(meteoRepo: MeteoDataRepository) {
 
   def insertLogInformation(meteoLogInfos: List[MeteoDataFileLogInfo]) = meteoRepo.insertLogInfoForFilesSent(meteoLogInfos)
 
-  def insertMeteoDataCR1000(meteoData: Seq[MeteoDataRowTableInfo]) = meteoRepo.insertCR1000MeteoDataForFilesSent(meteoData)
+  def insertMeteoDataETHLae(meteoData: Seq[MeteoDataRowTableInfo]) = meteoRepo.insertETHLaeMeteoDataForFilesSent(meteoData)
 
   def insertOzoneData(passSammelenData: PassSammData, analyseId: Int) = meteoRepo.insertOzoneDataForFilesSent(passSammelenData, analyseId)
 
@@ -98,3 +98,4 @@ class MeteoService @Inject()(meteoRepo: MeteoDataRepository) {
 
 
 }
+

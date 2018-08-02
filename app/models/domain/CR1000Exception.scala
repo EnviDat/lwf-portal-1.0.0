@@ -50,10 +50,11 @@ object FormatMessage {
     }).mkString("\n")
   }
 
-  def formatOzoneErrorMessage(errors: Seq[(Int, List[OzoneExceptions])]) : String = {
-    val groupByLine = errors.sortBy(_._1).groupBy(_._1)
+  def formatOzoneErrorMessage(errors: List[OzoneExceptions]) : String = {
+    /*val groupByLine = errors.sortBy(_._1).groupBy(_._1)
     groupByLine.map(l => {
       s"line number: ${l._1}  errors: ${l._2.map(_._2.toString()).mkString("\n")}"
-    }).mkString("\n")
+    }).mkString("\n")*/
+    s"errors: ${errors.mkString(",").toString()}"
   }
 }

@@ -43,6 +43,17 @@ case class OzoneFileConfig(frequencyOzone :Int,
                                   emailUserList: String
                                  )
 
+case class ETHLaegerenLoggerFileConfig(frequencyETHLae :Int,
+                                  ftpUrlETHLae :String,
+                                  fptUserNameETHLae :String,
+                                  ftpPasswordETHLae :String,
+                                  ftpPathForIncomingFileETHLae :String,
+                                  ftpPathForETHLaeFaultyFile :String,
+                                  ftpPathForETHLaeArchiveFiles :String,
+                                  stationConfigs: List[StationKonfig],
+                                  emailUserList: String
+                                 )
+
 object ConfigurationLoader {
 
 
@@ -105,5 +116,40 @@ object ConfigurationLoader {
     val ftpPathForOzoneArchiveFiles = configuration.getString("ftpPathForOzoneArchiveFiles").get
     val ozoneEmailUserList = configuration.getString("emailUserListOzone").get
     OzoneFileConfig(frequencyOzone, ftpUrlOzone, fptUserNameOzone, ftpPasswordOzone, ftpPathForIncomingFileOzone, ftpPathForOzoneFaultyFile, ftpPathForOzoneArchiveFiles, ozoneEmailUserList)
+  }
+
+  def loadETHLaeConfiguration(configuration: Configuration) = {
+    val frequencyETHLae = configuration.getInt("frequencyETHLae").get
+    val ftpUrlETHLae = configuration.getString("ftpUrlETHLae").get
+    val fptUserNameETHLae = configuration.getString("fptUserNameETHLae").get
+    val ftpPasswordETHLae = configuration.getString("ftpPasswordETHLae").get
+    val ftpPathForIncomingFileETHLae = configuration.getString("ftpPathForIncomingFileETHLae").get
+    val ftpPathForETHLaeFaultyFile = configuration.getString("ftpPathForETHLaeFaultyFile").get
+    val ftpPathForETHLaeArchiveFiles = configuration.getString("ftpPathForETHLaeArchiveFiles").get
+    val ethLaeEmailUserList = configuration.getString("etHLaeEmailUserList").get
+    import scala.collection.JavaConversions._
+
+    val statKonfigs =  configuration.getConfigList("stationConfigETH").map { statKonfig =>
+      statKonfig.map(sk => {
+        val fileName = sk.getString("fileName").get
+        val stationNumber = sk.getInt("stationNumber").get
+        val params = sk.getConfigList("projectParam")
+          .map(pList => {
+            val ppList =  pList.map(pp => {
+              val projNr = pp.getInt("projNr").get
+              val numParams = pp.getInt("params").get
+              val duration = pp.getInt("duration").get
+              ParametersProject(projNr,numParams,duration)
+            }).toList
+            ppList
+          })
+
+        StationKonfig(fileName, stationNumber, params.getOrElse(List()))
+
+      }).toList
+    }.getOrElse(List())
+    Logger.info(s"Station config are: ${statKonfigs.mkString("\n")}")
+
+    ETHLaegerenLoggerFileConfig(frequencyETHLae, ftpUrlETHLae, fptUserNameETHLae, ftpPasswordETHLae, ftpPathForIncomingFileETHLae, ftpPathForETHLaeFaultyFile, ftpPathForETHLaeArchiveFiles, statKonfigs, ethLaeEmailUserList)
   }
 }

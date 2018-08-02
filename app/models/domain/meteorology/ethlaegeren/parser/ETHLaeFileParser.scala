@@ -1,35 +1,35 @@
-package models.services
+package models.domain.meteorology.ethlaegeren.parser
 
 import models.domain._
-import models.util.{NumberParser, StringToDate}
+import models.domain.meteorology.ethlaegeren.domain.{MeasurementParameter, StationConfiguration}
+import models.services.MeteorologyService
 import models.util.StringToDate.formatCR1000Date
+import models.util.{NumberParser, StringToDate}
 import org.joda.time.{DateTime, DateTimeZone}
 
-import scala.collection.immutable
 
+object ETHLaeFileParser {
 
-object CR1000FileParser {
+  def parseAndSaveData(ethLaeFileData: List[String], meteoService: MeteorologyService, fileName: String): Option[CR1000OracleError] = {
+    val allMessWerts: Seq[MeasurementParameter] = meteoService.getAllMessArts
+    val allStationConfigs: List[StationConfiguration] = meteoService.getStatKonfForStation().filter(sk => allMessWerts.map(_.code).contains( sk.measurementParam))
 
-  def parseAndSaveData(cr100FileData: List[String], meteoService: MeteoService, fileName: String): Option[CR1000OracleError] = {
-    val allMessWerts: Seq[MessArtRow] = meteoService.getAllMessArts
-    val allStationConfigs: List[MeteoStationConfiguration] = meteoService.getStatKonfForStation().filter(sk => allMessWerts.map(_.code).contains( sk.messArt))
-
-    val allRowsToBeInserted = cr100FileData.flatMap(line => {
+    val allRowsToBeInserted = ethLaeFileData.flatMap(line => {
       val words = line.split(",")
       val date = formatCR1000Date.withZone(DateTimeZone.UTC).parseDateTime(words(0).replace("\"", ""))
       val recordNumber = NumberParser.parseNumber(words(1))
-      val stationNumber =  NumberParser.parseNumber(words(2))
-      val projectNumber =  NumberParser.parseNumber(words(3))
-      val periode = NumberParser.parseNumber(words(4))
+      val stationNumber =  Some(124)
+      val projectNumber =  Some(1)
+      val periode = Some(10)
 
       val valuesToBeInserted =  for {
           statNr <- stationNumber
           projNr <- projectNumber
           period <- periode
-          messWerts = allMessWerts.filter(mt => mt.pDauer == period && mt.messProjNr.contains(projNr))
-          statConfig = allStationConfigs.filter(sk => sk.station == statNr && messWerts.map(_.code).contains(sk.messArt)).sortBy(_.folgeNr)
-          folgnr: Seq[(Option[Int], Int, Int)] =  statConfig.map(sk => (sk.folgeNr, sk.messArt,sk.configNumber))
-          elements = words.drop(5).zipWithIndex
+          messWerts = allMessWerts.filter(mt => mt.period == period)
+          statConfig: Seq[StationConfiguration] = allStationConfigs.filter(sk => (sk.station == statNr && messWerts.map(_.code).contains(sk.measurementParam) && sk.projectNr.contains(projNr))).sortBy(_.folgeNr)
+          folgnr: Seq[(Option[Int], Int, Int)] =  statConfig.map(sk => (sk.folgeNr, sk.measurementParam,sk.configNumber))
+          elements = words.drop(2).zipWithIndex
           rangeFolgnr = List.range(1,elements.length).toSet
           sortedFolgnr = folgnr.flatMap(_._1).sorted.toSet
           missingFolgnr = rangeFolgnr diff sortedFolgnr
@@ -53,7 +53,7 @@ object CR1000FileParser {
         } yield values
       valuesToBeInserted
     }).flatten.toList
-    meteoService.insertMeteoDataCR1000(allRowsToBeInserted)
+    meteoService.insertMeteoDataETHLae(allRowsToBeInserted)
   }
 
   private def getMappingOfFolgeNrToMessArt(confForStation: List[MeteoStationConfiguration]) = {

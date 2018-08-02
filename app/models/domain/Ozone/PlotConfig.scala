@@ -3,27 +3,28 @@ package models.domain.Ozone
 
 case class OzonePlot(plotName: String, abbrePlot: String, clnrPlot: Integer, statnr: Integer, codePlot: Integer)
 
-case class OzoneFileConfig(fileName: String, sammelMethode: String, anaylysenMethode: String, analysenDatum: String, blindwert: BigDecimal, farrbreagens: String, calFactor: BigDecimal, probenEingang: String, nachweisgrenze: BigDecimal, codeCountry: BigDecimal,  codeCompound: String, remarks: String)
+case class OzoneFileConfig(fileName: String, sammelMethode: String, anaylysenMethode: String, analysenDatum: String, blindwert: BigDecimal, farrbreagens: String, calFactor: BigDecimal, probenEingang: String, nachweisgrenze: BigDecimal, codeCountry: BigDecimal,  codeCompound: String, remarks: String, missingInfo: Boolean)
 
-case class IntermediateFileLine(codeCountry: Integer,
-                               codePlot: String,
-                               namePlot: String,
-                               samplerNummer: Integer,
-                               dateStart: String,
-                               timeStart: String,
-                               dateEnd: String,
-                               timeEnd: String,
-                               expTime: String,
-                               codeCompound: String,
-                               absorbCode: String,
-                               absorbValue: Integer,
-                               valueAQ: BigDecimal,
-                               blindValue: Integer,
-                               dateOfFarbreagenz: String,
-                               calFactor: BigDecimal,
-                               dateOfAnalysis: String,
-                               methodOfAnalysis: String,
-                               fileName: String
+case class PassSammData(clnr: Integer,
+                               startDate: String,
+                               endDate: String,
+                               duration: BigDecimal,
+                               rowData1: BigDecimal,
+                               rowData2: BigDecimal,
+                               rowData3: BigDecimal,
+                               rowData4: BigDecimal,
+                               absorpData1: BigDecimal,
+                               absorpData2: BigDecimal,
+                               absorpData3: BigDecimal,
+                               absorpData4: BigDecimal,
+                               konzData1: BigDecimal,
+                               konzData2: BigDecimal,
+                               konzData3: BigDecimal,
+                               konzData4: BigDecimal,
+                               mittel: BigDecimal,
+                               bemerk: String,
+                               passval: Integer,
+                               einfdat: String
 )
 
 
@@ -39,7 +40,7 @@ object OzoneKeysConfig {
                                 )
   def defaultValidKeywords = List("Sammelmethode:", "Analysendatum:", "Blindwert","Farbreagens:", "Cal. Fact.","Probeneingang:","Nachweisgrenze")
   def defaultInvalidLinesPrefix = List( "Ozon (O3)-Messung mit Passivsammlern",
-                                        "WSL, Birmensdorf","Ort","Code: WS",
+                                        "WSL, Birmensdorf","Ort",
                                         "Messunsicherheit www",
                                         "Die Messwerte  sind repräsentativ nur für den unmittelbaren",
                                         "Diese Daten sind Teil einer längeren Messreihe",
@@ -47,6 +48,9 @@ object OzoneKeysConfig {
                                         "passam ag"
                                         )
   def intermediateFileHeader = "CODE_COUNTRY;	CODE_PLOT;	NAME_PLOT;	SAMPLER_NUMBER;	DATE_START;	time_start;	DATE_END;	time_end;	exp_time;	CODE_COMPOUND;	absorb_code;	absorb_value;	VALUE_AQ (ug/m3);	Blind value;	Date  of Farbreagenz;	Cal. Factor.;	Date of analysis;	Method of analysis;	File_Name"
+
+  def forNumberOfParametersInFile = List("Wert 4")
+
 
   def prepareOzoneFileLevelInfo(validLines: Seq[String], commentLines: Seq[String], fileName : String): OzoneFileConfig = {
     val sammelMethodeLine: Option[String] = validLines.filter(_.startsWith("Sammelmethode")).headOption
@@ -63,18 +67,21 @@ object OzoneKeysConfig {
     val nachweisgrenzeValue = getNachweisgrenzeValue(probeEingangLine)
     val comments = commentLines.mkString(",") replaceAll(";", "")
 
+    val missingValue = sammelMethodeValue.isEmpty || analysenMethodeValue.isEmpty || analysenDatumValue.isEmpty || blindwertValue.isEmpty || farbreagensDatumValue.isEmpty || calibrationValue.isEmpty || probenEingangDatumValue.isEmpty || nachweisgrenzeValue.isEmpty
+
     OzoneFileConfig(fileName,
       sammelMethodeValue.getOrElse("undefined"),
       analysenMethodeValue.getOrElse("undefined"),
-      analysenDatumValue.getOrElse("undefined"),
+      analysenDatumValue.getOrElse("01.01.1900 00:00:00"),
       BigDecimal(blindwertValue.getOrElse("0")),
-      farbreagensDatumValue.getOrElse("undefined"),
+      farbreagensDatumValue.getOrElse("01.01.1900 00:00:00"),
       BigDecimal(calibrationValue.getOrElse("0")),
-      probenEingangDatumValue.getOrElse("undefined"),
+      probenEingangDatumValue.getOrElse("01.01.1900 00:00:00"),
       BigDecimal(nachweisgrenzeValue.getOrElse("0")),
         BigDecimal(50),
         "O3",
-      comments
+      comments,
+      missingValue
     )
 
   }

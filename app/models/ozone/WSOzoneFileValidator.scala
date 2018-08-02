@@ -6,7 +6,7 @@ import play.Logger
 
 object WSOzoneFileValidator {
 
-  def validateLine(fileName: String, lineToValidate: String): List[OzoneExceptions] = {
+  def validateLine(fileName: String, lineToValidate: String, numberofParameters: Int): Either[(List[OzoneExceptions],String), String] = {
     Logger.info(s"validating the line ${lineToValidate}")
 
     try {
@@ -17,17 +17,22 @@ object WSOzoneFileValidator {
       val beginnDateError: Option[OzoneExceptions] = validateDateFormat(words(1) + " " + words(2) + ":00", lineToValidate)
       val endDateError: Option[OzoneExceptions] = validateDateFormat(words(3) + " " + words(4) + ":00", lineToValidate)
       val remainingValues = words.drop(5).toList
-      val parameterValuesError: Seq[OzoneExceptions] = validateValueOfParameters(remainingValues, lineToValidate)
-      if (ortCodeError.isEmpty && beginnDateError.isEmpty && endDateError.isEmpty && parameterValuesError.isEmpty && notSufficentValues.isEmpty)
-        List()
+      val parameterValuesError = if (remainingValues.length > 12 && numberofParameters == 12)
+        validateValueOfParameters(remainingValues.slice(0,11), lineToValidate)
+      else if(remainingValues.length > 15 && numberofParameters == 15)
+        validateValueOfParameters(remainingValues.slice(0,14), lineToValidate)
       else
-        List(ortCodeError, beginnDateError, endDateError, notSufficentValues).flatten ::: parameterValuesError
+        validateValueOfParameters(remainingValues, lineToValidate)
+      if (ortCodeError.isEmpty && beginnDateError.isEmpty && endDateError.isEmpty && parameterValuesError.isEmpty && notSufficentValues.isEmpty)
+        Right(lineToValidate)
+      else
+        Left(List(ortCodeError, beginnDateError, endDateError, notSufficentValues).flatten ::: parameterValuesError, lineToValidate)
     }
   catch {
     case e: ArrayIndexOutOfBoundsException =>
-      List(OzoneNotSufficientParameters(999, "File was either empty or contained lines with error values"))
+      Left(List(OzoneNotSufficientParameters(999, "File was either empty or contained lines with error values")),lineToValidate)
     case error : Throwable =>
-      List(OzoneFileError(-1, error.toString))
+      Left(List(OzoneFileError(-1, error.toString)),lineToValidate)
     }
   }
 
@@ -42,7 +47,7 @@ object WSOzoneFileValidator {
     words.flatMap(w => {
       val parsedValue = NumberParser.parseBigDecimal(w)
       parsedValue match {
-        case None => Some(OzoneInvalidNumberFoundException(6, s"parameter is not a number, ${lineToValidate}"))
+        case None => Some(OzoneInvalidNumberFoundException(6, s"parameter is not a number, ${parsedValue} in the line ${lineToValidate}"))
         case _ => None
       }
     })

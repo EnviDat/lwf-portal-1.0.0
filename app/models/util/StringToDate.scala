@@ -6,6 +6,7 @@ import java.time.format.DateTimeParseException
 import models.domain
 import models.domain.{CR1000Exceptions, CR1000InvalidDateException}
 import models.ozone.{OzoneExceptions, OzoneInvalidDateException}
+import models.util.StringToDate.formatOzoneDate
 import org.joda.time.{DateTime, DateTimeZone}
 import play.Logger
 
@@ -16,11 +17,16 @@ object StringToDate {
   val oracleDateFormat: DateTimeFormatter = DateTimeFormat.forPattern("dd.MM.yyyy HH:mm:ss")
   val oracleMetaBlagDateFormat: DateTimeFormatter = DateTimeFormat.forPattern("dd.MM.yyyy HH:mm:ss.SSS")
 
+  val oracleDateNoTimeFormat: DateTimeFormatter = DateTimeFormat.forPattern("dd.MM.yyyy")
+
+
 
   val formatDate: DateTimeFormatter = DateTimeFormat.forPattern("dd-MM-yyyy HH:mm:ss")
 
   val formatCR1000Date: DateTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss")
-  val formatOzoneDate: DateTimeFormatter = DateTimeFormat.forPattern("dd.MM.YYYY hh:mm:ss")
+  val formatOzoneDate: DateTimeFormatter = DateTimeFormat.forPattern("dd.MM.YYYY HH:mm:ss")
+
+  val formatOzoneDateWithNoTime: DateTimeFormatter = DateTimeFormat.forPattern("dd.MM.YYYY")
 
 
   def stringToDateConvert(date: String) = {
@@ -67,9 +73,15 @@ object StringToDate {
 object CurrentSysDateInSimpleFormat {
   def dateNow = new SimpleDateFormat("yyyyMMddHHmmss").format(new  java.util.Date())
   def dateRegex = raw"(\d{4})-(\d{2})-(\d{2})".r
+
+  val systemDateForEinfdat = s"${StringToDate.formatOzoneDate.print(new DateTime())}"
+  val sysdateDateInOracleformat = s"TO_date('${systemDateForEinfdat}', 'DD.MM.YYYY HH24:MI:SS')"
+
 }
 object Joda {
   implicit def dateTimeOrdering: Ordering[DateTime] = Ordering.fromLessThan(_ isBefore _)
+
+
 }
 
 
