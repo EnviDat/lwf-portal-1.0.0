@@ -141,8 +141,8 @@ class MeteorologyDataRepository  @Inject() (dbapi: DBApi) {
       val statNr = l._2.headOption.map(_.meteoDataRow.station)
       statNr match {
         case Some(stationNr) => {
-          val insertStatement = s"insert into file_log_info (id, station_id, file_name, timestamp, nr_of_rows, from_time, to_time, user) values (FileInfo_ID_SEQ.nextval, " +
-            s"${stationNr}, '${fileName}', ${einfDat}, ${meteoData.size}, ${fromDate}, ${toDate}, 'meteo')"
+          val insertStatement = s"insert into file_log_info (id, station_id, file_name, timestamp, nr_of_rows, from_time, to_time) values (FileInfo_ID_SEQ.nextval, " +
+            s"${stationNr}, '${fileName}', ${einfDat}, ${meteoData.size}, ${fromDate}, ${toDate})"
           Logger.info(s"statement to be executed: ${insertStatement}")
           stmt.executeUpdate(insertStatement)
         }

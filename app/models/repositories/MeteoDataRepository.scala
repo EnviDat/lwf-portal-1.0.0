@@ -4,7 +4,7 @@ import java.sql.{SQLException, Statement}
 import javax.inject.Inject
 
 import anorm._
-import models.domain.Ozone.{OzoneFileConfig, PassSammData}
+import models.domain.Ozone._
 import models.domain.{MeteoDataFileLogInfo, _}
 import models.ozone.OzoneOracleError
 import models.util.{CurrentSysDateInSimpleFormat, StringToDate}
@@ -164,10 +164,10 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
       conn.setAutoCommit(false)
       val stmt: Statement = conn.createStatement()
 
-      val insertStatement = s"insert into passsamdat (clnr, startdat, analysid, enddat, expduration, rawdat1, rawdat2, rawdat3, rawdat4, absorpdat1, absorpdat2, absorpdat3, absorpdat4, konzdat1, konzdat2, konzdat3, konzdat4, mittel, bemerk, passval, einfdat) values(" +
+      val insertStatement = s"insert into passsamdat (clnr, startdat, analysid, enddat, expduration, rawdat1, rawdat2, rawdat3, BW_rawdat, absorpdat1, absorpdat2, absorpdat3, BW_absorpdat, konzdat1, konzdat2, konzdat3, BW_konzdat, mittel, bemerk, passval, einfdat, relSD) values(" +
               s"${ozoneData.clnr}, ${ozoneData.startDate}, ${analyseid}, ${ozoneData.endDate}, ${ozoneData.duration}, " +
         s"${ozoneData.rowData1},${ozoneData.rowData2}, ${ozoneData.rowData3}, ${ozoneData.rowData4}, ${ozoneData.absorpData1}, ${ozoneData.absorpData2}, ${ozoneData.absorpData3}, ${ozoneData.absorpData4}" +
-        s", ${ozoneData.konzData1}, ${ozoneData.konzData2}, ${ozoneData.konzData3}, ${ozoneData.konzData4}, ${ozoneData.mittel}, '${ozoneData.bemerk}', ${ozoneData.passval},${ozoneData.einfdat})"
+        s", ${ozoneData.konzData1}, ${ozoneData.konzData2}, ${ozoneData.konzData3}, ${ozoneData.konzData4}, ${ozoneData.mittel}, '${ozoneData.bemerk}', ${ozoneData.passval},${ozoneData.einfdat}, ${ozoneData.relSD})"
             Logger.info(s"statement to be executed: ${insertStatement}")
             stmt.executeUpdate(insertStatement)
       stmt.close()
@@ -188,6 +188,35 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
       }
     }
   }
+
+  def updateOzoneBlindWert(ozoneData: PassSammData, analyseid: Int): Option[OzoneOracleError] = {
+    val conn = db.getConnection()
+    try {
+      conn.setAutoCommit(false)
+      val stmt: Statement = conn.createStatement()
+
+      val updateStatement = s"update passsamdat set bw_rawdat = ${ozoneData.rowData1}, bw_absorpdat = ${ozoneData.absorpData1}, bw_konzdat = ${ozoneData.konzData1} where clnr = ${ozoneData.clnr} and startdat = ${ozoneData.startDate} and analysid = ${analyseid} and enddat = ${ozoneData.endDate}"
+      Logger.info(s"update statement to be executed: ${updateStatement}")
+      stmt.executeUpdate(updateStatement)
+      stmt.close()
+      conn.commit()
+      conn.close()
+      None
+    } catch {
+      case ex: SQLException => {
+        if(ex.getErrorCode() == 1){
+          Logger.info(s"Data was already read. Primary key violation ${ex}")
+          conn.rollback()
+          conn.close()
+          None
+        } else {
+          conn.close()
+          Some(OzoneOracleError(8, s"Oracle Exception: ${ex}"))
+        }
+      }
+    }
+  }
+
 
   def insertOzoneFileInfo(fileLevelConfig: OzoneFileConfig, einfdat: String): Option[OzoneOracleError] = {
     val conn = db.getConnection()
@@ -220,6 +249,25 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
         }
       }
     }
+  }
+
+  def getOzoneFileInformation() :List[OzoneFileData] = db.withConnection { implicit connection =>
+    SQL("SELECT * FROM PASSIVESAMFILEINFO ORDER BY analysid").as(OzoneFileDataRow.parser *)
+  }
+
+  def getOzoneDataForTheYear(year: Int) = db.withConnection { implicit connection =>
+    SQL("""select t.clnr, to_char(t.startdat, 'dd.mm.yyyy') as startDate, to_char(t.startdat, 'HH24:MI:SS') as startTime, to_char(t.enddat, 'dd.mm.yyyy') as endDate,
+    to_char(t.enddat, 'HH24:MI:SS') as endTime,t.analysid,
+    t.expduration, t.rawdat1, t.rawdat2, t.rawdat3, t.bw_rawdat,
+    t.absorpdat1, t.absorpdat2, t.absorpdat3, t.bw_absorpdat, t.konzdat1,
+    t.konzdat2, t.konzdat3, t.bw_konzdat, t.mittel, t.relsd,
+    to_char(p.probeeingdat, 'dd.mm.yyyy') as probeeingdat,
+    to_char(p.analysedatum, 'dd.mm.yyyy') as analysedatum,
+    p.analysemethode, p.sammel, p.blindwert, to_char(p.farbreagens, 'dd.mm.yyyy') as farbreagens, p.calfactor, p.filename, p.nachweisgrenze, p.bemerk as FileBem, t.bemerk as lineBem
+    from passsamdat t, passivesamfileinfo p
+      where to_char(startdat,'yyyy') = {year}
+    and t.analysid = p.analysid""".stripMargin).on("year" -> year).as(OzoneDataRow.parser *)
+
   }
 
 }

@@ -45,7 +45,7 @@ object WSOzoneFileValidator {
 
   def validateValueOfParameters(words: List[String], lineToValidate: String): List[OzoneExceptions] = {
     words.flatMap(w => {
-      val parsedValue = NumberParser.parseBigDecimal(w)
+      val parsedValue = NumberParser.parseBigDecimalWithLessThanSign(w)
       parsedValue match {
         case None => Some(OzoneInvalidNumberFoundException(6, s"parameter is not a number, ${parsedValue} in the line ${lineToValidate}"))
         case _ => None

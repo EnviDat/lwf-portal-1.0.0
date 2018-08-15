@@ -1,6 +1,6 @@
 package models.domain
 
-import models.ozone.OzoneExceptions
+import models.ozone._
 
 sealed trait CR1000Exceptions {
   def formatErrorString(s: String): String = {
@@ -51,10 +51,16 @@ object FormatMessage {
   }
 
   def formatOzoneErrorMessage(errors: List[OzoneExceptions]) : String = {
-    /*val groupByLine = errors.sortBy(_._1).groupBy(_._1)
-    groupByLine.map(l => {
-      s"line number: ${l._1}  errors: ${l._2.map(_._2.toString()).mkString("\n")}"
-    }).mkString("\n")*/
-    s"errors: ${errors.mkString(",").toString()}"
-  }
+    errors.map(er => {
+      er match {
+        case OzoneSuspiciousDataLineError(_,message) => "Suspicious lines:" + message
+        case OzoneFileLevelInfoMissingError(_,_) => "File level parameter values are missing or malformed. Look at the file."
+        case OzoneOracleError(_,_) => "Some exception from Oracle database. Consult DB responsible person"
+        case OzoneNotSufficientParameters(_,errorMessage) => errorMessage
+        case OzoneInvalidPlotException(_,_) => "Invalid Plot/inexisting plot/missing information in file."
+        case _ => ""
+      }
+
+    }).mkString("\n")
+   }
 }

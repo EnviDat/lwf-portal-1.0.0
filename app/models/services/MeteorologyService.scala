@@ -87,6 +87,7 @@ class MeteorologyService @Inject()(meteoRepo: MeteorologyDataRepository) {
 
   def insertOzoneData(passSammelenData: PassSammData, analyseId: Int) = meteoRepo.insertOzoneDataForFilesSent(passSammelenData, analyseId)
 
+
   def insertOzoneFileInfo(fileLevelConfig: OzoneFileConfig, einfdat: String) = meteoRepo.insertOzoneFileInfo(fileLevelConfig, einfdat)
 
   def getAnalyseIdForFile(filename: String, einfdat: String): Int = meteoRepo.findLastAnalyseIdForOzoneFile(filename, einfdat)

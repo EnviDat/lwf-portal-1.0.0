@@ -46,7 +46,7 @@ class SchedulerActor @Inject()(configuration: Configuration, meteoService: Meteo
     val logInformation = fileInfos.map(_.logInformation)
     Logger.info(s"Generated File Information:${logInformation} ")
     fileInfos.toList.map( ff => {
-        FtpConnector.writeFileToFtp( ff.meteoData, userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo, ff.fileName, pathForLocalWrittenFiles)
+        FtpConnector.writeFileToFtp( ff.meteoData, userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo, ff.fileName, pathForLocalWrittenFiles, ".DAT")
     })
     val source = new File(pathForLocalWrittenFiles)
     Logger.info(s"Source for local written files pathForLocalWrittenFiles : ${source.getName} ")

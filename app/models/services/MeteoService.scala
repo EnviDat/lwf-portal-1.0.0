@@ -87,11 +87,13 @@ class MeteoService @Inject()(meteoRepo: MeteoDataRepository) {
 
   def insertOzoneData(passSammelenData: PassSammData, analyseId: Int) = meteoRepo.insertOzoneDataForFilesSent(passSammelenData, analyseId)
 
+  def updateOzoneDataWithBlindWert(passSammelenData: PassSammData, analyseId: Int) = meteoRepo.updateOzoneBlindWert(passSammelenData, analyseId)
+
   def insertOzoneFileInfo(fileLevelConfig: OzoneFileConfig, einfdat: String) = meteoRepo.insertOzoneFileInfo(fileLevelConfig, einfdat)
 
   def getAnalyseIdForFile(filename: String, einfdat: String): Int = meteoRepo.findLastAnalyseIdForOzoneFile(filename, einfdat)
 
-
+  def getOzoneDataForYear(year: Int) = meteoRepo.getOzoneDataForTheYear(year)
 
 
 

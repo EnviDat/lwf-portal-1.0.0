@@ -84,7 +84,7 @@ object FtpConnector {
   }
 
   @throws[Exception]
-  def writeFileToFtp(dataToWrite: List[String],userNameFtp: String, passwordFtp: String, pathForFtpFolder: String, ftpUrlMeteo: String, fileName: String, pathForLocalWrittenFiles: String): Unit = {
+  def writeFileToFtp(dataToWrite: List[String],userNameFtp: String, passwordFtp: String, pathForFtpFolder: String, ftpUrlMeteo: String, fileName: String, pathForLocalWrittenFiles: String, extensionFile: String): Unit = {
     val jsch = new JSch
     try {
       val session = jsch.getSession(userNameFtp, ftpUrlMeteo, 22)
@@ -95,7 +95,7 @@ object FtpConnector {
       channel.connect()
       val sftpChannel = channel.asInstanceOf[ChannelSftp]
       sftpChannel.cd(pathForFtpFolder)
-      val file = new File(fileName + ".DAT")
+      val file = new File(fileName + extensionFile)
       Logger.info(s"Empty file before moving to ftp: ${file.getAbsolutePath}")
       val pw = new PrintWriter(file)
       pw.write(dataToWrite.mkString("\n"))
@@ -104,7 +104,7 @@ object FtpConnector {
       sftpChannel.put(newFileStream, file.getName)
       sftpChannel.exit()
       session.disconnect()
-      val srcFile = FileUtils.getFile(fileName + ".DAT")
+      val srcFile = FileUtils.getFile(fileName + extensionFile)
       val destFile = FileUtils.getFile(pathForLocalWrittenFiles)
       newFileStream.close()
         FileUtils.moveFileToDirectory(srcFile, destFile, true)
@@ -122,7 +122,6 @@ object FtpConnector {
   def readOzoneCSVFileFromFtp(userNameFtp: String, passwordFtp: String, pathForFtpFolder: String, ftpUrl: String, emailUserList: String, meteoService: MeteoService, pathForArchiveFiles: String): Unit = {
     val jsch = new JSch
     try {
-
       val session = jsch.getSession(userNameFtp, ftpUrl, 22)
       session.setPassword(passwordFtp)
       session.setConfig("StrictHostKeyChecking", "no")
@@ -138,6 +137,8 @@ object FtpConnector {
       val listOfErrors = sftpChannel.ls("*.csv").asScala
         .map(_.asInstanceOf[sftpChannel.LsEntry])
         .map(entry => {
+          Logger.info(s"Parsing the file ${entry.getFilename}")
+
           val stream = sftpChannel.get(entry.getFilename)
           val br = new BufferedReader(new InputStreamReader(stream))
           val linesToParse = Stream.continually(br.readLine()).takeWhile(_ != null).toList
@@ -146,8 +147,10 @@ object FtpConnector {
 
           val validLines = linesToParse.filterNot(l => OzoneKeysConfig.defaultInvalidLinesPrefix.exists(l.contains) || l.matches("^[;]+$"))
           val validDataAndCommentsLines = validLines.filterNot(l => OzoneKeysConfig.defaultValidKeywords.exists(l.contains))
-          val validDataLines = validDataAndCommentsLines.filter(l => OzoneKeysConfig.defaultPlotConfigs.map(_.plotName).filter(l.startsWith(_)).nonEmpty)
-          val validKommentLines = validDataAndCommentsLines.filterNot(l => OzoneKeysConfig.defaultPlotConfigs.map(_.plotName).filter(l.startsWith(_)).nonEmpty)
+          val validDataLines = validDataAndCommentsLines.filter(l => OzoneKeysConfig.defaultPlotConfigs.map(p => p.plotName + ";").filter(l.startsWith(_)).nonEmpty || OzoneKeysConfig.defaultPlotConfigs.map(p => p.abbrePlot + ";").filter(l.startsWith(_)).nonEmpty)
+          val validKommentLines = validDataAndCommentsLines.filterNot(l => OzoneKeysConfig.defaultPlotConfigs.map(p => p.plotName + ";").filter(l.startsWith(_)).nonEmpty || OzoneKeysConfig.defaultPlotConfigs.map(p => p.abbrePlot + ";").filter(l.startsWith(_)).nonEmpty)
+
+          val suspiciousKommentLines = OzoneKeysConfig.findSuspiciousKommentLines(validKommentLines)
 
           val validFileHeaderLines: Seq[String] = validLines.filter(l => OzoneKeysConfig.defaultValidKeywords.exists(l.contains))
           val einfdat = CurrentSysDateInSimpleFormat.systemDateForEinfdat
@@ -160,7 +163,7 @@ object FtpConnector {
 
               er._2 match {
                 case Right(x) => {
-                  val caughtExceptions = WSOzoneFileParser.parseAndSaveData(x, meteoService, true, analysId, numberofParameters)
+                  val caughtExceptions = WSOzoneFileParser.parseAndSaveData(x, meteoService, true, analysId, numberofParameters, "", fileLevelConfig.nachweisgrenze)
                   caughtExceptions match {
                     case None => {
                       Thread.sleep(10)
@@ -170,7 +173,13 @@ object FtpConnector {
                   }
                 }
                 case Left(y) => {
-                  val caughtExceptions = WSOzoneFileParser.parseAndSaveData(y._2, meteoService, false, analysId, numberofParameters)
+                val exceptionsMessage: String = y._1.map(ex => {
+                  ex match {
+                    case OzoneInvalidDateException(_,_) => "Correction Required for Dates."
+                    case _ => ""
+                  }
+                }).mkString("")
+                  val caughtExceptions = WSOzoneFileParser.parseAndSaveData(y._2, meteoService, false, analysId, numberofParameters,exceptionsMessage,fileLevelConfig.nachweisgrenze)
                   caughtExceptions match {
                     case None =>
                       y._1
@@ -179,8 +188,8 @@ object FtpConnector {
                 }
               }).toList
             val missingInfoErrors: List[OzoneFileLevelInfoMissingError] = if (fileLevelConfig.missingInfo == true) List(OzoneFileLevelInfoMissingError(100, "Missing important File level parameters.")) else List()
-            val missingParametersErrors = if (errorList.nonEmpty) List(OzoneNotSufficientParameters(100,"Missing some values for the Data.")) else List()
-            OzoneErrorFileInfo(entry.getFilename, (missingParametersErrors ::: missingInfoErrors) )
+            val missingParametersErrors: Seq[OzoneNotSufficientParameters] = if (errorList.nonEmpty) List(OzoneNotSufficientParameters(100,"Missing some values for the Data.")) else List()
+            OzoneErrorFileInfo(entry.getFilename, (missingParametersErrors.toList ::: suspiciousKommentLines ::: missingInfoErrors) )
           } else {
             val missingInfoErrors: List[OzoneFileLevelInfoMissingError] = if (fileLevelConfig.missingInfo == true) List(OzoneFileLevelInfoMissingError(100, "Missing important File level parameters.")) else List()
             OzoneErrorFileInfo(entry.getFilename, List(errorsWhilesavingFileInfo.get) ::: missingInfoErrors)
@@ -253,7 +262,8 @@ object FtpConnector {
             val errorstring = FormatMessage.formatCR1000ErrorMessage(file.errors)
             (s"File not processed: ${file.fileName} \n errors: ${errorstring} \n",Some(errorstring))
           } else {
-            val caughtExceptions = ETHLaeFileParser.parseAndSaveData(file.linesToSave, meteoService, file.fileName)
+            val projNrForFile: Option[Int] = stationKonfigs.find(sk => file.fileName.startsWith(sk.fileName)).flatMap(_.projs.headOption.map(_.projNr))
+            val caughtExceptions = ETHLaeFileParser.parseAndSaveData(file.linesToSave, meteoService, file.fileName, projNrForFile)
             caughtExceptions match {
               case None =>  {
                 sftpChannel.get(file.fileName, pathForArchiveFiles + file.fileName)

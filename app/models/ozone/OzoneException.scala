@@ -40,6 +40,10 @@ case class OzoneFileLevelInfoMissingError(errorCode: Int,errorMessage: String) e
   override def toString() = formatErrorString(errorMessage)
 }
 
+case class OzoneSuspiciousDataLineError(errorCode: Int,errorMessage: String) extends OzoneExceptions {
+  override def toString() = formatErrorString(errorMessage)
+}
+
 case class OzoneErrorFileInfo(fileName: String, errors : List[OzoneExceptions])
 
 

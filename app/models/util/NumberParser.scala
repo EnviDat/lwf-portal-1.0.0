@@ -39,4 +39,28 @@ object NumberParser {
     }
     parsedNumber
   }
+
+  def parseBigDecimalWithLessThanSign(word: String) = {
+    val value = if (word.trim.startsWith("<"))
+      "-8888"
+    else if (word.trim.contains("WS"))
+      word.substring(word.indexOf("WS")).stripPrefix("WS").trim
+    else
+      word
+
+    val numberTry = for {
+      statNr <- Try(BigDecimal.apply(value))
+    } yield {
+      statNr
+    }
+    val parsedNumber = numberTry match {
+      case Failure(thrown) => {
+        None
+      }
+      case Success(s) => {
+        Some(s)
+      }
+    }
+    parsedNumber
+  }
 }
