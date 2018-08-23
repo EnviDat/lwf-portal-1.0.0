@@ -24,7 +24,7 @@ object WSOzoneFileParser {
         val endDateError: Option[OzoneExceptions] = validateDateFormat(OzoneKeysConfig.convert8DigitDateTo10Digit(words(3)) + " " + words(4) + ":00", ozoneData)
         val remainingValues: Seq[String] = words.drop(5).toList
 
-        val clnr: Int = ortCode.map(_.clnrPlot.intValue()).getOrElse(Integer.parseInt("-1"))
+        val clnr: BigDecimal = ortCode.map(_.clnrPlot).getOrElse(BigDecimal("-1"))
         val beginDate: String = if (beginnDateError.isEmpty) getActualOrDummyDate(OzoneKeysConfig.convert8DigitDateTo10Digit(words(1)) + " " + words(2) + ":00") else getActualOrDummyDate("01.01.1900 00:00:00")
         val endDate = if (endDateError.isEmpty) getActualOrDummyDate(OzoneKeysConfig.convert8DigitDateTo10Digit(words(3)) + " " + words(4) + ":00") else getActualOrDummyDate("01.01.1900 00:00:00")
         val (parameterValues, comments) = if (remainingValues.length > 12 && numberofParameters == 12)
@@ -55,9 +55,27 @@ object WSOzoneFileParser {
             val manualValidation = if (valid == false) 0 else 1
             val bemerk = if (valid == false) errorMessage + comments else "" + comments
             val einfdat = CurrentSysDateInSimpleFormat.sysdateDateInOracleformat
-            val dataToInsert = PassSammData(clnr, beginDate, endDate, duration, rowdata1, rowdata2, rowdata3, BigDecimal("-9999"), absorpData1, absorpData2, absorpData3, BigDecimal("-9999"), konzData1, konzData2, konzData3, BigDecimal("-9999"), mittel, bemerk, manualValidation, einfdat, relSD)
-            val isItBlindWert = ifItIsBlindWertObservation(dataToInsert, nachweisgrenze)
-            if (isItBlindWert) meteoService.updateOzoneDataWithBlindWert(dataToInsert, analyseId) else meteoService.insertOzoneData(dataToInsert, analyseId)
+            val dataToInsert = if(OzoneKeysConfig.listOfBlindSamplerTextPermutations.exists(comments.contains(_)))
+              PassSammData(clnr, beginDate, endDate, duration, rowdata1, rowdata2, rowdata3, BigDecimal("-9999"), absorpData1, absorpData2, absorpData3, BigDecimal("-9999"), konzData1, konzData2, konzData3, BigDecimal("-9999"), mittel, bemerk, manualValidation, einfdat, relSD, 1)
+            else
+              PassSammData(clnr, beginDate, endDate, duration, rowdata1, rowdata2, rowdata3, BigDecimal("-9999"), absorpData1, absorpData2, absorpData3, BigDecimal("-9999"), konzData1, konzData2, konzData3, BigDecimal("-9999"), mittel, bemerk, manualValidation, einfdat, relSD, 0)
+
+            val nachweisValue = if (nachweisgrenze == BigDecimal(-9999)) BigDecimal(5.1) else nachweisgrenze
+            val isValuesLessThanNachweisGrenze = ifValuesBelowNachweisGrenze(dataToInsert, nachweisValue)
+            val isAnyValueLessThanNachweisgrenze = ifAnyValuesBelowNachweisGrenze(dataToInsert, nachweisValue)
+            val isItBlindWert = ifItIsBlindWertObservation(dataToInsert)
+
+            if (isItBlindWert) {
+              val updatedBlindSampler = dataToInsert.copy(blindSampler = 1)
+              meteoService.insertOzoneData(updatedBlindSampler, analyseId)
+            } else if(dataToInsert.blindSampler == 0 && isValuesLessThanNachweisGrenze) {
+              val updatedBlindSampler =  dataToInsert.copy(blindSampler = 1)
+              meteoService.insertOzoneData(updatedBlindSampler, analyseId)
+            }else if(dataToInsert.blindSampler == 0 && isAnyValueLessThanNachweisgrenze) {
+              val updatedBlindSampler =  dataToInsert.copy(blindSampler = 2)
+              meteoService.insertOzoneData(updatedBlindSampler, analyseId)
+            } else
+              meteoService.insertOzoneData(dataToInsert, analyseId)
           } else {
             val mapFolgNr: Seq[(BigDecimal, Int)] = parameterValues.zipWithIndex
             val duration: BigDecimal = mapFolgNr.find(_._2 == 0).map(_._1).getOrElse(BigDecimal("-9999"))
@@ -82,9 +100,9 @@ object WSOzoneFileParser {
             val manualValidation = if (valid == false) 0 else 1
             val bemerk = if (valid == false) errorMessage + comments else "" + comments
             val einfdat = CurrentSysDateInSimpleFormat.sysdateDateInOracleformat
-            val dataToInsert: PassSammData = PassSammData(clnr, beginDate, endDate, duration, rowdata1, rowdata2, rowdata3, rowdata4, absorpData1, absorpData2, absorpData3, absorpData4, konzData1, konzData2, konzData3, konzData4, mittel, bemerk, manualValidation, einfdat, relSD)
-            val isItBlindWert = ifItIsBlindWertObservation(dataToInsert, nachweisgrenze)
-            if (isItBlindWert) meteoService.updateOzoneDataWithBlindWert(dataToInsert, analyseId) else meteoService.insertOzoneData(dataToInsert, analyseId)
+            val dataToInsert: PassSammData = PassSammData(clnr, beginDate, endDate, duration, rowdata1, rowdata2, rowdata3, rowdata4, absorpData1, absorpData2, absorpData3, absorpData4, konzData1, konzData2, konzData3, konzData4, mittel, bemerk, manualValidation, einfdat, relSD,0)
+            val isItBlindWert = ifItIsBlindWertObservation(dataToInsert)
+            if (isItBlindWert) meteoService.insertOzoneData(dataToInsert, analyseId) else meteoService.insertOzoneData(dataToInsert, analyseId)
           }
         } else {
           notSufficentValues
@@ -100,20 +118,36 @@ object WSOzoneFileParser {
 
   }
 
-  private def ifItIsBlindWertObservation(passmData: PassSammData, nachweisgrenze: BigDecimal) = {
-    val nachweisValue = if (nachweisgrenze != -9999) BigDecimal(5.1) else nachweisgrenze
-    passmData.rowData1 != BigDecimal(-9999) &&
-    passmData.absorpData1 != BigDecimal(-9999) &&
-    passmData.konzData1 != BigDecimal(-9999) &&
-    passmData.mittel != BigDecimal(-9999) &&
+  private def ifItIsBlindWertObservation(passmData: PassSammData) = {
+      passmData.rowData1 != BigDecimal(-9999) &&
+      passmData.absorpData1 != BigDecimal(-9999) &&
+      passmData.konzData1 != BigDecimal(-9999) &&
       passmData.rowData2 == BigDecimal(-9999) &&
       passmData.absorpData2 == BigDecimal(-9999) &&
       passmData.konzData2 == BigDecimal(-9999) &&
       passmData.rowData3 == BigDecimal(-9999) &&
       passmData.absorpData3 == BigDecimal(-9999) &&
       passmData.konzData3 == BigDecimal(-9999) &&
-      (passmData.mittel >= BigDecimal(0) && passmData.mittel <= nachweisValue)
+      (passmData.blindSampler != 1)
 
+  }
+
+  private def ifValuesBelowNachweisGrenze(passmData: PassSammData, nachweisgrenze: BigDecimal) = {
+    ((passmData.konzData1 != BigDecimal(-9999) && passmData.konzData1 != BigDecimal(-8888) && passmData.konzData1 < nachweisgrenze) &&
+    (passmData.konzData2 != BigDecimal(-9999) && passmData.konzData2 != BigDecimal(-8888) && passmData.konzData2 < nachweisgrenze) &&
+    (passmData.konzData3 != BigDecimal(-9999) &&  passmData.konzData3 != BigDecimal(-8888) && passmData.konzData3 < nachweisgrenze)) ||
+      (passmData.konzData3 == BigDecimal(-8888) &&
+      passmData.konzData1 == BigDecimal(-8888) &&
+      passmData.konzData2 == BigDecimal(-8888))
+  }
+
+  private def ifAnyValuesBelowNachweisGrenze(passmData: PassSammData, nachweisgrenze: BigDecimal) = {
+    (passmData.konzData1 != BigDecimal(-9999) && passmData.konzData1 != BigDecimal(-8888) && passmData.konzData1 < nachweisgrenze) ||
+      (passmData.konzData2 != BigDecimal(-9999) && passmData.konzData2 != BigDecimal(-8888) && passmData.konzData2 < nachweisgrenze) ||
+      (passmData.konzData3 != BigDecimal(-9999) &&  passmData.konzData3 != BigDecimal(-8888) && passmData.konzData3 < nachweisgrenze) ||
+      passmData.konzData3 == BigDecimal(-8888) ||
+      passmData.konzData1 == BigDecimal(-8888) ||
+      passmData.konzData2 == BigDecimal(-8888)
   }
 
   private def getMappingOfFolgeNrToMessArt(confForStation: List[MeteoStationConfiguration]) = {

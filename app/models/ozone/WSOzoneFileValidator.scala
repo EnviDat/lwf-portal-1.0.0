@@ -14,8 +14,8 @@ object WSOzoneFileValidator {
       val notSufficentValues: Option[OzoneNotSufficientParameters] = if (words.length < 17) Some(OzoneNotSufficientParameters(7, s"In sufficient values ${lineToValidate}")) else None
       val ortCode = validatePlotCode(words(0))
       val ortCodeError: Option[OzoneInvalidPlotException] = if(ortCode.nonEmpty) None else Some(OzoneInvalidPlotException(1, s"Invalid plot code ${lineToValidate}"))
-      val beginnDateError: Option[OzoneExceptions] = validateDateFormat(words(1) + " " + words(2) + ":00", lineToValidate)
-      val endDateError: Option[OzoneExceptions] = validateDateFormat(words(3) + " " + words(4) + ":00", lineToValidate)
+      val beginnDateError: Option[OzoneExceptions] = validateDateFormat(OzoneKeysConfig.convert8DigitDateTo10Digit(words(1)) + " " + words(2) + ":00", lineToValidate)
+      val endDateError: Option[OzoneExceptions] = validateDateFormat(OzoneKeysConfig.convert8DigitDateTo10Digit(words(3)) + " " + words(4) + ":00", lineToValidate)
       val remainingValues = words.drop(5).toList
       val parameterValuesError = if (remainingValues.length > 12 && numberofParameters == 12)
         validateValueOfParameters(remainingValues.slice(0,11), lineToValidate)

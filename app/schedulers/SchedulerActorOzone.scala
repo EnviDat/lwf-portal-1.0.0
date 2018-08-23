@@ -19,7 +19,7 @@ class SchedulerActorOzone @Inject()(configuration: Configuration, meteoService: 
 
       val config = ConfigurationLoader.loadOzoneConfiguration(configuration)
       //processFile(config)
-      //writeFile(config)
+      writeFile(config)
     }
   }
 

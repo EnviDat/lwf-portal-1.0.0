@@ -5,11 +5,11 @@ import anorm.{RowParser, ~}
 import models.ozone.OzoneSuspiciousDataLineError
 
 
-case class OzonePlot(plotName: String, abbrePlot: String, clnrPlot: Integer, statnr: Integer, codePlot: Integer)
+case class OzonePlot(plotName: String, abbrePlot: String, clnrPlot: BigDecimal, statnr: Integer, codePlot: String)
 
 case class OzoneFileConfig(fileName: String, sammelMethode: String, anaylysenMethode: String, analysenDatum: String, blindwert: BigDecimal, farrbreagens: String, calFactor: BigDecimal, probenEingang: String, nachweisgrenze: BigDecimal, codeCountry: BigDecimal,  codeCompound: String, remarks: String, missingInfo: Boolean)
 
-case class PassSammData(clnr: Integer,
+case class PassSammData(clnr: BigDecimal,
                                startDate: String,
                                endDate: String,
                                duration: BigDecimal,
@@ -29,50 +29,60 @@ case class PassSammData(clnr: Integer,
                                bemerk: String,
                                passval: Integer,
                                einfdat: String,
-                               relSD: BigDecimal
+                               relSD: BigDecimal,
+                               blindSampler: Int
 )
 
 
 object OzoneKeysConfig {
 
   def defaultPlotConfigs = List(
-                                  OzonePlot("Jussy","JUS",334191,15,5007),
-                                  OzonePlot("Othmarsingen","OTH",313136,30,5013),
-                                  OzonePlot("Lausanne","LAU",335581,19,5008),
-                                  OzonePlot("Bettlachstock","BET",335579,5,5003),
-                                  OzonePlot("Navaggio","NOV",335582,27,5012),
-                                  OzonePlot("Schänis","SCH",331934,32,5016),
-                                  OzonePlot("Isone","ISO",335577,13,5006),
-                                  OzonePlot("WSL, Birmensdorf", "WSL",374674,59,-14),
-                                  OzonePlot("Neunkirch","NEU",336068,25,5011),
-                                  OzonePlot("Vordemwald","VOR",335584,36,5015),
-                                  OzonePlot("Vor dem Wald","VOR",335584,36,5015),
-                                  OzonePlot("Schaenis","SCH",331934,32,5016),
-                                  OzonePlot("Novaggio","NOV",335582,27,5012),
-                                  OzonePlot("LAT","LAT",337588,40,5017),
-                                  OzonePlot("Celerina", "CEL",333379,7,5004),
-                                  OzonePlot("Nationalpark", "NAT",333373,23,5010),
-                                  OzonePlot("Chironico", "CHI",335580,9,5005),
-                                  OzonePlot("Beatenberg", "BEA",335578,3,5002),
-                                  OzonePlot("Visp", "VIS",335583,34,5014),
-                                  OzonePlot("Lens", "LEN",326208,21,5009),
-                                  OzonePlot("Davos", "DAV",-1111,-6666,5018),
-                                  OzonePlot("Pfynwald", "PFY",-1112,-6666,-12),
-                                  OzonePlot("Lat Met", "LAT",337588,40,5017),
-                                  OzonePlot("Lat OP5", "LAT",337588,40,5017),
-                                  OzonePlot("Lat OP5", "LAT",337588,40,5017),
-                                  OzonePlot("LAT-MET", "LAT",337588,40,5017),
-                                  OzonePlot("LAT-OP5", "LAT",337588,40,5017),
-                                  OzonePlot("LA-OP5", "LAT",337588,40,5017),
-                                  OzonePlot("LAT-OTC", "LAT",337588,40,5017),
-                                  OzonePlot("Alpthal", "ALP",-1113,-6666,5001),
-                                  OzonePlot("Lattecaldo","LAT",337588,40,5017),
-                                  OzonePlot("Birmensdorf", "WSL",374674,59,-14),
-                                  OzonePlot("Isone ","ISO",335577,13,5006),
-                                  OzonePlot("VISP", "VIS",335583,34,5014),
-                                  OzonePlot("ISONE","ISO",335577,13,5006),
-                                  OzonePlot("JUSSY","JUS",334191,15,5007),
-                                  OzonePlot("LAUSANNE","LAU",335581,19,5008)
+                                  OzonePlot("Jussy","JUS",334191,15,"5007"),
+                                  OzonePlot("Othmarsingen","OTH",313136,30,"5013"),
+                                  OzonePlot("Lausanne","LAU",335581,19,"5008"),
+                                  OzonePlot("Bettlachstock","BET",335579,5,"5003"),
+                                  OzonePlot("Navaggio","NOV",335582,27,"5012"),
+                                  OzonePlot("Schänis","SCH",331934,32,"5016"),
+                                  OzonePlot("Isone","ISO",335577,13,"5006"),
+                                  OzonePlot("WSL, Birmensdorf", "WSL",374674,59,"-14"),
+                                  OzonePlot("Neunkirch","NEU",336068,25,"5011"),
+                                  OzonePlot("Vordemwald","VOR",335584,36,"5015"),
+                                  OzonePlot("Vor dem Wald","VOR",335584,36,"5015"),
+                                  OzonePlot("Schaenis","SCH",331934,32,"5016"),
+                                  OzonePlot("Novaggio","NOV",335582,27,"5012"),
+                                  OzonePlot("LAT","LAT",337588.1,40,"5017_1"),
+                                  OzonePlot("Celerina", "CEL",333379,7,"5004"),
+                                  OzonePlot("Nationalpark", "NAT",333373,23,"5010"),
+                                  OzonePlot("Chironico", "CHI",335580,9,"5005"),
+                                  OzonePlot("Beatenberg", "BEA",335578,3,"5002"),
+                                  OzonePlot("Visp", "VIS",335583,34,"5014"),
+                                  OzonePlot("Lens", "LEN",326208,21,"5009"),
+                                  OzonePlot("Davos", "DAV",-1111,-6666,"5018"),
+                                  OzonePlot("Pfynwald", "PFY",-1112,-6666,"-12"),
+                                  OzonePlot("Lat Met", "LAT-MET",337588.2,40,"5017_2"),
+                                  OzonePlot("Lat OP5", "LAT-OP5",337588.3,40,"5017_3"),
+                                  OzonePlot("Lat OP5", "LAT-OP5",337588.3,40,"5017_3"),
+                                  OzonePlot("LAT-MET", "LAT-MET",337588.2,40,"5017_2"),
+                                  OzonePlot("LAT -MET", "LAT-MET",337588.2,40,"5017_2"),
+                                  OzonePlot("LAT- MET", "LAT-MET",337588.2,40,"5017_2"),
+                                  OzonePlot("LAT - MET", "LAT-MET",337588.2,40,"5017_2"),
+                                  OzonePlot("LAT-OP5", "LAT-OP5",337588.3,40,"5017_3"),
+                                  OzonePlot("LAT- OP5", "LAT-OP5",337588.3,40,"5017_3"),
+                                  OzonePlot("LAT -OP5", "LAT-OP5",337588.3,40,"5017_3"),
+                                  OzonePlot("LAT - OP5", "LAT-OP5",337588.3,40,"5017_3"),
+                                  OzonePlot("LA-OP5", "LAT-OP5",337588.3,40,"5017_3"),
+                                  OzonePlot("LAT-OTC", "LAT-OTC",337588.4,40,"5017_4"),
+                                  OzonePlot("LAT - OTC", "LAT-OTC",337588.4,40,"5017_4"),
+                                  OzonePlot("LAT- OTC", "LAT-OTC",337588.4,40,"5017_4"),
+                                  OzonePlot("LAT -OTC", "LAT-OTC",337588.4,40,"5017_4"),
+                                  OzonePlot("Alpthal", "ALP",-1113,-6666,"5001"),
+                                  OzonePlot("Lattecaldo","LAT",337588.1,40,"5017_1"),
+                                  OzonePlot("Birmensdorf", "WSL",374674,59,"-14"),
+                                  OzonePlot("Isone ","ISO",335577,13,"5006"),
+                                  OzonePlot("VISP", "VIS",335583,34,"5014"),
+                                  OzonePlot("ISONE","ISO",335577,13,"5006"),
+                                  OzonePlot("JUSSY","JUS",334191,15,"5007"),
+                                  OzonePlot("LAUSANNE","LAU",335581,19,"5008")
   )
 
   def defaultValidKeywords = List("Sammelmethode:", "Analysendatum:", "Blindwert","Farbreagens:", "Cal. Fact.","Probeneingang:","Nachweisgrenze")
@@ -84,9 +94,11 @@ object OzoneKeysConfig {
                                         "Geprüft",
                                         "passam ag"
                                         )
-  def dbGeneratedFileHeader = "CODE_COUNTRY;	CODE_PLOT;	NAME_PLOT;	DATE_START;	time_start;	DATE_END;	time_end;	exp_time;	CODE_COMPOUND;	SAMPLER_NUMBER; absorb_code;	absorb_value;	VALUE_AQ (ug/m3);	mittel; rel SD; Blind value;	Date  of Farbreagenz;	Cal. Factor.;	Date of analysis;	Method of analysis;	Sammeler Method; Nachweisgrenze; File_Name; Bemerkung For File; Bemerkung For Line"
+  def dbGeneratedFileHeader = "CODE_COUNTRY;	CODE_PLOT;	NAME_PLOT;	DATE_START;	time_start;	DATE_END;	time_end;	exp_time;	CODE_COMPOUND;	SAMPLER_NUMBER; absorb_code;	absorb_value;	VALUE_AQ (ug/m3);	mean; rel SD; Blind value;	Date  of color reagent;	Cal. Factor.;	Date of analysis;	Method of analysis;	Sampler methode; Detection Limit; File_Name; Comments For File; Comments For Line"
 
   def forNumberOfParametersInFile = List("Wert 4")
+
+  def listOfBlindSamplerTextPermutations = List("Blind sampler", "blind sampler", "Blind Sampler", "Blind_sampler", "Blindsampler", "blind Sampler")
 
 
   def prepareOzoneFileLevelInfo(validLines: Seq[String], commentLines: Seq[String], fileName : String): OzoneFileConfig = {
@@ -104,6 +116,7 @@ object OzoneKeysConfig {
     val probenEingangDatumValue = getProbenEingangDatumValue(probeEingangLine)
     val nachweisgrenzeValue = getNachweisgrenzeValue(probeEingangLine)
     val comments = commentLines.mkString(",") replaceAll(";", "")
+    val validComments = if(comments.size > 6) comments else ""
 
     val missingValue = sammelMethodeValue.isEmpty || analysenMethodeValue.isEmpty || analysenDatumValue.isEmpty || blindwertValue.isEmpty || farbreagensDatumValue.isEmpty || calibrationValue.isEmpty || probenEingangDatumValue.isEmpty || nachweisgrenzeValue.isEmpty
 
@@ -118,7 +131,7 @@ object OzoneKeysConfig {
       BigDecimal(nachweisgrenzeValue.getOrElse("-9999")),
         BigDecimal(50),
         "O3",
-      comments,
+      validComments,
       missingValue
     )
 
@@ -271,27 +284,24 @@ object OzoneFileDataRow {
   }
 }
 
-case class PassSammDataRow(clnr: Integer,
+case class PassSammDataRow(clnr: BigDecimal,
                            startDate: String,
                            startTime: String,
                            endDate: String,
                            endTime: String,
                            analysid: Int,
-                           duration: BigDecimal,
-                           rowData1: BigDecimal,
-                           rowData2 : BigDecimal,
-                           rowData3 : BigDecimal,
-                           bw_rowData : BigDecimal,
+                           duration: String,
+                           rowData1: String,
+                           rowData2 : String,
+                           rowData3 : String,
                            absorpData1 : BigDecimal,
                            absorpData2 : BigDecimal,
                            absorpData3 : BigDecimal,
-                           bw_absorpData1 : BigDecimal,
-                           konzData1 : BigDecimal,
-                           konzData2 : BigDecimal,
-                           konzData3 : BigDecimal,
-                           bw_konzData1 : BigDecimal,
-                           mittel : BigDecimal,
-                           relsd : BigDecimal,
+                           konzData1 : String,
+                           konzData2 : String,
+                           konzData3 : String,
+                           mittel : String,
+                           relsd : String,
                            probeeingdat : String,
                            analysedatum : String,
                            analysemethode : String,
@@ -302,31 +312,30 @@ case class PassSammDataRow(clnr: Integer,
                            filename : String,
                            nachweisgrenze : BigDecimal,
                            fileBem : String,
-                           lineBem : String)
+                           lineBem : String,
+                           blindSampler: Int
+                          )
 
 object OzoneDataRow {
   val parser: RowParser[PassSammDataRow] = {
-           get[Int]("clnr")~
+           get[BigDecimal]("clnr")~
            get[String]("startDate")~
            get[String]("startTime")~
            get[String]("endDate")~
            get[String]("endTime")~
            get[Int]("analysid")~
-           get[BigDecimal]("expduration") ~
-           get[BigDecimal]("rawDat1")~
-           get[BigDecimal]("rawDat2")~
-           get[BigDecimal]("rawDat3")~
-           get[BigDecimal]("bw_rawDat")~
+           get[String]("expduration") ~
+           get[String]("rawDat1")~
+           get[String]("rawDat2")~
+           get[String]("rawDat3")~
            get[BigDecimal]("absorpDat1")~
            get[BigDecimal]("absorpDat2")~
            get[BigDecimal]("absorpDat3")~
-           get[BigDecimal]("bw_absorpDat")~
-           get[BigDecimal]("konzDat1")~
-           get[BigDecimal]("konzDat2")~
-           get[BigDecimal]("konzDat3")~
-           get[BigDecimal]("bw_konzDat")~
-           get[BigDecimal]("mittel")~
-           get[BigDecimal]("relsd")~
+           get[String]("konzDat1")~
+           get[String]("konzDat2")~
+           get[String]("konzDat3")~
+           get[String]("mittel")~
+           get[String]("relsd")~
              get[String]("probeeingdat")~
              get[String]("analysedatum")~
              get[String]("analysemethode")~
@@ -337,8 +346,9 @@ object OzoneDataRow {
              get[String]("filename")~
              get[BigDecimal]("nachweisgrenze")~
              get[Option[String]]("fileBem")~
-             get[Option[String]]("lineBem") map {
-             case clnr ~ startDate ~ startTime ~ endDate ~ endTime ~ analysid ~ duration ~ rowData1 ~ rowData2 ~ rowData3 ~ bw_rowData ~ absorpData1 ~ absorpData2 ~ absorpData3 ~ bw_absorpData1 ~ konzData1 ~ konzData2 ~ konzData3 ~ bw_konzData1 ~ mittel ~ relsd ~ probeeingdat ~  analysedatum ~ analysemethode ~ sammel ~ blindwert ~ farbreagens ~ calfactor ~ filename ~ nachweisgrenze ~ fileBem ~lineBem =>
+             get[Option[String]]("lineBem") ~
+             get[Int]("blindsampler") map {
+             case clnr ~ startDate ~ startTime ~ endDate ~ endTime ~ analysid ~ duration ~ rowData1 ~ rowData2 ~ rowData3 ~ absorpData1 ~ absorpData2 ~ absorpData3 ~ konzData1 ~ konzData2 ~ konzData3 ~ mittel ~ relsd ~ probeeingdat ~  analysedatum ~ analysemethode ~ sammel ~ blindwert ~ farbreagens ~ calfactor ~ filename ~ nachweisgrenze ~ fileBem ~lineBem ~ blindsampler=>
                PassSammDataRow(clnr,
                  startDate,
                  startTime,
@@ -349,15 +359,12 @@ object OzoneDataRow {
                  rowData1,
                  rowData2,
                  rowData3,
-                 bw_rowData,
                  absorpData1,
                  absorpData2,
                  absorpData3,
-                 bw_absorpData1,
                  konzData1,
                  konzData2,
                  konzData3,
-                 bw_konzData1,
                  mittel,
                  relsd,
                  probeeingdat,
@@ -370,7 +377,8 @@ object OzoneDataRow {
                  filename,
                  nachweisgrenze,
                  fileBem.getOrElse(""),
-                 lineBem.getOrElse(""))
+                 lineBem.getOrElse(""),
+               blindsampler)
            }
   }
 
