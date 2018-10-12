@@ -1,11 +1,13 @@
 package models.services
 
+import java.io
 import java.time.LocalDateTime
 import javax.inject.Inject
 
 import anorm.SqlParser.get
 import models.domain.Ozone.{OzoneFileConfig, PassSammData}
 import models.domain._
+import models.domain.phäno.{BesuchInfo, PhanoFileLevelInfo}
 import models.repositories.MeteoDataRepository
 import org.joda.time.DateTime
 import play.api.libs.json._
@@ -94,6 +96,20 @@ class MeteoService @Inject()(meteoRepo: MeteoDataRepository) {
   def getAnalyseIdForFile(filename: String, einfdat: String): Int = meteoRepo.findLastAnalyseIdForOzoneFile(filename, einfdat)
 
   def getOzoneDataForYear(year: Int) = meteoRepo.getOzoneDataForTheYear(year)
+
+  def getOzoneFileDataForYear(year: Int): List[String] = meteoRepo.getOzoneFileDataForTheYearSamplerOne(year) ::: meteoRepo.getOzoneFileDataForTheYearSamplerTwo(year) ::: meteoRepo.getOzoneFileDataForTheYearSamplerThree(year)
+
+
+  def insertPhanoPlotBesuchDatums(besuchInfo: List[BesuchInfo], einfdat: String) = meteoRepo.insertPhanoPlotBesuchDatums(besuchInfo, einfdat)
+
+  def getPhanoPersonId(name: String) = {
+    val names = name.split(";")
+    val nachName = names(0)
+    val vorName = names(1)
+    meteoRepo.getPhanoPersonId(nachName, vorName)
+  }
+
+  def getPhanoStationId(stationName: String) = meteoRepo.getPhanoStationId(stationName)
 
 
 

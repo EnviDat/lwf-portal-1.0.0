@@ -6,8 +6,10 @@ import com.jcraft.jsch.{ChannelSftp, JSch, JSchException, SftpException}
 import models.domain.Ozone.{OzoneFileConfig, OzoneKeysConfig}
 import models.domain.meteorology.ethlaegeren.parser.ETHLaeFileParser
 import models.domain.meteorology.ethlaegeren.validator.ETHLaeFileValidator
+import models.domain.phäno.{BesuchInfo, PhanoFileLevelInfo, PhanoPlotKeysConfig}
 import models.domain.{CR1000ErrorFileInfo, CR1000Exceptions, FormatMessage}
 import models.ozone.{OzoneFileLevelInfoMissingError, _}
+import models.phano.{PhanoFileParser, PhanoFileValidator}
 import models.services._
 import org.apache.commons.io.FileUtils
 import play.api.Logger
@@ -226,6 +228,94 @@ object FtpConnector {
         e.printStackTrace()
     }
   }
+
+
+  @throws[Exception]
+  def readPhanoCSVFileFromFtp(userNameFtp: String, passwordFtp: String, pathForFtpFolder: String, ftpUrl: String, emailUserList: String, meteoService: MeteoService, pathForArchiveFiles: String): Unit = {
+    val jsch = new JSch
+    try {
+      val session = jsch.getSession(userNameFtp, ftpUrl, 22)
+      session.setPassword(passwordFtp)
+      session.setConfig("StrictHostKeyChecking", "no")
+      session.setConfig("PreferredAuthentications",
+        "publickey,keyboard-interactive,password")
+      session.connect()
+      val channel = session.openChannel("sftp")
+      channel.connect()
+      val sftpChannel = channel.asInstanceOf[ChannelSftp]
+      sftpChannel.cd(pathForFtpFolder)
+      Logger.info(s"Logged in to ftp folder")
+      import scala.collection.JavaConverters._
+      val listOfErrors = sftpChannel.ls("*.csv").asScala
+        .map(_.asInstanceOf[sftpChannel.LsEntry])
+        .map(entry => {
+          Logger.info(s"Parsing the file ${entry.getFilename}")
+
+          val stream = sftpChannel.get(entry.getFilename)
+          val br = new BufferedReader(new InputStreamReader(stream))
+          val linesToParse = Stream.continually(br.readLine()).takeWhile(_ != null).toList
+          val numberofParameters = 14
+          val invnr = 15
+          val typeCode = 2
+
+          val validLines = linesToParse.filterNot(l => PhanoPlotKeysConfig.defaultInvalidLinesPrefix.exists(l.contains) || l.matches("^[;]+$"))
+          val validDataAndCommentsLines = validLines.filterNot(l => PhanoPlotKeysConfig.defaultValidKeywords.exists(l.contains))
+          val validDataLines = validDataAndCommentsLines.filter(l => Character.isDigit(l.charAt(0)))
+
+          val validFileHeaderLines: Seq[String] = validLines.filter(l => PhanoPlotKeysConfig.defaultValidKeywords.exists(l.contains))
+          val einfdat = CurrentSysDateInSimpleFormat.systemDateForEinfdat
+          val fileLevelConfig: PhanoFileLevelInfo = PhanoPlotKeysConfig.preparePhanoFileLevelInfo(validFileHeaderLines, entry.getFilename)
+          val personNr = meteoService.getPhanoPersonId(fileLevelConfig.beobachterName)
+          val stationNr = meteoService.getPhanoStationId(fileLevelConfig.stationName)
+          val besuchDatumInfos = fileLevelConfig.besuchDatums.map(BesuchInfo(stationNr, invnr, personNr, _))
+          if (stationNr > 0) {
+          val errorsWhilesavingFileInfo = meteoService.insertPhanoPlotBesuchDatums(besuchDatumInfos, CurrentSysDateInSimpleFormat.sysdateDateInOracleformat)
+
+            validDataLines.map(line => {
+            PhanoFileParser.parseAndSaveData(line, meteoService, true, stationNr, personNr, invnr, typeCode)
+
+
+            val missingInfoErrors: List[OzoneFileLevelInfoMissingError] = if (fileLevelConfig.missingInfo == true) List(OzoneFileLevelInfoMissingError(100, "Missing important File level parameters.")) else List()
+            val missingParametersErrors: Seq[OzoneNotSufficientParameters] = if (errorList.nonEmpty) List(OzoneNotSufficientParameters(100,"Missing some values for the Data.")) else List()
+            OzoneErrorFileInfo(entry.getFilename, (missingParametersErrors.toList ::: suspiciousKommentLines ::: missingInfoErrors) )
+          }
+          }else {
+            val missingInfoErrors: List[OzoneFileLevelInfoMissingError] = if (fileLevelConfig.missingInfo == true) List(OzoneFileLevelInfoMissingError(100, "Missing important File level parameters.")) else List()
+            OzoneErrorFileInfo(entry.getFilename, List(errorsWhilesavingFileInfo.get) ::: missingInfoErrors)
+          }
+        }).toList
+
+      val infoAboutFileProcessed =
+        listOfErrors.map(err => {
+          if(err.errors.nonEmpty) {
+            val errorstring = s"File not processed: ${err.fileName} \n" + FormatMessage.formatOzoneErrorMessage(err.errors)
+            sftpChannel.get(err.fileName, pathForArchiveFiles + err.fileName)
+            sftpChannel.rm(err.fileName)
+            (errorstring,Some(errorstring))
+          }
+          else {
+            sftpChannel.rm(err.fileName)
+            (s"File was processed successfully: ${err.fileName} \n ",None)
+          }
+
+        })
+
+      val emailList = emailUserList.split(";").toSeq
+      if(infoAboutFileProcessed.nonEmpty) {
+        EmailService.sendEmail("Ozone File Processor", "simpal.kumar@wsl.ch", emailList, emailList, "Ozone File Processing Report With Errors", s"${infoAboutFileProcessed.flatMap(_._2).mkString("\n")}")
+      }
+      Logger.info(s"list of files received: ${infoAboutFileProcessed.map(_._2).mkString("\n")}")
+
+      sftpChannel.exit()
+      session.disconnect()
+    } catch {
+      case e: JSchException =>
+        e.printStackTrace()
+      case e: SftpException =>
+        e.printStackTrace()
+    }
+  }
+
 
   @throws[Exception]
   def readETHLaeFileFromFtp(userNameFtp: String, passwordFtp: String, pathForFtpFolder: String, ftpUrlMeteo: String, stationKonfigs: List[StationKonfig], emailUserList: String, meteoService: MeteorologyService, pathForArchiveFiles: String): Unit = {

@@ -3,6 +3,8 @@ package models.services
 import models.domain.Ozone.{OzoneFileInfo, OzoneKeysConfig}
 import models.domain._
 
+import scala.collection.immutable.Range
+
 class OzoneFileGeneratorFromDB(meteoService: MeteoService)  {
 
 
@@ -77,8 +79,99 @@ class OzoneFileGeneratorFromDB(meteoService: MeteoService)  {
   }
 
 
-  def saveLogInfoOfGeneratedFiles(fileInfos: List[MeteoDataFileLogInfo]) = {
-   List()
+  def generateICPForestsAQPFiles(years: List[Int]): List[OzoneFileInfo] = {
+    years.map(y => {
+      val ozoneData = meteoService.getOzoneDataForYear(y).filter(_.blindSampler == 0)
+      val fileLines = ozoneData.flatMap(oDataLine => {
+        val countryCode = "50"
+        val plotConfig = OzoneKeysConfig.defaultPlotConfigs.filter(p => p.clnrPlot == oDataLine.clnr).headOption
+        val codePlot = plotConfig.map(_.icpPlotCode)
+        //val namePlot = plotConfig.map(_.abbrePlot)
+
+        val dateStartInDDMMYYYY = oDataLine.startDate.split("\\.")
+        val dateStartDDMMYY = s"${dateStartInDDMMYYYY(0)}${dateStartInDDMMYYYY(1)}${dateStartInDDMMYYYY(2).substring(2,4)}"
+        val dateEndInDDMMYYYY = oDataLine.endDate.split("\\.")
+        val dateEndInDDMMYY = s"${dateEndInDDMMYYYY(0)}${dateEndInDDMMYYYY(1)}${dateEndInDDMMYYYY(2).substring(2,4)}"
+        val codeCompund = "O3"
+
+        val stringBeforeSamplerValues = s"""${countryCode};${codePlot.getOrElse("-9999")};"""
+
+        val samplerOneLine: Option[String] = if(oDataLine.konzData1.trim == "-9999.0" || oDataLine.konzData1 == "-8888.0")
+          None
+        else
+          Some(stringBeforeSamplerValues + s"""1;${dateStartDDMMYY};${dateEndInDDMMYY};${codeCompund};${microgramToPPB(y, oDataLine.konzData1)};""")
+
+
+        val samplerTwoLine: Option[String] = if(oDataLine.konzData2.trim == "-9999.0" || oDataLine.konzData2 == "-8888.0")
+          None
+        else
+          Some(stringBeforeSamplerValues + s"""2;${dateStartDDMMYY};${dateEndInDDMMYY};${codeCompund};${microgramToPPB(y, oDataLine.konzData2.toString().trim)};""")
+
+
+        val samplerThreeLine: Option[String] = if(oDataLine.konzData3.trim == "-9999.0" || oDataLine.konzData3 == "-8888.0")
+          None
+        else
+          Some(stringBeforeSamplerValues + s"""3;${dateStartDDMMYY};${dateEndInDDMMYY};${codeCompund};${microgramToPPB(y, oDataLine.konzData3.toString().trim)};""")
+
+        List(samplerOneLine, samplerTwoLine, samplerThreeLine).flatten
+      })
+      val linesWithSeqNumbers = ((1 to fileLines.size).toList zip fileLines).map(l => s"${l._1};${l._2}")
+      OzoneFileInfo("ch" + y, OzoneKeysConfig.icpForestAQPandAQBFileHeader, linesWithSeqNumbers)
+    })
+  }
+
+  def generateICPForestsAQBFiles(years: List[Int]): List[OzoneFileInfo] = {
+    years.map(y => {
+      val ozoneData = meteoService.getOzoneDataForYear(y).filter(_.blindSampler == 1)
+      val fileLines = ozoneData.flatMap(oDataLine => {
+        val countryCode = "50"
+        val plotConfig = OzoneKeysConfig.defaultPlotConfigs.filter(p => p.clnrPlot == oDataLine.clnr).headOption
+        val codePlot = plotConfig.map(_.icpPlotCode)
+        //val namePlot = plotConfig.map(_.abbrePlot)
+
+        val dateStartInDDMMYYYY = oDataLine.startDate.split("\\.")
+        val dateStartDDMMYY = s"${dateStartInDDMMYYYY(0)}${dateStartInDDMMYYYY(1)}${dateStartInDDMMYYYY(2).substring(2,4)}"
+        val dateEndInDDMMYYYY = oDataLine.endDate.split("\\.")
+        val dateEndInDDMMYY = s"${dateEndInDDMMYYYY(0)}${dateEndInDDMMYYYY(1)}${dateEndInDDMMYYYY(2).substring(2,4)}"
+        val codeCompund = "O3"
+
+        val stringBeforeSamplerValues = s"""${countryCode};${codePlot.getOrElse("-9999")};"""
+
+        val samplerOneLine: Option[String] = if(oDataLine.konzData1.trim == "-9999.0" || oDataLine.konzData1 == "-8888.0")
+          None
+        else {
+          Some(stringBeforeSamplerValues + s"""1;${dateStartDDMMYY};${dateEndInDDMMYY};${codeCompund};${microgramToPPB(y, oDataLine.konzData1.toString().trim)};""")
+        }
+
+
+        val samplerTwoLine: Option[String] = if(oDataLine.konzData2.trim == "-9999.0" || oDataLine.konzData2 == "-8888.0")
+          None
+        else
+          Some(stringBeforeSamplerValues + s"""2;${dateStartDDMMYY};${dateEndInDDMMYY};${codeCompund};${microgramToPPB(y, oDataLine.konzData2.toString().trim)};""")
+
+
+        val samplerThreeLine: Option[String] = if(oDataLine.konzData3.trim == "-9999.0" || oDataLine.konzData3 == "-8888.0")
+          None
+        else
+          Some(stringBeforeSamplerValues + s"""3;${dateStartDDMMYY};${dateEndInDDMMYY};${codeCompund};${microgramToPPB(y, oDataLine.konzData3.toString().trim)};""")
+
+        List(samplerOneLine, samplerTwoLine, samplerThreeLine).flatten
+      })
+      val linesWithSeqNumbers = ((1 to fileLines.size).toList zip fileLines).map(l => s"${l._1};${l._2}")
+      OzoneFileInfo("ch" + y, OzoneKeysConfig.icpForestAQPandAQBFileHeader, linesWithSeqNumbers)
+    })
+  }
+
+  def microgramToPPB(y: Int, konzdat: String): BigDecimal = {
+   if (y < 2016)  BigDecimal(konzdat.trim) / BigDecimal(2.0) else BigDecimal(konzdat.trim)
+  }
+
+  def generateICPForestsPPSFiles(years: List[Int]): List[OzoneFileInfo] = {
+    years.map(y => {
+      val ozoneData = meteoService.getOzoneFileDataForYear(y)
+      val linesWithSeqNumbers = ((1 to ozoneData.size).toList zip ozoneData).map(l => s"${l._1};${l._2}")
+      OzoneFileInfo("ch" + y, OzoneKeysConfig.icpForestPPSFileHeader, linesWithSeqNumbers)
+    })
   }
 
 }

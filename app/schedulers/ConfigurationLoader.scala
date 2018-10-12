@@ -42,6 +42,16 @@ case class OzoneFileConfig(frequencyOzone :Int,
                                   ftpPathForOzoneArchiveFiles :String,
                                   emailUserList: String
                                  )
+case class PhanoFileConfig(frequencyPhano :Int,
+                           ftpUrlPhano :String,
+                           fptUserNamePhano :String,
+                           ftpPasswordPhano :String,
+                           ftpPathForIncomingFilePhano :String,
+                           ftpPathForPhanoFaultyFile :String,
+                           ftpPathForPhanoeArchiveFiles :String,
+                           emailUserList: String
+                          )
+
 
 case class ETHLaegerenLoggerFileConfig(frequencyETHLae :Int,
                                   ftpUrlETHLae :String,
@@ -116,6 +126,18 @@ object ConfigurationLoader {
     val ftpPathForOzoneArchiveFiles = configuration.getString("ftpPathForOzoneArchiveFiles").get
     val ozoneEmailUserList = configuration.getString("emailUserListOzone").get
     OzoneFileConfig(frequencyOzone, ftpUrlOzone, fptUserNameOzone, ftpPasswordOzone, ftpPathForIncomingFileOzone, ftpPathForOzoneFaultyFile, ftpPathForOzoneArchiveFiles, ozoneEmailUserList)
+  }
+
+  def loadPhanoConfiguration(configuration: Configuration) = {
+    val frequencyPhano = configuration.getInt("frequencyPhano").get
+    val ftpUrlPhano = configuration.getString("ftpUrlPhano").get
+    val fptUserNamePhano = configuration.getString("fptUserNamePhano").get
+    val ftpPasswordPhano = configuration.getString("ftpPasswordPhano").get
+    val ftpPathForIncomingFilePhano = configuration.getString("ftpPathForIncomingFilePhano").get
+    val ftpPathForPhanoFaultyFile = configuration.getString("ftpPathForPhanoFaultyFile").get
+    val ftpPathForPhanoArchiveFiles = configuration.getString("ftpPathForPhanoArchiveFiles").get
+    val phanoEmailUserList = configuration.getString("emailUserListPhano").get
+    PhanoFileConfig(frequencyPhano, ftpUrlPhano, fptUserNamePhano, ftpPasswordPhano, ftpPathForIncomingFilePhano, ftpPathForPhanoFaultyFile, ftpPathForPhanoArchiveFiles, phanoEmailUserList)
   }
 
   def loadETHLaeConfiguration(configuration: Configuration) = {

@@ -2,10 +2,11 @@ package models.domain.Ozone
 
 import anorm.SqlParser.get
 import anorm.{RowParser, ~}
-import models.ozone.OzoneSuspiciousDataLineError
+import models.ozone.{OzoneSuspiciousDataLineError, WSOzoneFileParser}
+import models.util.NumberParser
 
 
-case class OzonePlot(plotName: String, abbrePlot: String, clnrPlot: BigDecimal, statnr: Integer, codePlot: String)
+case class OzonePlot(plotName: String, abbrePlot: String, clnrPlot: BigDecimal, statnr: Integer, codePlot: String, icpPlotCode: Int)
 
 case class OzoneFileConfig(fileName: String, sammelMethode: String, anaylysenMethode: String, analysenDatum: String, blindwert: BigDecimal, farrbreagens: String, calFactor: BigDecimal, probenEingang: String, nachweisgrenze: BigDecimal, codeCountry: BigDecimal,  codeCompound: String, remarks: String, missingInfo: Boolean)
 
@@ -37,52 +38,53 @@ case class PassSammData(clnr: BigDecimal,
 object OzoneKeysConfig {
 
   def defaultPlotConfigs = List(
-                                  OzonePlot("Jussy","JUS",334191,15,"5007"),
-                                  OzonePlot("Othmarsingen","OTH",313136,30,"5013"),
-                                  OzonePlot("Lausanne","LAU",335581,19,"5008"),
-                                  OzonePlot("Bettlachstock","BET",335579,5,"5003"),
-                                  OzonePlot("Navaggio","NOV",335582,27,"5012"),
-                                  OzonePlot("Schänis","SCH",331934,32,"5016"),
-                                  OzonePlot("Isone","ISO",335577,13,"5006"),
-                                  OzonePlot("WSL, Birmensdorf", "WSL",374674,59,"-14"),
-                                  OzonePlot("Neunkirch","NEU",336068,25,"5011"),
-                                  OzonePlot("Vordemwald","VOR",335584,36,"5015"),
-                                  OzonePlot("Vor dem Wald","VOR",335584,36,"5015"),
-                                  OzonePlot("Schaenis","SCH",331934,32,"5016"),
-                                  OzonePlot("Novaggio","NOV",335582,27,"5012"),
-                                  OzonePlot("LAT","LAT",337588.1,40,"5017_1"),
-                                  OzonePlot("Celerina", "CEL",333379,7,"5004"),
-                                  OzonePlot("Nationalpark", "NAT",333373,23,"5010"),
-                                  OzonePlot("Chironico", "CHI",335580,9,"5005"),
-                                  OzonePlot("Beatenberg", "BEA",335578,3,"5002"),
-                                  OzonePlot("Visp", "VIS",335583,34,"5014"),
-                                  OzonePlot("Lens", "LEN",326208,21,"5009"),
-                                  OzonePlot("Davos", "DAV",-1111,-6666,"5018"),
-                                  OzonePlot("Pfynwald", "PFY",-1112,-6666,"-12"),
-                                  OzonePlot("Lat Met", "LAT-MET",337588.2,40,"5017_2"),
-                                  OzonePlot("Lat OP5", "LAT-OP5",337588.3,40,"5017_3"),
-                                  OzonePlot("Lat OP5", "LAT-OP5",337588.3,40,"5017_3"),
-                                  OzonePlot("LAT-MET", "LAT-MET",337588.2,40,"5017_2"),
-                                  OzonePlot("LAT -MET", "LAT-MET",337588.2,40,"5017_2"),
-                                  OzonePlot("LAT- MET", "LAT-MET",337588.2,40,"5017_2"),
-                                  OzonePlot("LAT - MET", "LAT-MET",337588.2,40,"5017_2"),
-                                  OzonePlot("LAT-OP5", "LAT-OP5",337588.3,40,"5017_3"),
-                                  OzonePlot("LAT- OP5", "LAT-OP5",337588.3,40,"5017_3"),
-                                  OzonePlot("LAT -OP5", "LAT-OP5",337588.3,40,"5017_3"),
-                                  OzonePlot("LAT - OP5", "LAT-OP5",337588.3,40,"5017_3"),
-                                  OzonePlot("LA-OP5", "LAT-OP5",337588.3,40,"5017_3"),
-                                  OzonePlot("LAT-OTC", "LAT-OTC",337588.4,40,"5017_4"),
-                                  OzonePlot("LAT - OTC", "LAT-OTC",337588.4,40,"5017_4"),
-                                  OzonePlot("LAT- OTC", "LAT-OTC",337588.4,40,"5017_4"),
-                                  OzonePlot("LAT -OTC", "LAT-OTC",337588.4,40,"5017_4"),
-                                  OzonePlot("Alpthal", "ALP",-1113,-6666,"5001"),
-                                  OzonePlot("Lattecaldo","LAT",337588.1,40,"5017_1"),
-                                  OzonePlot("Birmensdorf", "WSL",374674,59,"-14"),
-                                  OzonePlot("Isone ","ISO",335577,13,"5006"),
-                                  OzonePlot("VISP", "VIS",335583,34,"5014"),
-                                  OzonePlot("ISONE","ISO",335577,13,"5006"),
-                                  OzonePlot("JUSSY","JUS",334191,15,"5007"),
-                                  OzonePlot("LAUSANNE","LAU",335581,19,"5008")
+                                  OzonePlot("Jussy","JUS",334191,15,"5007",7),
+                                  OzonePlot("Othmarsingen","OTH",313136,30,"5013",13),
+                                  OzonePlot("Lausanne","LAU",335581,19,"5008",8),
+                                  OzonePlot("Bettlachstock","BET",335579,5,"5003",3),
+                                  OzonePlot("Betlachstock","BET",335579,5,"5003",3),
+                                  OzonePlot("Navaggio","NOV",335582,27,"5012",12),
+                                  OzonePlot("Schänis","SCH",331934,32,"5016",16),
+                                  OzonePlot("Isone","ISO",335577,13,"5006",6),
+                                  OzonePlot("WSL, Birmensdorf", "WSL",374674,59,"-14",-14),
+                                  OzonePlot("Neunkirch","NEU",336068,25,"5011",11),
+                                  OzonePlot("Vordemwald","VOR",335584,36,"5015",15),
+                                  OzonePlot("Vor dem Wald","VOR",335584,36,"5015",15),
+                                  OzonePlot("Schaenis","SCH",331934,32,"5016",16),
+                                  OzonePlot("Novaggio","NOV",335582,27,"5012",12),
+                                  OzonePlot("LAT","LAT",337588.1,40,"5017_1",17),//remove these plots
+                                  OzonePlot("Celerina", "CEL",333379,7,"5004",4),
+                                  OzonePlot("Nationalpark", "NAT",333373,23,"5010",10),//remove these plots
+                                  OzonePlot("Chironico", "CHI",335580,9,"5005",5),
+                                  OzonePlot("Beatenberg", "BEA",335578,3,"5002",2),
+                                  OzonePlot("Visp", "VIS",335583,34,"5014",14),
+                                  OzonePlot("Lens", "LEN",326208,21,"5009",9),
+                                  OzonePlot("Davos", "DAV",-1111,-6666,"5018",18),
+                                  OzonePlot("Pfynwald", "PFY",-1112,-6666,"-12",-12),
+                                  OzonePlot("Lat Met", "LAT-MET",337588.2,40,"5017_2",17),
+                                  OzonePlot("Lat OP5", "LAT-OP5",337588.3,40,"5017_3",17),
+                                  OzonePlot("Lat OP5", "LAT-OP5",337588.3,40,"5017_3",17),
+                                  OzonePlot("LAT-MET", "LAT-MET",337588.2,40,"5017_2",17),
+                                  OzonePlot("LAT -MET", "LAT-MET",337588.2,40,"5017_2",17),
+                                  OzonePlot("LAT- MET", "LAT-MET",337588.2,40,"5017_2",17),
+                                  OzonePlot("LAT - MET", "LAT-MET",337588.2,40,"5017_2",17),
+                                  OzonePlot("LAT-OP5", "LAT-OP5",337588.3,40,"5017_3",17),
+                                  OzonePlot("LAT- OP5", "LAT-OP5",337588.3,40,"5017_3",17),
+                                  OzonePlot("LAT -OP5", "LAT-OP5",337588.3,40,"5017_3",17),
+                                  OzonePlot("LAT - OP5", "LAT-OP5",337588.3,40,"5017_3",17),
+                                  OzonePlot("LA-OP5", "LAT-OP5",337588.3,40,"5017_3",17),
+                                  OzonePlot("LAT-OTC", "LAT-OTC",337588.4,40,"5017_4",17),
+                                  OzonePlot("LAT - OTC", "LAT-OTC",337588.4,40,"5017_4",17),
+                                  OzonePlot("LAT- OTC", "LAT-OTC",337588.4,40,"5017_4",17),
+                                  OzonePlot("LAT -OTC", "LAT-OTC",337588.4,40,"5017_4",17),
+                                  OzonePlot("Alpthal", "ALP",335110,-6666,"5001",1),//alpthal bestand meteo station is used now instead of -1113
+                                  OzonePlot("Lattecaldo","LAT",337588.1,40,"5017_1",17),
+                                  OzonePlot("Birmensdorf", "WSL",374674,59,"-14",-14),
+                                  OzonePlot("Isone ","ISO",335577,13,"5006",6),
+                                  OzonePlot("VISP", "VIS",335583,34,"5014",14),
+                                  OzonePlot("ISONE","ISO",335577,13,"5006",6),//remove these plots
+                                  OzonePlot("JUSSY","JUS",334191,15,"5007",7),
+                                  OzonePlot("LAUSANNE","LAU",335581,19,"5008",8)
   )
 
   def defaultValidKeywords = List("Sammelmethode:", "Analysendatum:", "Blindwert","Farbreagens:", "Cal. Fact.","Probeneingang:","Nachweisgrenze")
@@ -95,6 +97,11 @@ object OzoneKeysConfig {
                                         "passam ag"
                                         )
   def dbGeneratedFileHeader = "CODE_COUNTRY;	CODE_PLOT;	NAME_PLOT;	DATE_START;	time_start;	DATE_END;	time_end;	exp_time;	CODE_COMPOUND;	SAMPLER_NUMBER; absorb_code;	absorb_value;	VALUE_AQ (ug/m3);	mean; rel SD; Blind value;	Date  of color reagent;	Cal. Factor.;	Date of analysis;	Method of analysis;	Sampler methode; Detection Limit; File_Name; Comments For File; Comments For Line"
+
+  def icpForestAQPandAQBFileHeader = "!Sequence; country; plot; sampler; date_start; date_end; compound; value; other_observations"
+
+  def icpForestPPSFileHeader = "!Sequence;country;plot;latitude;longitude;altitude;compound;sampler;manufacturer;date_monitoring_first;date_monitoring_last;measurements;col;altitude_m;elevation_lowest2500;elevation_lowest5000; other_observations"
+
 
   def forNumberOfParametersInFile = List("Wert 4")
 
@@ -118,13 +125,18 @@ object OzoneKeysConfig {
     val comments = commentLines.mkString(",") replaceAll(";", "")
     val validComments = if(comments.size > 6) comments else ""
 
-    val missingValue = sammelMethodeValue.isEmpty || analysenMethodeValue.isEmpty || analysenDatumValue.isEmpty || blindwertValue.isEmpty || farbreagensDatumValue.isEmpty || calibrationValue.isEmpty || probenEingangDatumValue.isEmpty || nachweisgrenzeValue.isEmpty
+    val missingValue = sammelMethodeValue.isEmpty || analysenMethodeValue.isEmpty || analysenDatumValue.isEmpty || blindwertValue.isEmpty || farbreagensDatumValue.isEmpty || calibrationValue.isEmpty || probenEingangDatumValue.isEmpty || nachweisgrenzeValue.isEmpty ||
+      (blindwertValue.nonEmpty && blindwertValue.contains(BigDecimal(-9999))) ||   (calibrationValue.nonEmpty && calibrationValue.contains(BigDecimal(-9999))) ||
+      (nachweisgrenzeValue.nonEmpty && nachweisgrenzeValue.contains(BigDecimal(-9999))) ||
+      (analysenDatumValue.nonEmpty && analysenDatumValue.contains("01.01.1900")) ||
+      (farbreagensDatumValue.nonEmpty && farbreagensDatumValue.contains("01.01.1900")) ||
+      (probenEingangDatumValue.nonEmpty && probenEingangDatumValue.contains("01.01.1900"))
 
     OzoneFileConfig(fileName,
       sammelMethodeValue.getOrElse("undefined"),
       analysenMethodeValue.getOrElse("undefined"),
       analysenDatumValue.getOrElse("01.01.1900"),
-      BigDecimal(blindwertValue.getOrElse("-9999")),
+      blindwertValue.getOrElse(BigDecimal("-9999")),
       farbreagensDatumValue.getOrElse("01.01.1900"),
       BigDecimal(calibrationValue.getOrElse("-9999")),
       probenEingangDatumValue.getOrElse("01.01.1900"),
@@ -179,7 +191,7 @@ object OzoneKeysConfig {
     } else "01.01.1900"
   }
 
-  def getBlindwertValue(line: Option[String]): Option[String] = {
+  def getBlindwertValue(line: Option[String]): Option[BigDecimal] = {
     line.map( line => {
       val index = line.indexOfSlice("Farbreagens")
       val indexOfBlindwert = line.indexOfSlice("Blindwert")
@@ -187,8 +199,8 @@ object OzoneKeysConfig {
       //To Do: Strip 'Blindwert ;;'
       val valueWithDelimiters = stringToParse.trim.stripPrefix("Blindwert").replaceAll("^\\s+", "").stripPrefix(";;")
       val indexOfFisrtSemicolon = valueWithDelimiters.indexOfSlice(";")
-      val blindWert = valueWithDelimiters.slice(0,indexOfFisrtSemicolon)
-      if (blindWert.nonEmpty) blindWert else "-9999"
+      val blindWert = valueWithDelimiters.replaceAll("\\;", "")
+      if (blindWert.nonEmpty && blindWert != "") NumberParser.parseBigDecimalWithLessThanSign(blindWert).getOrElse(BigDecimal("-9999")) else BigDecimal("-9999")
 
     })
   }

@@ -5,6 +5,7 @@ import javax.inject.Inject
 
 import anorm._
 import models.domain.Ozone._
+import models.domain.phäno.{BesuchInfo, PhanoFileLevelInfo}
 import models.domain.{MeteoDataFileLogInfo, _}
 import models.ozone.OzoneOracleError
 import models.util.{CurrentSysDateInSimpleFormat, StringToDate}
@@ -256,7 +257,9 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
   }
 
   def getOzoneDataForTheYear(year: Int) = db.withConnection { implicit connection =>
-    SQL("""select t.clnr, to_char(t.startdat, 'dd.mm.yyyy') as startDate, to_char(t.startdat, 'HH24:MI') as startTime, to_char(t.enddat, 'dd.mm.yyyy') as endDate,
+
+    /* This query is only for ICP Forest
+     SQL("""select t.clnr, to_char(t.startdat, 'dd.mm.yyyy') as startDate, to_char(t.startdat, 'HH24:MI') as startTime, to_char(t.enddat, 'dd.mm.yyyy') as endDate,
  |    to_char(t.enddat, 'HH24:MI') as endTime,t.analysid,
  |to_char(t.expduration,'9990.0') as expduration, to_char(t.rawdat1,'9990.0') as rawdat1, to_char(t.rawdat2,'9990.0') as rawdat2,  to_char(t.rawdat3,'9990.0') as rawdat3,
  |    t.absorpdat1, t.absorpdat2, t.absorpdat3, to_char(t.konzdat1,'9990.0') as konzdat1,
@@ -266,8 +269,190 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
  |    p.analysemethode, p.sammel, p.blindwert, to_char(p.farbreagens, 'dd.mm.yyyy') as farbreagens, p.calfactor, p.filename, p.nachweisgrenze, p.bemerk as FileBem, t.bemerk as lineBem, t.blindsampler
  |    from passsamdat t, passivesamfileinfo p
       where to_char(startdat,'yyyy') = {year}
-    and t.analysid = p.analysid""".stripMargin).on("year" -> year).as(OzoneDataRow.parser *)
+      |and t.clnr not in (374674,-1112)
+    and t.analysid = p.analysid order by t.clnr,t.startdat""".stripMargin).on("year" -> year).as(OzoneDataRow.parser *)
+     */
+    SQL("""select t.clnr, to_char(t.startdat, 'dd.mm.yyyy') as startDate, to_char(t.startdat, 'HH24:MI') as startTime, to_char(t.enddat, 'dd.mm.yyyy') as endDate,
+ |    to_char(t.enddat, 'HH24:MI') as endTime,t.analysid,
+ |  to_char(t.expduration,'9990.0') as expduration, to_char(t.rawdat1,'9990.0') as rawdat1, to_char(t.rawdat2,'9990.0') as rawdat2,  to_char(t.rawdat3,'9990.0') as rawdat3,
+ |    t.absorpdat1, t.absorpdat2, t.absorpdat3, to_char(t.konzdat1,'9990.0') as konzdat1,
+ |  to_char(t.konzdat2,'9990.0') as konzdat2, to_char(t.konzdat3,'9990.0') as konzdat3, to_char(t.mittel,'9990.0') as mittel, to_char(t.relsd,'9990.0') as relsd,
+ |    to_char(p.probeeingdat, 'dd.mm.yyyy') as probeeingdat,
+ |    to_char(p.analysedatum, 'dd.mm.yyyy') as analysedatum,
+ |    p.analysemethode, p.sammel, p.blindwert, to_char(p.farbreagens, 'dd.mm.yyyy') as farbreagens, p.calfactor, p.filename, p.nachweisgrenze, p.bemerk as FileBem, t.bemerk as lineBem, t.blindsampler
+ |    from passsamdat t, passivesamfileinfo p
+      where to_char(startdat,'yyyy') = {year}
+      and t.startdat <> to_date('01.01.1900 00:00:00', 'DD.MM.YYYY HH24:MI:SS')
+      and t.clnr not in (374674,-1112,337588.1,337588.2,337588.3,337588.4,335577)
+      and t.blindsampler <> 4
+      and t.analysid = p.analysid order by t.clnr,t.startdat""".stripMargin).on("year" -> year).as(OzoneDataRow.parser *)
 
+  }
+
+  def getOzoneFileDataForTheYearSamplerOne(year: Int): List[String] = db.withConnection { implicit connection =>
+
+   SQL("""select  '50' -- country
+         |   ||';'|| cl.ecenr -- plotnr
+         |  ||';'|| to_char(TRUNC(beo.Math0.Hdms(cl.latitude+SIGN(cl.latitude)/7200)*10000),'S999999')
+         |   ||';'|| to_char(TRUNC(beo.Math0.Hdms(cl.longitude+SIGN(cl.longitude)/7200)*10000),
+         |'S099999') -- longitude rounded to seconds
+         |   ||';'||TRUNC(((cl.z-1)/50)+1) -- altitude 50m classes
+         |   ||';'|| ' O3'
+         |   ||';'|| '1' -- Sampler ID
+         |   ||';'|| '11' -- Passive sampler manufacturer
+         |    ||';'|| to_char(min(passsamdat.startdat),'ddmmyy') -- Startdatum
+         |   ||';'|| to_char(max(passsamdat.enddat),'ddmmyy') -- Enddatum
+         |   ||';'|| '3'  -- number of measurements
+         |   ||';'|| case passsamdat.clnr
+         |               when 331934 then 'N'
+         |               when 313136 then 'N'
+         |               else 'Y'            -- Variable co-location
+         |             end
+         |   ||';'|| trunc(decode(cl_st.zmess,null,cl_st.z,cl_st.zmess)) -- Altitude (in m)
+         |   ||';'|| station.min_z_2500 -- lowest elevation with r = 2.5 km (in m)
+         |   ||';'|| station.min_z_5000 -- lowest elevation with r = 5.0 km (in m)
+         |   ||';'|| '2.00' -- Sampling height in m (neu PJ 17.1.2013)
+         |   ||';'|| substr(cl.clname,1,29) zeile
+         |  from passsamdat, beo.cl cl, beo.cl cl_st, meteo.station
+         |  where TO_char(passsamdat.enddat,'yyyy') = {year}
+         |    and passsamdat.clnr = station.clnr
+         |    and cl.clnr = station.clnrlwf
+         |    and cl_st.clnr = station.clnr
+         |    and passsamdat.clnr <> 337588
+         |    AND passsamdat.blindsampler in (0,1)
+         |    and passsamdat.konzdat1 != -9999
+         |    and passsamdat.konzdat1 != -8888
+              and passsamdat.clnr not in (374674,-1112,337588.1,337588.2,337588.3,337588.4,335577)
+         |    group by passsamdat.clnr,cl.ecenr, cl.latitude, cl.longitude, cl.z, cl_st.zmess, cl_st.z, station.min_z_2500,station.min_z_5000, cl.clname
+         |  order by cl.ecenr
+         |""".stripMargin).on("year" -> year).as(SqlParser.str("zeile").+)
+
+  }
+
+  def getOzoneFileDataForTheYearSamplerTwo(year: Int): List[String] = db.withConnection { implicit connection =>
+
+    SQL("""select  '50' -- country
+          |   ||';'|| cl.ecenr -- plotnr
+          |  ||';'|| to_char(TRUNC(beo.Math0.Hdms(cl.latitude+SIGN(cl.latitude)/7200)*10000),'S999999')
+          |   ||';'|| to_char(TRUNC(beo.Math0.Hdms(cl.longitude+SIGN(cl.longitude)/7200)*10000),
+          |'S099999') -- longitude rounded to seconds
+          |   ||';'||TRUNC(((cl.z-1)/50)+1) -- altitude 50m classes
+          |   ||';'|| ' O3'
+          |   ||';'|| '2' -- Sampler ID
+          |   ||';'|| '11' -- Passive sampler manufacturer
+          |    ||';'|| to_char(min(passsamdat.startdat),'ddmmyy') -- Startdatum
+          |   ||';'|| to_char(max(passsamdat.enddat),'ddmmyy') -- Enddatum
+          |   ||';'|| '3'  -- number of measurements
+          |   ||';'|| case passsamdat.clnr
+          |               when 331934 then 'N'
+          |               when 313136 then 'N'
+          |               else 'Y'            -- Variable co-location
+          |             end
+          |   ||';'|| trunc(decode(cl_st.zmess,null,cl_st.z,cl_st.zmess)) -- Altitude (in m)
+          |   ||';'|| station.min_z_2500 -- lowest elevation with r = 2.5 km (in m)
+          |   ||';'|| station.min_z_5000 -- lowest elevation with r = 5.0 km (in m)
+          |   ||';'|| '2.00' -- Sampling height in m (neu PJ 17.1.2013)
+          |   ||';'|| substr(cl.clname,1,29) zeile
+          |  from passsamdat, beo.cl cl, beo.cl cl_st, meteo.station
+          |  where TO_char(passsamdat.enddat,'yyyy') = {year}
+          |    and passsamdat.clnr = station.clnr
+          |    and cl.clnr = station.clnrlwf
+          |    and cl_st.clnr = station.clnr
+          |    and passsamdat.clnr <> 337588
+          |    AND passsamdat.blindsampler in (0,1)
+          |    and passsamdat.konzdat2 != -9999
+          |    and passsamdat.konzdat2 != -8888
+               and passsamdat.clnr not in (374674,-1112,337588.1,337588.2,337588.3,337588.4,335577)
+          |    group by passsamdat.clnr,cl.ecenr, cl.latitude, cl.longitude, cl.z, cl_st.zmess, cl_st.z, station.min_z_2500,station.min_z_5000, cl.clname
+          |  order by cl.ecenr
+          |""".stripMargin).on("year" -> year).as(SqlParser.str("zeile").+)
+
+  }
+  def getOzoneFileDataForTheYearSamplerThree(year: Int): List[String] = db.withConnection { implicit connection =>
+
+    SQL("""select  '50' -- country
+          |   ||';'|| cl.ecenr -- plotnr
+          |  ||';'|| to_char(TRUNC(beo.Math0.Hdms(cl.latitude+SIGN(cl.latitude)/7200)*10000),'S999999')
+          |   ||';'|| to_char(TRUNC(beo.Math0.Hdms(cl.longitude+SIGN(cl.longitude)/7200)*10000),
+          |'S099999') -- longitude rounded to seconds
+          |   ||';'||TRUNC(((cl.z-1)/50)+1) -- altitude 50m classes
+          |   ||';'|| ' O3'
+          |   ||';'|| '3' -- Sampler ID
+          |   ||';'|| '11' -- Passive sampler manufacturer
+          |    ||';'|| to_char(min(passsamdat.startdat),'ddmmyy') -- Startdatum
+          |   ||';'|| to_char(max(passsamdat.enddat),'ddmmyy') -- Enddatum
+          |   ||';'|| '3'  -- number of measurements
+          |   ||';'|| case passsamdat.clnr
+          |               when 331934 then 'N'
+          |               when 313136 then 'N'
+          |               else 'Y'            -- Variable co-location
+          |             end
+          |   ||';'|| trunc(decode(cl_st.zmess,null,cl_st.z,cl_st.zmess)) -- Altitude (in m)
+          |   ||';'|| station.min_z_2500 -- lowest elevation with r = 2.5 km (in m)
+          |   ||';'|| station.min_z_5000 -- lowest elevation with r = 5.0 km (in m)
+          |   ||';'|| '2.00' -- Sampling height in m (neu PJ 17.1.2013)
+          |   ||';'|| substr(cl.clname,1,29) zeile
+          |  from passsamdat, beo.cl cl, beo.cl cl_st, meteo.station
+          |  where TO_char(passsamdat.enddat,'yyyy') = {year}
+          |    and passsamdat.clnr = station.clnr
+          |    and cl.clnr = station.clnrlwf
+          |    and cl_st.clnr = station.clnr
+          |    and passsamdat.clnr <> 337588
+          |    AND passsamdat.blindsampler in (0,1)
+          |    and passsamdat.konzdat3 != -9999
+          |    and passsamdat.konzdat3 != -8888
+          |    and passsamdat.clnr not in (374674,-1112,337588.1,337588.2,337588.3,337588.4,335577)
+          |    group by passsamdat.clnr,cl.ecenr, cl.latitude, cl.longitude, cl.z, cl_st.zmess, cl_st.z, station.min_z_2500,station.min_z_5000, cl.clname
+          |  order by cl.ecenr
+          |""".stripMargin).on("year" -> year).as(SqlParser.str("zeile").+)
+
+  }
+
+  def getPhanoPersonId(nachName: String, vorName: String) = db.withConnection { implicit connection =>
+    SQL("select persnr from PERSON where name like '%{nachName}' and vorname like '%{vorName}'").on("nachName" -> nachName, "vorName" -> vorName).as(SqlParser.int("persnr").single)
+  }
+
+  def getPhanoStationId(stationName: String) = db.withConnection { implicit connection =>
+    SQL("select statcode from STATION where statname like '%{stationName}'").on("stationName" -> stationName).as(SqlParser.int("statcode").single)
+  }
+
+
+
+
+  def insertPhanoPlotBesuchDatums(besuchInfo: List[BesuchInfo], einfdat: String): Option[OzoneOracleError] = {
+    val conn = db.getConnection()
+    try {
+      conn.setAutoCommit(false)
+
+      besuchInfo.map( besuch => {
+        val stmt: Statement = conn.createStatement()
+        val analysenDatum = s"to_date('${StringToDate.oracleDateNoTimeFormat.print(StringToDate.formatOzoneDateWithNoTime.withZone(DateTimeZone.UTC).parseDateTime(fileLevelConfig.analysenDatum))}', 'DD.MM.YYYY')"
+        val farrbreagens = s"to_date('${StringToDate.oracleDateNoTimeFormat.print(StringToDate.formatOzoneDateWithNoTime.withZone(DateTimeZone.UTC).parseDateTime(fileLevelConfig.farrbreagens))}', 'DD.MM.YYYY')"
+        val probenEingang = s"to_date('${StringToDate.oracleDateNoTimeFormat.print(StringToDate.formatOzoneDateWithNoTime.withZone(DateTimeZone.UTC).parseDateTime(fileLevelConfig.probenEingang))}', 'DD.MM.YYYY')"
+        val insertStatement = s"insert into passivesamfileinfo (analysid, firmenid, stsnr, probeeingdat, analysedatum, einfdat, analysemethode, sammel, blindwert, farbreagens, calfactor, filename, nachweisgrenze, bemerk) values(PASSANALYSEID_SEQ.NEXTVAL,1,149," +
+          s" ${probenEingang}, ${analysenDatum}, ${einfdat}, '${fileLevelConfig.anaylysenMethode}', '${fileLevelConfig.sammelMethode}', " +
+          s"${fileLevelConfig.blindwert},${farrbreagens}, ${fileLevelConfig.calFactor}, '${fileLevelConfig.fileName}', ${fileLevelConfig.nachweisgrenze}, '${fileLevelConfig.remarks}')"
+        Logger.info(s"statement to be executed: ${insertStatement}")
+        stmt.executeUpdate(insertStatement)
+        stmt.close()
+      })
+
+      conn.commit()
+      conn.close()
+      None
+    } catch {
+      case ex: SQLException => {
+        if(ex.getErrorCode() == 1){
+          Logger.info(s"Data was already read. Primary key violation ${ex}")
+          conn.rollback()
+          conn.close()
+          None
+        } else {
+          conn.close()
+          Some(OzoneOracleError(8, s"Oracle Exception: ${ex}"))
+        }
+      }
+    }
   }
 
 }

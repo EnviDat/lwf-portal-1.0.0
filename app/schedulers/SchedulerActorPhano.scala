@@ -4,38 +4,36 @@ import java.io.File
 import javax.inject.{Inject, Singleton}
 
 import akka.actor.Actor
-import models.services.{FileGeneratorFromDB, MeteoService, OzoneFileGeneratorFromDB}
+import models.services.{MeteoService, OzoneFileGeneratorFromDB}
 import models.util.{CurrentSysDateInSimpleFormat, DirectoryCompressor, FtpConnector}
-import org.apache.commons.io.FileUtils
-import play.api.Configuration
-import play.api.Logger
+import play.api.{Configuration, Logger}
 
 import scala.concurrent.ExecutionContext
 
 @Singleton
-class SchedulerActorOzone @Inject()(configuration: Configuration, meteoService: MeteoService)(implicit ec: ExecutionContext) extends Actor {
+class SchedulerActorPhano @Inject()(configuration: Configuration, meteoService: MeteoService)(implicit ec: ExecutionContext) extends Actor {
   override def receive: Receive = {
-    case "processOzoneFile" =>  {
+    case "processPhanoFile" =>  {
 
-      val config = ConfigurationLoader.loadOzoneConfiguration(configuration)
+      val config = ConfigurationLoader.loadPhanoConfiguration(configuration)
       //processFile(config)
       //writeFile(config)
       //writeICPSubmissionAQPFile(config)
       //writeICPSubmissionAQBFile(config)
-      writeICPSubmissionPPSFile(config)
+      //writeICPSubmissionPPSFile(config)
     }
   }
 
-  def processFile(config: OzoneFileConfig): Unit ={
-    val userNameFtp = config.fptUserNameOzone
-    val passwordFtp = config.ftpPasswordOzone
-    val pathForFtpFolder = config.ftpPathForIncomingFileOzone
-    val ftpUrlMeteo = config.ftpUrlOzone
-    val pathForFaultyFiles = config.ftpPathForOzoneFaultyFile
-    val pathForArchiveFiles = config.ftpPathForOzoneArchiveFiles
+  def processFile(config: PhanoFileConfig): Unit ={
+    val userNameFtp = config.fptUserNamePhano
+    val passwordFtp = config.ftpPasswordPhano
+    val pathForFtpFolder = config.ftpPathForIncomingFilePhano
+    val ftpUrlMeteo = config.ftpUrlPhano
+    val pathForFaultyFiles = config.ftpPathForPhanoFaultyFile
+    val pathForArchiveFiles = config.ftpPathForPhanoeArchiveFiles
     val emailUserList = config.emailUserList
     Logger.info("processing data task running")
-    FtpConnector.readOzoneCSVFileFromFtp(userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo, emailUserList, meteoService, pathForArchiveFiles)
+    FtpConnector.readPhanoCSVFileFromFtp(userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo, emailUserList, meteoService, pathForArchiveFiles)
 
     Logger.info("File processing task finished")
   }
