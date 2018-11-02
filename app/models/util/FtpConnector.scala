@@ -38,6 +38,8 @@ object FtpConnector {
         .map(_.asInstanceOf[sftpChannel.LsEntry])
         .map(entry => {
           val stream = sftpChannel.get(entry.getFilename)
+          Logger.info(s"File on ftp is:${entry.getFilename}")
+
           val br = new BufferedReader(new InputStreamReader(stream))
           val linesToParse = Stream.continually(br.readLine()).takeWhile(_ != null).toList
           val validLines = linesToParse.filter(l => CurrentSysDateInSimpleFormat.dateRegex.findFirstIn(l).nonEmpty)
