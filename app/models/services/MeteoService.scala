@@ -7,7 +7,7 @@ import javax.inject.Inject
 import anorm.SqlParser.get
 import models.domain.Ozone.{OzoneFileConfig, PassSammData}
 import models.domain._
-import models.domain.phäno.{BesuchInfo, PhanoFileLevelInfo}
+import models.domain.pheno.{BesuchInfo, PhanoFileLevelInfo}
 import models.repositories.MeteoDataRepository
 import org.joda.time.DateTime
 import play.api.libs.json._

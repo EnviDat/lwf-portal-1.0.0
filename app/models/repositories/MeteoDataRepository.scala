@@ -5,7 +5,7 @@ import javax.inject.Inject
 
 import anorm._
 import models.domain.Ozone._
-import models.domain.phäno.{BesuchInfo, PhanoFileLevelInfo}
+import models.domain.pheno.{BesuchInfo, PhanoFileLevelInfo}
 import models.domain.{MeteoDataFileLogInfo, _}
 import models.ozone.OzoneOracleError
 import models.util.{CurrentSysDateInSimpleFormat, StringToDate}
@@ -97,13 +97,13 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
 
           m.multi match {
             case Some(1) => {
-              val insertStatement = s"INSERT INTO METEODAT  (statnr, messart, konfnr, messdat, messwert, ursprung, valstat, einfdat) values(" +
+              val insertStatement = s"INSERT INTO METEODAT_1  (statnr, messart, konfnr, messdat, messwert, ursprung, valstat, einfdat) values(" +
                 s"${ml.station}, ${ml.messArt}, ${ml.configuration}, ${ml.dateReceived}, ${ml.valueOfMeasurement}, ${ml.methodApplied}, ${ml.status.getOrElse(0)},${ml.dateOfInsertion})"
               Logger.info(s"statement to be executed: ${insertStatement}")
               stmt.executeUpdate(insertStatement)
             }
             case Some(2) => {
-              val insertStatement = s"INSERT INTO MDAT  (statnr, messart, konfnr, messdat, messwert, ursprung, valstat, einfdat) values(" +
+              val insertStatement = s"INSERT INTO MDAT_1  (statnr, messart, konfnr, messdat, messwert, ursprung, valstat, einfdat) values(" +
                 s"${ml.station}, ${ml.messArt}, ${ml.configuration}, ${ml.dateReceived}, ${ml.valueOfMeasurement}, ${ml.methodApplied}, ${ml.status.getOrElse(0)},${ml.dateOfInsertion})"
               Logger.info(s"statement to be executed: ${insertStatement}")
               stmt.executeUpdate(insertStatement)
@@ -420,7 +420,7 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
 
 
   def insertPhanoPlotBesuchDatums(besuchInfo: List[BesuchInfo], einfdat: String): Option[OzoneOracleError] = {
-    val conn = db.getConnection()
+   /* val conn = db.getConnection()
     try {
       conn.setAutoCommit(false)
 
@@ -452,7 +452,8 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
           Some(OzoneOracleError(8, s"Oracle Exception: ${ex}"))
         }
       }
-    }
+    }*/
+    None
   }
 
 }

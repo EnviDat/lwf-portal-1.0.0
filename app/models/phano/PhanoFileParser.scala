@@ -2,7 +2,7 @@ package models.phano
 
 import models.domain.Ozone.{OzoneKeysConfig, PassSammData}
 import models.domain._
-import models.domain.phäno.PhanoGrowthData
+import models.domain.pheno.PhanoGrowthData
 import models.ozone.WSOzoneFileValidator.validateDateFormat
 import models.services.MeteoService
 import models.util.StringToDate.formatOzoneDate
@@ -14,7 +14,7 @@ import play.Logger
 object PhanoFileParser {
 
   def parseAndSaveData(phanoData: String, meteoService: MeteoService, valid: Boolean, stationNr: Integer, personNr: Integer, invnr: Integer, typeCode: Integer) = {
-    Logger.info(s"validating the line ${ozoneData}")
+    /*Logger.info(s"validating the line ${ozoneData}")
 
     try {
         val words = phanoData.split(";")
@@ -128,7 +128,7 @@ object PhanoFileParser {
         Some(OzoneNotSufficientParameters(999, "File was either empty or contained lines with error values"))
       case error : Throwable =>
        Some(OzoneFileError(-1, error.toString))
-    }
+    }*/
 
   }
 

@@ -1,4 +1,4 @@
-package models.domain.phäno
+package models.domain.pheno
 
 import anorm.SqlParser.get
 import anorm.{RowParser, ~}
@@ -231,7 +231,7 @@ case class PassSammDataRow(clnr: BigDecimal,
                           )
 
 object OzoneDataRow {
-  val parser: RowParser[PassSammDataRow] = {
+  /*val parser: RowParser[PassSammDataRow] = {
            get[BigDecial]("clnr")~
            get[String]("startDate")~
            get[String]("startTime")~
@@ -294,7 +294,7 @@ object OzoneDataRow {
                  lineBem.getOrElse(""),
                blindsampler)
            }
-  }
+  }*/
 
 }
 

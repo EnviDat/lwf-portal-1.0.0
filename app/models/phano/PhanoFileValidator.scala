@@ -1,13 +1,14 @@
 package models.phano
 
 import models.domain.Ozone.OzoneKeysConfig
-import models.domain.phäno.PhanoPlotKeysConfig
+import models.domain.pheno.PhanoPlotKeysConfig
+import models.ozone.OzoneExceptions
 import models.util.{NumberParser, StringToDate}
 import play.Logger
 
 object PhanoFileValidator {
 
-  def validateLine(fileName: String, lineToValidate: String, numberofParameters: Int): Either[(List[PhanoExceptions],String), String] = ???
+  def validateLine(fileName: String, lineToValidate: String, numberofParameters: Int): Either[(List[PhanoExceptions],String), String] = {
    /* Logger.info(s"validating the line ${lineToValidate}")
 
     try {
@@ -34,7 +35,8 @@ object PhanoFileValidator {
       Left(List(OzoneNotSufficientParameters(999, "File was either empty or contained lines with error values")),lineToValidate)
     case error : Throwable =>
       Left(List(OzoneFileError(-1, error.toString)),lineToValidate)
-    }
+    }*/
+    Left(List(OzoneFileError(-1, "error.toString")),lineToValidate)
   }
 
   def validatePlaId(code: String) = {
@@ -42,7 +44,7 @@ object PhanoFileValidator {
   }
 
 
-  def validateValueOfParameters(words: List[String], lineToValidate: String): List[OzoneExceptions] = {
+  def validateValueOfParameters(words: List[String], lineToValidate: String): List[OzoneInvalidNumberFoundException] = {
     words.flatMap(w => {
       val parsedValue = NumberParser.parseBigDecimalWithLessThanSign(w)
       parsedValue match {
@@ -53,7 +55,7 @@ object PhanoFileValidator {
   }
 
 
-  def validateDateFormat(date: String, lineToValidate: String):Option[PhanoExceptions] = {
+  def validateDateFormat(date: String, lineToValidate: String):Option[OzoneExceptions] = {
       StringToDate.stringToDateConvertoZONE(date, lineToValidate)
   }
 }

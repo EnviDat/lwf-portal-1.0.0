@@ -22,7 +22,7 @@ class SchedulerActorOzone @Inject()(configuration: Configuration, meteoService: 
       //writeFile(config)
       //writeICPSubmissionAQPFile(config)
       //writeICPSubmissionAQBFile(config)
-      writeICPSubmissionPPSFile(config)
+      //writeICPSubmissionPPSFile(config)
     }
   }
 

@@ -6,7 +6,7 @@ import com.jcraft.jsch.{ChannelSftp, JSch, JSchException, SftpException}
 import models.domain.Ozone.{OzoneFileConfig, OzoneKeysConfig}
 import models.domain.meteorology.ethlaegeren.parser.ETHLaeFileParser
 import models.domain.meteorology.ethlaegeren.validator.ETHLaeFileValidator
-import models.domain.phäno.{BesuchInfo, PhanoFileLevelInfo, PhanoPlotKeysConfig}
+import models.domain.pheno.{BesuchInfo, PhanoFileLevelInfo, PhanoPlotKeysConfig}
 import models.domain.{CR1000ErrorFileInfo, CR1000Exceptions, FormatMessage}
 import models.ozone.{OzoneFileLevelInfoMissingError, _}
 import models.phano.{PhanoFileParser, PhanoFileValidator}
@@ -232,7 +232,7 @@ object FtpConnector {
 
   @throws[Exception]
   def readPhanoCSVFileFromFtp(userNameFtp: String, passwordFtp: String, pathForFtpFolder: String, ftpUrl: String, emailUserList: String, meteoService: MeteoService, pathForArchiveFiles: String): Unit = {
-    val jsch = new JSch
+   /* val jsch = new JSch
     try {
       val session = jsch.getSession(userNameFtp, ftpUrl, 22)
       session.setPassword(passwordFtp)
@@ -313,7 +313,7 @@ object FtpConnector {
         e.printStackTrace()
       case e: SftpException =>
         e.printStackTrace()
-    }
+    }*/
   }
 
 
