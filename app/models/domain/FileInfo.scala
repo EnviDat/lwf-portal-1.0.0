@@ -46,3 +46,14 @@ object OrganisationStationMappingS {
     }
   }
 }
+
+
+case class OrganisationProject(organisationNr: Int, projnr: Int)
+object OrganisationProjects {
+  val parser: RowParser[OrganisationProject] = {
+    get[Int]("ORGNR") ~
+      get[Int]("projnr") map {
+      case orgNr ~ projnr => OrganisationProject(orgNr, projnr)
+    }
+  }
+}

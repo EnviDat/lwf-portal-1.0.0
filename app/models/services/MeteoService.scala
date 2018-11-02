@@ -81,6 +81,8 @@ class MeteoService @Inject()(meteoRepo: MeteoDataRepository) {
 
   def getAllOrganisations() = meteoRepo.findAllOrganisations()
 
+  def getAllOrganisationsProjnrConfig() = meteoRepo.findAllOrganisationsAndProjectsConfig()
+
   def getAllOrganisationStationsMappings() = meteoRepo.findOrganisationStationMapping()
 
   def insertLogInformation(meteoLogInfos: List[MeteoDataFileLogInfo]) = meteoRepo.insertLogInfoForFilesSent(meteoLogInfos)
