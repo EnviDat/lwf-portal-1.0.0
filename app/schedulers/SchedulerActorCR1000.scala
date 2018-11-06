@@ -4,7 +4,7 @@ import java.io.File
 import javax.inject.{Inject, Singleton}
 
 import akka.actor.Actor
-import models.services.{FileGeneratorFromDB, MeteoService}
+import models.services.{FileGeneratorMeteoSchweizFromDB, MeteoService}
 import models.util.{CurrentSysDateInSimpleFormat, DirectoryCompressor, FtpConnector}
 import org.apache.commons.io.FileUtils
 import play.api.Configuration
@@ -18,7 +18,7 @@ class SchedulerActorCR1000 @Inject()(configuration: Configuration, meteoService:
     case "processFile" =>  {
 
       val config = ConfigurationLoader.loadCR1000Configuration(configuration)
-      processFile(config)
+      //processFile(config)
       //readFile(config)
     }
   }

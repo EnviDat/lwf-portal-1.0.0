@@ -22,6 +22,17 @@ case class ConfigurationMeteoSchweizData(frequency :Int,
                                          pathForLogFiles :String,
                                          pathForArchivedLogFiles :String)
 
+case class ConfigurationSwissSMEXData(frequency :Int,
+                                         userNameFtp :String,
+                                         passwordFtp :String,
+                                         pathForFtpFolder :String,
+                                         ftpUrlMeteo :String,
+                                         pathInputFile :String,
+                                         pathForLocalWrittenFiles :String,
+                                         pathForArchivedFiles :String,
+                                         pathForLogFiles :String,
+                                         pathForArchivedLogFiles :String)
+
 case class CR1000LoggerFileConfig(frequencyCR1000 :Int,
                                   ftpUrlCR1000 :String,
                                   fptUserNameCR1000 :String,
@@ -80,6 +91,21 @@ object ConfigurationLoader {
     val pathForArchivedLogFiles = configuration.getString("pathForArchivedLogFiles").get
     ConfigurationMeteoSchweizData(frequency, userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo, pathInputFile, pathForLocalWrittenFiles, pathForArchivedFiles, pathForLogFiles, pathForArchivedLogFiles)
   }
+
+  def loadSwissSMEXConfiguration(configuration: Configuration) = {
+    val frequency = configuration.getInt("frequencySwissMEX").get
+    val userNameFtp = configuration.getString("fptUserNameSwissMEX").get
+    val passwordFtp = configuration.getString("ftpPasswordSwissMEX").get
+    val pathForFtpFolder = configuration.getString("ftpPathForOutgoingFileSwissMEX").get
+    val ftpUrlMeteo = configuration.getString("ftpUrlSwissMEX").get
+    val pathInputFile = configuration.getString("ftpPathForIncomingFileSwissMEX").get
+    val pathForLocalWrittenFiles = configuration.getString("pathForLocalWrittenFiles").get
+    val pathForArchivedFiles = configuration.getString("pathForArchivedFiles").get
+    val pathForLogFiles = configuration.getString("pathForLogFiles").get
+    val pathForArchivedLogFiles = configuration.getString("pathForArchivedLogFiles").get
+    ConfigurationSwissSMEXData(frequency, userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo, pathInputFile, pathForLocalWrittenFiles, pathForArchivedFiles, pathForLogFiles, pathForArchivedLogFiles)
+  }
+
 
   def loadCR1000Configuration(configuration: Configuration) = {
     val frequencyCR1000 = configuration.getInt("frequencyCR1000").get

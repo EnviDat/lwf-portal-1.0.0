@@ -21,7 +21,7 @@ class FileGeneratorFixedFormat(meteoService: MeteoService) extends FileGenerator
     Logger.info(s"Abbrevations for the stations found are: ${allAbbrevations.map(_.kurzName).mkString(",")}")
 
     val allOrganisationsProjects: Map[Int, Seq[OrganisationProject]] = meteoService.getAllOrganisationsProjnrConfig().groupBy(_.organisationNr)
-    Logger.info(s"Organisations and projectNr for the stations found are: ${allOrganisationsProjects.map(_).mkString(",")}")
+    Logger.info(s"Organisations and projectNr for the stations found are: ${allOrganisationsProjects.map(_._1).mkString(",")}")
 
     val allMessWerts: Seq[MessArtRow] = meteoService.getAllMessArts.filter(mw => {
       val mProjNr = mw.messProjNr.getOrElse(0)
@@ -45,7 +45,7 @@ class FileGeneratorFixedFormat(meteoService: MeteoService) extends FileGenerator
     val toa5Header = """Datum[JJJJ.MM.DD HH24:MI:SS"], RecordID, StationsID, ProjektID, Messperiode[Minuten],"""
 
     def generateFiles(): List[FileInfo] = {
-      val timeStampForFileName = CurrentSysDateInSimpleFormat.dateNow
+      /*val timeStampForFileName = CurrentSysDateInSimpleFormat.dateNow
 
       allOrganisations.flatMap(o => {
 
@@ -125,7 +125,8 @@ class FileGeneratorFixedFormat(meteoService: MeteoService) extends FileGenerator
         Logger.info(s"All data and file names for the stations are: ${allFilesDataGenerated.filter(_.meteoData.nonEmpty).toList.mkString("\n")}")
 
         allFilesDataGenerated.filter(_.meteoData.nonEmpty).toList
-      }).toList
+      }).toList*/
+      List()
     }
 
     private def getCR10FormattedDataLines(groupMeteoDataDauer: mutable.Map[Int, mutable.Map[DateTime, mutable.LinkedHashSet[MeteoDataRow]]],

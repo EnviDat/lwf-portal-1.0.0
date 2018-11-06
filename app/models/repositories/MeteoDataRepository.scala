@@ -32,7 +32,7 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
       SQL("select orgnr,projnr from STATORGPROJKONF where senddata = 1").as(OrganisationProjects.parser *)}
 
     def findLogInfoForDataSentToOrganisations(): Seq[MeteoDataFileLogInfo] = db.withConnection{ implicit connection =>
-      SQL("SELECT statnr,orgnr,to_char(vondatum, 'DD-MM-YYYY HH24:MI:SS') as vondatum, to_char(bisdatum, 'DD-MM-YYYY HH24:MI:SS') as bisdatum,dateiname,reihegesendet, to_char(lasteinfdat, 'DD-MM-YYYY HH24:MI:SS') as lasteinfdat, lasteinfdat as lastdat  FROM METEODATALOGINFO ORDER BY STATNR,lastdat DESC").as(MeteoDataFileLogsInfo.parser *)}
+      SQL("SELECT statnr, orgnr, to_char(vondatum, 'DD-MM-YYYY HH24:MI:SS') as vondatum, to_char(bisdatum, 'DD-MM-YYYY HH24:MI:SS') as bisdatum, dateiname,reihegesendet, to_char(lasteinfdat, 'DD-MM-YYYY HH24:MI:SS') as lasteinfdat, lasteinfdat as lastdat  FROM METEODATALOGINFO where (statnr,orgnr,lasteinfdat ) in (select ml.statnr,ml.orgnr,max(ml.lasteinfdat) from METEODATALOGINFO ml group by ml.statnr,ml.orgnr) ORDER BY STATNR,lastdat DESC").as(MeteoDataFileLogsInfo.parser *)}
 
     def findOrganisationStationMapping() : Seq[OrganisationStationMapping] = db.withConnection{ implicit connection =>
       SQL("SELECT * FROM STATORGKONF ORDER BY ORGNR,STATNR").as(OrganisationStationMappingS.parser *)}
@@ -100,13 +100,13 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
 
           m.multi match {
             case Some(1) => {
-              val insertStatement = s"INSERT INTO METEODAT_1  (statnr, messart, konfnr, messdat, messwert, ursprung, valstat, einfdat) values(" +
+              val insertStatement = s"INSERT INTO METEODAT  (statnr, messart, konfnr, messdat, messwert, ursprung, valstat, einfdat) values(" +
                 s"${ml.station}, ${ml.messArt}, ${ml.configuration}, ${ml.dateReceived}, ${ml.valueOfMeasurement}, ${ml.methodApplied}, ${ml.status.getOrElse(0)},${ml.dateOfInsertion})"
               Logger.info(s"statement to be executed: ${insertStatement}")
               stmt.executeUpdate(insertStatement)
             }
             case Some(2) => {
-              val insertStatement = s"INSERT INTO MDAT_1  (statnr, messart, konfnr, messdat, messwert, ursprung, valstat, einfdat) values(" +
+              val insertStatement = s"INSERT INTO MDAT  (statnr, messart, konfnr, messdat, messwert, ursprung, valstat, einfdat) values(" +
                 s"${ml.station}, ${ml.messArt}, ${ml.configuration}, ${ml.dateReceived}, ${ml.valueOfMeasurement}, ${ml.methodApplied}, ${ml.status.getOrElse(0)},${ml.dateOfInsertion})"
               Logger.info(s"statement to be executed: ${insertStatement}")
               stmt.executeUpdate(insertStatement)

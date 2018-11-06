@@ -5,16 +5,11 @@ import models.util.GroupByOrderedImplicit._
 import models.util.{CurrentSysDateInSimpleFormat, Joda, StringToDate}
 import org.joda.time.DateTime
 import play.api.Logger
-import java.text.SimpleDateFormat
 
 import scala.collection.mutable
 
-trait FileGenerator {
-  def generateFiles(): List[FileInfo]
-  def saveLogInfoOfGeneratedFiles(fileInfos: List[MeteoDataFileLogInfo])
-}
 
-class FileGeneratorMeteoSchweizFromDB(meteoService: MeteoService) extends FileGenerator {
+class FileGeneratorSwissSmexFromDB(meteoService: MeteoService) extends FileGenerator {
 
   val allOrganisations: Seq[Organisation] = meteoService.getAllOrganisations()
   Logger.info(s"All Organisations where data should be sent out: ${allOrganisations.size}")
@@ -23,16 +18,17 @@ class FileGeneratorMeteoSchweizFromDB(meteoService: MeteoService) extends FileGe
   Logger.info(s"Number of stations found: ${allStations.size}")
   Logger.info(s"Name of stations found are: ${allStations.map(_.stationsName).mkString(",")}")
 
-  val allAbbrevations: List[StationAbbrevations] = meteoService.getAllStatAbbrevations()
+  val allAbbrevations: List[StationAbbrevations] = List(StationAbbrevations(26,"NOV_B", "Novaggio_Bestand"),StationAbbrevations(18,"LAU_B", "Lausanne_Bestand")) //meteoService.getAllStatAbbrevations()
   Logger.info(s"Abbrevations for the stations found are: ${allAbbrevations.map(_.kurzName).mkString(",")}")
 
   val allMessWerts: Seq[MessArtRow] = meteoService.getAllMessArts.filter(mw => {
     val mProjNr = mw.messProjNr.getOrElse(0)
-    mProjNr == 1 || mProjNr == 4 || mProjNr == 5
+    mProjNr == 24
   })
   Logger.info(s"All Messwerts for the stations found are: ${allMessWerts.mkString(",")}")
 
-  val lastTimeDataSentForStations: Seq[MeteoDataFileLogInfo] = meteoService.getLastDataSentInformation()
+  val lastTimeDataSentForStations: Seq[MeteoDataFileLogInfo] = List(MeteoDataFileLogInfo(26,2,"Rawdata",StringToDate.stringToDateConvert("01-11-2018 00:00:00"),StringToDate.stringToDateConvert("01-01-2018 00:00:00"),0,StringToDate.stringToDateConvert("01-01-2018 00:00:00")))//meteoService.getLastDataSentInformation()
+
   Logger.info(s"All information about the station when data was sent out: ${lastTimeDataSentForStations.mkString(",")}")
 
   val stationOrganisationMappings: Seq[OrganisationStationMapping] = meteoService.getAllOrganisationStationsMappings()
@@ -50,9 +46,9 @@ class FileGeneratorMeteoSchweizFromDB(meteoService: MeteoService) extends FileGe
   def generateFiles(): List[FileInfo] = {
     val timeStampForFileName = CurrentSysDateInSimpleFormat.dateNow
 
-    allOrganisations.filter(_.organisationNr == 1).flatMap(o => {
+    allOrganisations.filter(_.organisationNr == 2).flatMap(o => {
 
-      val configuredStationsForOrganisation = stationOrganisationMappings.filter(so => so.orgNr == o.organisationNr && so.shouldSendData == 1)
+      val configuredStationsForOrganisation = stationOrganisationMappings.filter(so => so.orgNr == o.organisationNr && so.shouldSendData == 0)//To Do: change this to 1
 
       val stationNumbersConfigured = configuredStationsForOrganisation.map(_.statNr)
       val allFilesDataGenerated = allStations.filter(st => stationNumbersConfigured.contains(st.stationNumber)).map(station => {
@@ -75,7 +71,7 @@ class FileGeneratorMeteoSchweizFromDB(meteoService: MeteoService) extends FileGe
         val mapFolgNrToMessArt: Seq[(Int, Int)] = getMappingOfFolgeNrToMessArt(confForStation)
         Logger.info(s"mapping folgenr to messart details are: ${mapFolgNrToMessArt.mkString("\n")}")
 
-        val lastDateTimeDataWasSent: Option[DateTime] = lastTimeDataSentForStations.find(lt => lt.orgNr == o.organisationNr && lt.stationNr== station.stationNumber).map(_.lastEinfDat)
+        val lastDateTimeDataWasSent: Option[DateTime] = lastTimeDataSentForStations.filter(_.orgNr == 2).find(lt => lt.orgNr == o.organisationNr && lt.stationNr== station.stationNumber).map(_.lastEinfDat)
 
         val latestMeteoDataForStation = meteoService.getLatestMeteoDataToWrite(station.stationNumber, lastDateTimeDataWasSent).sortBy(_.dateReceived)
 
@@ -219,7 +215,7 @@ class FileGeneratorMeteoSchweizFromDB(meteoService: MeteoService) extends FileGe
 
   def saveLogInfoOfGeneratedFiles(fileInfos: List[MeteoDataFileLogInfo]) = {
     Logger.info(s"saving log information in database: ${fileInfos.mkString(",")}")
-    meteoService.insertLogInformation(fileInfos)
+    //meteoService.insertLogInformation(fileInfos)
   }
 
 }

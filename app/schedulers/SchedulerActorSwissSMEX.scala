@@ -3,25 +3,25 @@ package schedulers
 import java.io.File
 import javax.inject.{Inject, Singleton}
 
-import org.apache.commons.io.FileUtils
 import akka.actor.Actor
-import models.services.{FileGeneratorMeteoSchweizFromDB, MeteoService}
+import models.services.{FileGeneratorMeteoSchweizFromDB, FileGeneratorSwissSmexFromDB, MeteoService}
 import models.util.{CurrentSysDateInSimpleFormat, DirectoryCompressor, FtpConnector}
+import org.apache.commons.io.FileUtils
 import play.api.{Configuration, Logger}
 
 import scala.concurrent.ExecutionContext
 
 @Singleton
-class SchedulerActor @Inject()(configuration: Configuration, meteoService: MeteoService)(implicit ec: ExecutionContext) extends Actor {
+class SchedulerActorSwissSMEX @Inject()(configuration: Configuration, meteoService: MeteoService)(implicit ec: ExecutionContext) extends Actor {
   override def receive: Receive = {
     case "writeFile" =>  {
-      val config = ConfigurationLoader.loadMeteoSchweizConfiguration(configuration)
-      //writeFile(config)
+      val config = ConfigurationLoader.loadSwissSMEXConfiguration(configuration)
+      writeFile(config)
       //readFile(config)
     }
   }
 
-  def readFile(config: ConfigurationMeteoSchweizData): Unit ={
+  def readFile(config: ConfigurationSwissSMEXData): Unit ={
     val pathInputFile = config.pathInputFile
     val userNameFtp = config.userNameFtp
     val passwordFtp = config.passwordFtp
@@ -32,7 +32,7 @@ class SchedulerActor @Inject()(configuration: Configuration, meteoService: Meteo
     Logger.info(pathInputFile)
   }
 
-  def writeFile(config: ConfigurationMeteoSchweizData): Unit ={
+  def writeFile(config: ConfigurationSwissSMEXData): Unit ={
     val pathInputFile = config.pathInputFile
     val userNameFtp = config.userNameFtp
     val passwordFtp = config.passwordFtp
@@ -41,7 +41,7 @@ class SchedulerActor @Inject()(configuration: Configuration, meteoService: Meteo
     val pathForLocalWrittenFiles = config.pathForLocalWrittenFiles
     val pathForArchivedFiles = config.pathForArchivedFiles
     Logger.info("writing data task running")
-    val fileGenerator =  new FileGeneratorMeteoSchweizFromDB(meteoService)
+    val fileGenerator =  new FileGeneratorSwissSmexFromDB(meteoService)
     val fileInfos = fileGenerator.generateFiles()
     val logInformation = fileInfos.map(_.logInformation)
     Logger.info(s"Generated File Information:${logInformation} ")
