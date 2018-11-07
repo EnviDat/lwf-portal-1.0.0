@@ -2,6 +2,7 @@ package models.util
 
 import java.text.SimpleDateFormat
 import java.time.format.DateTimeParseException
+import java.util.Date
 
 import models.domain
 import models.domain.{CR1000Exceptions, CR1000InvalidDateException}
@@ -76,6 +77,10 @@ object CurrentSysDateInSimpleFormat {
 
   val systemDateForEinfdat = s"${StringToDate.formatOzoneDate.print(new DateTime())}"
   val sysdateDateInOracleformat = s"TO_date('${systemDateForEinfdat}', 'DD.MM.YYYY HH24:MI:SS')"
+
+  def changeFormatDateTimeForFileName(datum: DateTime) = {
+    new SimpleDateFormat("yyyyMMddHHmmss").format(datum.toDate)
+  }
 
 }
 object Joda {

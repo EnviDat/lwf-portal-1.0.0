@@ -27,7 +27,9 @@ class FileGeneratorSwissSmexFromDB(meteoService: MeteoService) extends FileGener
   })
   Logger.info(s"All Messwerts for the stations found are: ${allMessWerts.mkString(",")}")
 
-  val lastTimeDataSentForStations: Seq[MeteoDataFileLogInfo] = List(MeteoDataFileLogInfo(26,2,"Rawdata",StringToDate.stringToDateConvert("01-11-2018 00:00:00"),StringToDate.stringToDateConvert("01-01-2018 00:00:00"),0,StringToDate.stringToDateConvert("01-01-2018 00:00:00")))//meteoService.getLastDataSentInformation()
+  val lastTimeDataSentForStations: Seq[MeteoDataFileLogInfo] = meteoService.getLastDataSentInformation() /*List(MeteoDataFileLogInfo(26,2,"Rawdata",StringToDate.stringToDateConvert("04-11-2018 00:00:00"),StringToDate.stringToDateConvert("04-11-2018 00:00:00"),0,StringToDate.stringToDateConvert("04-11-2018 00:00:00")),
+    MeteoDataFileLogInfo(18,2,"Rawdata",StringToDate.stringToDateConvert("04-11-2018 00:00:00"),StringToDate.stringToDateConvert("04-11-2018 00:00:00"),0,StringToDate.stringToDateConvert("04-11-2018 00:00:00"))
+  )//meteoService.getLastDataSentInformation()*/
 
   Logger.info(s"All information about the station when data was sent out: ${lastTimeDataSentForStations.mkString(",")}")
 
@@ -44,7 +46,6 @@ class FileGeneratorSwissSmexFromDB(meteoService: MeteoService) extends FileGener
   val toa5Header = """Datum[JJJJ.MM.DD HH24:MI:SS"], RecordID, StationsID, ProjektID, Messperiode[Minuten],"""
 
   def generateFiles(): List[FileInfo] = {
-    val timeStampForFileName = CurrentSysDateInSimpleFormat.dateNow
 
     allOrganisations.filter(_.organisationNr == 2).flatMap(o => {
 
@@ -73,7 +74,7 @@ class FileGeneratorSwissSmexFromDB(meteoService: MeteoService) extends FileGener
 
         val lastDateTimeDataWasSent: Option[DateTime] = lastTimeDataSentForStations.filter(_.orgNr == 2).find(lt => lt.orgNr == o.organisationNr && lt.stationNr== station.stationNumber).map(_.lastEinfDat)
 
-        val latestMeteoDataForStation = meteoService.getLatestMeteoDataToWrite(station.stationNumber, lastDateTimeDataWasSent).sortBy(_.dateReceived)
+        val latestMeteoDataForStation: Seq[MeteoDataRow] = meteoService.getLatestMeteoDataToWrite(station.stationNumber, lastDateTimeDataWasSent).sortBy(_.dateReceived)
 
         //Logger.debug(s"All data Loaded for the station: ${latestMeteoDataForStation.mkString(",")}")
 
@@ -95,7 +96,16 @@ class FileGeneratorSwissSmexFromDB(meteoService: MeteoService) extends FileGener
           else
             cr10Header + trailor.map(_.getOrElse(",")).mkString(",")
 
-      val fileName = abbrevationForStation.map(ab =>  ab.kurzName + timeStampForFileName)
+        val timeStampForFileName =
+          if(latestMeteoDataForStation.map(_.dateOfInsertion).nonEmpty) {
+            CurrentSysDateInSimpleFormat.changeFormatDateTimeForFileName(StringToDate.stringToDateConvert(latestMeteoDataForStation.map(_.dateOfInsertion).max))
+          } else {
+            CurrentSysDateInSimpleFormat.dateNow
+
+          }
+
+
+        val fileName = abbrevationForStation.map(ab =>  ab.kurzName + timeStampForFileName + "_" + CurrentSysDateInSimpleFormat.dateNow)
 
       val cr1000DataSortedDuration = valuesToBeWrittenForCR1000.toList
       val cr10DataSortedDuration = valuesToBeWrittenForCR10.toList.sortBy(_.duration)
@@ -114,16 +124,20 @@ class FileGeneratorSwissSmexFromDB(meteoService: MeteoService) extends FileGener
 
         val toDate = if(allDates.nonEmpty) allDates.max.toDateTime() else new DateTime()
 
-        val einfDate = if(allDates.nonEmpty) allEinfDates.max.toDateTime() else new DateTime()
+        val einfDate = if (numberOfLinesSent == 0) {
+                           lastDateTimeDataWasSent.map(_.plusDays(1)).getOrElse(new DateTime())
+                              } else {
+                            allEinfDates.max.toDateTime().plusDays(1)
+        }
 
 
-        val logInformation = MeteoDataFileLogInfo(station.stationNumber, o.organisationNr, fileName.getOrElse(o.prefix + station.stationsName + timeStampForFileName).toString, fromDate, toDate,numberOfLinesSent, new DateTime())
+        val logInformation = MeteoDataFileLogInfo(station.stationNumber, o.organisationNr, fileName.getOrElse(o.prefix + station.stationsName + timeStampForFileName).toString, fromDate, toDate,numberOfLinesSent, einfDate)
 
       FileInfo(fileName.getOrElse(o.prefix + station.stationsName + timeStampForFileName).toString, dataHeaderToBeWritten, dataLinesToBeWrittenCR1000 ::: dataLinesToBeWrittenCR10, logInformation)
     })
     Logger.info(s"All data and file names for the stations are: ${allFilesDataGenerated.filter(_.meteoData.nonEmpty).toList.mkString("\n")}")
 
-    allFilesDataGenerated.filter(_.meteoData.nonEmpty).toList
+    allFilesDataGenerated.toList
     }).toList
   }
 
@@ -215,7 +229,7 @@ class FileGeneratorSwissSmexFromDB(meteoService: MeteoService) extends FileGener
 
   def saveLogInfoOfGeneratedFiles(fileInfos: List[MeteoDataFileLogInfo]) = {
     Logger.info(s"saving log information in database: ${fileInfos.mkString(",")}")
-    //meteoService.insertLogInformation(fileInfos)
+    meteoService.insertLogInformation(fileInfos)
   }
 
 }

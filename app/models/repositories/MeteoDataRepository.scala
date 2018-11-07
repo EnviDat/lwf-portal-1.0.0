@@ -32,7 +32,7 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
       SQL("select orgnr,projnr from STATORGPROJKONF where senddata = 1").as(OrganisationProjects.parser *)}
 
     def findLogInfoForDataSentToOrganisations(): Seq[MeteoDataFileLogInfo] = db.withConnection{ implicit connection =>
-      SQL("SELECT statnr, orgnr, to_char(vondatum, 'DD-MM-YYYY HH24:MI:SS') as vondatum, to_char(bisdatum, 'DD-MM-YYYY HH24:MI:SS') as bisdatum, dateiname,reihegesendet, to_char(lasteinfdat, 'DD-MM-YYYY HH24:MI:SS') as lasteinfdat, lasteinfdat as lastdat  FROM METEODATALOGINFO where (statnr,orgnr,lasteinfdat ) in (select ml.statnr,ml.orgnr,max(ml.lasteinfdat) from METEODATALOGINFO ml group by ml.statnr,ml.orgnr) ORDER BY STATNR,lastdat DESC").as(MeteoDataFileLogsInfo.parser *)}
+      SQL("SELECT statnr, orgnr, to_char(vondatum, 'DD-MM-YYYY HH24:MI:SS') as vondatum, to_char(bisdatum, 'DD-MM-YYYY HH24:MI:SS') as bisdatum, dateiname,reihegesendet, to_char(lasteinfdat, 'DD-MM-YYYY HH24:MI:SS') as lasteinfdat, lasteinfdat as lastdat  FROM METEODATALOGINFO_temp where (statnr,orgnr,lasteinfdat ) in (select ml.statnr,ml.orgnr,max(ml.lasteinfdat) from METEODATALOGINFO_temp ml group by ml.statnr,ml.orgnr) ORDER BY STATNR,lastdat DESC").as(MeteoDataFileLogsInfo.parser *)}
 
     def findOrganisationStationMapping() : Seq[OrganisationStationMapping] = db.withConnection{ implicit connection =>
       SQL("SELECT * FROM STATORGKONF ORDER BY ORGNR,STATNR").as(OrganisationStationMappingS.parser *)}
@@ -56,7 +56,11 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
     def findLastMeteoDataForStation(stationNumber: Int, fromTime: Option[DateTime]): Seq[MeteoDataRow] = db.withConnection { implicit connection => {
       fromTime.map(dt => {
         Logger.info(s"from Date is:${StringToDate.oracleDateFormat.print(dt)} ")
-        SQL("select statnr, messart, konfnr, to_char(messdat, 'DD-MM-YYYY HH24:MI:SS') as messdate, messwert, to_char(einfdat, 'DD-MM-YYYY HH24:MI:SS') as einfdate,ursprung,manval from meteodat where STATNR = {stationNr} and einfdat >  to_date({fromDate}, 'DD.MM.YYYY HH24:MI:SS') order by messdat DESC").on("stationNr" -> stationNumber, "fromDate" -> StringToDate.oracleDateFormat.print(dt)).as(MeteoDataRow.parser *)
+        SQL(
+          """select statnr, messart, konfnr, to_char(messdat, 'DD-MM-YYYY HH24:MI:SS') as messdate, messwert, to_char(einfdat, 'DD-MM-YYYY HH24:MI:SS') as einfdate,ursprung,manval from meteodat partition(md2018)  where STATNR = {stationNr} and einfdat >  to_date({fromDate}, 'DD.MM.YYYY HH24:MI:SS') AND EINFDAT < to_date({fromDate}, 'DD.MM.YYYY HH24:MI:SS') + 1
+            |union
+            |select statnr, messart, konfnr, to_char(messdat, 'DD-MM-YYYY HH24:MI:SS') as messdate, messwert, to_char(einfdat, 'DD-MM-YYYY HH24:MI:SS') as einfdate,ursprung,manval from mdat partition(mdat2018) where STATNR = {stationNr} and einfdat >  to_date({fromDate}, 'DD.MM.YYYY HH24:MI:SS') AND EINFDAT < to_date({fromDate}, 'DD.MM.YYYY HH24:MI:SS') + 1
+            |order by messdate DESC""".stripMargin).on("stationNr" -> stationNumber, "fromDate" -> StringToDate.oracleDateFormat.print(dt)).as(MeteoDataRow.parser *)
       }).getOrElse(Seq())
 
      }
@@ -77,7 +81,7 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
       val toDate = s"to_date('${StringToDate.oracleDateFormat.print(ml.toDate)}', 'DD.MM.YYYY HH24:MI:SS')"
       val lastEinfDat = s"to_date('${StringToDate.oracleDateFormat.print(ml.lastEinfDat)}', 'DD.MM.YYYY HH24:MI:SS')"
 
-      val insertStatement = s"INSERT INTO METEODATALOGINFO (statnr, orgnr, vondatum, bisdatum, dateiname, reihegesendet, lasteinfdat) values(" +
+      val insertStatement = s"INSERT INTO METEODATALOGINFO_temp (statnr, orgnr, vondatum, bisdatum, dateiname, reihegesendet, lasteinfdat) values(" +
         s"${ml.stationNr}, ${ml.orgNr}, $fromDate, $toDate, '${ml.fileName}', ${ml.numberOfLinesSent}, ${lastEinfDat} )"
       Logger.info(s"statement to be executed: ${insertStatement}")
 
