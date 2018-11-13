@@ -48,6 +48,22 @@ object OrganisationStationMappingS {
 }
 
 
+case class OrgStationParamMapping(statNr: Int, orgNr: Int, projnr: Int, paramId: Int, shortName: String, columnNr: Int)
+
+object OrgStationParamMappings {
+  val parser: RowParser[OrgStationParamMapping] = {
+    get[Int]("STATNR") ~
+      get[Int]("ORGNR") ~
+      get[Int]("projnr") ~
+      get[Int]("parameterid") ~
+      get[String]("shortnamebyorg") ~
+      get[Int]("columnnr") map {
+      case stationnr ~ orgNr ~ projnr ~parameterId~shortName~columnNr => OrgStationParamMapping(stationnr, orgNr, projnr, parameterId, shortName, columnNr)
+    }
+  }
+}
+
+
 case class OrganisationProject(organisationNr: Int, projnr: Int)
 object OrganisationProjects {
   val parser: RowParser[OrganisationProject] = {

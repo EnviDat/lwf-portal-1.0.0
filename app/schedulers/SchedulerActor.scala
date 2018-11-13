@@ -5,7 +5,7 @@ import javax.inject.{Inject, Singleton}
 
 import org.apache.commons.io.FileUtils
 import akka.actor.Actor
-import models.services.{FileGeneratorMeteoSchweizFromDB, MeteoService}
+import models.services.{FileGeneratorGeneralFromDB, FileGeneratorMeteoSchweizFixedFormat, MeteoService}
 import models.util.{CurrentSysDateInSimpleFormat, DirectoryCompressor, FtpConnector}
 import play.api.{Configuration, Logger}
 
@@ -16,7 +16,7 @@ class SchedulerActor @Inject()(configuration: Configuration, meteoService: Meteo
   override def receive: Receive = {
     case "writeFile" =>  {
       val config = ConfigurationLoader.loadMeteoSchweizConfiguration(configuration)
-      //writeFile(config)
+      writeFile(config)
       //readFile(config)
     }
   }
@@ -41,12 +41,12 @@ class SchedulerActor @Inject()(configuration: Configuration, meteoService: Meteo
     val pathForLocalWrittenFiles = config.pathForLocalWrittenFiles
     val pathForArchivedFiles = config.pathForArchivedFiles
     Logger.info("writing data task running")
-    val fileGenerator =  new FileGeneratorMeteoSchweizFromDB(meteoService)
+    val fileGenerator =  new FileGeneratorMeteoSchweizFixedFormat(meteoService)
     val fileInfos = fileGenerator.generateFiles()
     val logInformation = fileInfos.map(_.logInformation)
     Logger.info(s"Generated File Information:${logInformation} ")
     fileInfos.toList.map( ff => {
-        FtpConnector.writeFileToFtp( ff.meteoData, userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo, ff.fileName, pathForLocalWrittenFiles, ".DAT")
+        FtpConnector.writeFileToFtp( List(ff.header) ::: ff.meteoData, userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo, ff.fileName, pathForLocalWrittenFiles, ".DAT")
     })
     val source = new File(pathForLocalWrittenFiles)
     Logger.info(s"Source for local written files pathForLocalWrittenFiles : ${source.getName} ")

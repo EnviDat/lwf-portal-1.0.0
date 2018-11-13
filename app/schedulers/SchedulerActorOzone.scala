@@ -4,7 +4,7 @@ import java.io.File
 import javax.inject.{Inject, Singleton}
 
 import akka.actor.Actor
-import models.services.{FileGeneratorMeteoSchweizFromDB, MeteoService, OzoneFileGeneratorFromDB}
+import models.services.{FileGeneratorGeneralFromDB, MeteoService, OzoneFileGeneratorFromDB}
 import models.util.{CurrentSysDateInSimpleFormat, DirectoryCompressor, FtpConnector}
 import org.apache.commons.io.FileUtils
 import play.api.Configuration

@@ -101,6 +101,7 @@ class MeteoService @Inject()(meteoRepo: MeteoDataRepository) {
 
   def getOzoneFileDataForYear(year: Int): List[String] = meteoRepo.getOzoneFileDataForTheYearSamplerOne(year) ::: meteoRepo.getOzoneFileDataForTheYearSamplerTwo(year) ::: meteoRepo.getOzoneFileDataForTheYearSamplerThree(year)
 
+  def getAllMessartsForOrgFixedFormat() = meteoRepo.findAllMessartsForOrgFixedFormat()
 
   def insertPhanoPlotBesuchDatums(besuchInfo: List[BesuchInfo], einfdat: String) = meteoRepo.insertPhanoPlotBesuchDatums(besuchInfo, einfdat)
 

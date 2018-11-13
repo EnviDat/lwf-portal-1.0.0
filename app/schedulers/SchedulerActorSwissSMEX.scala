@@ -4,7 +4,7 @@ import java.io.File
 import javax.inject.{Inject, Singleton}
 
 import akka.actor.Actor
-import models.services.{FileGeneratorMeteoSchweizFromDB, FileGeneratorSwissSmexFromDB, MeteoService}
+import models.services.{FileGeneratorGeneralFromDB, FileGeneratorSwissSmexFromDB, MeteoService}
 import models.util.{CurrentSysDateInSimpleFormat, DirectoryCompressor, FtpConnector}
 import org.apache.commons.io.FileUtils
 import play.api.{Configuration, Logger}
@@ -16,7 +16,7 @@ class SchedulerActorSwissSMEX @Inject()(configuration: Configuration, meteoServi
   override def receive: Receive = {
     case "writeFile" =>  {
       val config = ConfigurationLoader.loadSwissSMEXConfiguration(configuration)
-      writeFile(config)
+      //writeFile(config)
       //readFile(config)
     }
   }

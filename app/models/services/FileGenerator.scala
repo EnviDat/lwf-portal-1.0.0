@@ -14,7 +14,7 @@ trait FileGenerator {
   def saveLogInfoOfGeneratedFiles(fileInfos: List[MeteoDataFileLogInfo])
 }
 
-class FileGeneratorMeteoSchweizFromDB(meteoService: MeteoService) extends FileGenerator {
+class FileGeneratorGeneralFromDB(meteoService: MeteoService) extends FileGenerator {
 
   val allOrganisations: Seq[Organisation] = meteoService.getAllOrganisations()
   Logger.info(s"All Organisations where data should be sent out: ${allOrganisations.size}")
@@ -38,7 +38,6 @@ class FileGeneratorMeteoSchweizFromDB(meteoService: MeteoService) extends FileGe
   val stationOrganisationMappings: Seq[OrganisationStationMapping] = meteoService.getAllOrganisationStationsMappings()
   Logger.info(s"All information about the organisation station configuration: ${stationOrganisationMappings.mkString(",")}")
 
-
   val listOfCR1000Stations: Seq[Int] = stationOrganisationMappings.filter(_.fileFormat == "CR1000").map(_.statNr)
 
   val allStationConfigs: List[MeteoStationConfiguration] = meteoService.getStatKonfForStation().filter(sk => allMessWerts.map(_.code).contains( sk.messArt))
@@ -50,7 +49,7 @@ class FileGeneratorMeteoSchweizFromDB(meteoService: MeteoService) extends FileGe
   def generateFiles(): List[FileInfo] = {
     val timeStampForFileName = CurrentSysDateInSimpleFormat.dateNow
 
-    allOrganisations.filter(_.organisationNr == 1).flatMap(o => {
+    allOrganisations.flatMap(o => {
 
       val configuredStationsForOrganisation = stationOrganisationMappings.filter(so => so.orgNr == o.organisationNr && so.shouldSendData == 1)
 

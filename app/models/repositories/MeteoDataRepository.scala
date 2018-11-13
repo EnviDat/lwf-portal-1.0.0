@@ -35,10 +35,13 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
       SQL("SELECT statnr, orgnr, to_char(vondatum, 'DD-MM-YYYY HH24:MI:SS') as vondatum, to_char(bisdatum, 'DD-MM-YYYY HH24:MI:SS') as bisdatum, dateiname,reihegesendet, to_char(lasteinfdat, 'DD-MM-YYYY HH24:MI:SS') as lasteinfdat, lasteinfdat as lastdat  FROM METEODATALOGINFO_temp where (statnr,orgnr,lasteinfdat ) in (select ml.statnr,ml.orgnr,max(ml.lasteinfdat) from METEODATALOGINFO_temp ml group by ml.statnr,ml.orgnr) ORDER BY STATNR,lastdat DESC").as(MeteoDataFileLogsInfo.parser *)}
 
     def findOrganisationStationMapping() : Seq[OrganisationStationMapping] = db.withConnection{ implicit connection =>
-      SQL("SELECT * FROM STATORGKONF ORDER BY ORGNR,STATNR").as(OrganisationStationMappingS.parser *)}
+      SQL("SELECT * FROM STATORGKONF_TEMP ORDER BY ORGNR,STATNR").as(OrganisationStationMappingS.parser *)}
 
     def findAllMessArts() : Seq[MessArtRow] = db.withConnection { implicit connection =>
       SQL("SELECT MT.CODE AS CODE, MT.TEXT  AS TEXT, MT.PERIODE AS PERIODE, MT.MPROJNR AS MPROJNR, P.PDAUER AS PDAUER, MT.MULTI AS MULTI FROM MESSART MT, PERIODE P WHERE MT.PERIODE = P.CODE  ORDER BY P.PDAUER").as(MessArtRow.parser *)}
+
+    def findAllMessartsForOrgFixedFormat() : Seq[OrgStationParamMapping] = db.withConnection { implicit connection =>
+      SQL("select orgnr, projnr, statnr, parameterid, shortnamebyorg, columnnr, fromdate, todate, senddata from statorgprojparamkonf").as(OrgStationParamMappings.parser *)}
 
     def getAllStatKonf()= db.withConnection { implicit connection =>
       SQL("SELECT STATNR, MESSART, KONFNR, SENSORNR, konfnr, to_char(ABDATUM, 'DD-MM-YYYY HH24:MI:SS') as ABDATUM , to_char(BISDATUM, 'DD-MM-YYYY HH24:MI:SS') as BISDATUM, FOLGENR, CLNR FROM STATKONF WHERE BISDATUM IS NULL ORDER BY STATNR, MESSART").as(MeteoStationConfiguration.parser *)}
@@ -57,9 +60,9 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
       fromTime.map(dt => {
         Logger.info(s"from Date is:${StringToDate.oracleDateFormat.print(dt)} ")
         SQL(
-          """select statnr, messart, konfnr, to_char(messdat, 'DD-MM-YYYY HH24:MI:SS') as messdate, messwert, to_char(einfdat, 'DD-MM-YYYY HH24:MI:SS') as einfdate,ursprung,manval from meteodat partition(md2018)  where STATNR = {stationNr} and einfdat >  to_date({fromDate}, 'DD.MM.YYYY HH24:MI:SS') AND EINFDAT < to_date({fromDate}, 'DD.MM.YYYY HH24:MI:SS') + 1
+          """select statnr, messart, konfnr, to_char(messdat, 'DD-MM-YYYY HH24:MI:SS') as messdate, messwert, to_char(einfdat, 'DD-MM-YYYY HH24:MI:SS') as einfdate,ursprung,manval from meteodat partition(md2018)  where STATNR = {stationNr} and einfdat >  to_date({fromDate}, 'DD.MM.YYYY HH24:MI:SS')
             |union
-            |select statnr, messart, konfnr, to_char(messdat, 'DD-MM-YYYY HH24:MI:SS') as messdate, messwert, to_char(einfdat, 'DD-MM-YYYY HH24:MI:SS') as einfdate,ursprung,manval from mdat partition(mdat2018) where STATNR = {stationNr} and einfdat >  to_date({fromDate}, 'DD.MM.YYYY HH24:MI:SS') AND EINFDAT < to_date({fromDate}, 'DD.MM.YYYY HH24:MI:SS') + 1
+            |select statnr, messart, konfnr, to_char(messdat, 'DD-MM-YYYY HH24:MI:SS') as messdate, messwert, to_char(einfdat, 'DD-MM-YYYY HH24:MI:SS') as einfdate,ursprung,manval from mdat partition(mdat2018) where STATNR = {stationNr} and einfdat >  to_date({fromDate}, 'DD.MM.YYYY HH24:MI:SS')
             |order by messdate DESC""".stripMargin).on("stationNr" -> stationNumber, "fromDate" -> StringToDate.oracleDateFormat.print(dt)).as(MeteoDataRow.parser *)
       }).getOrElse(Seq())
 
