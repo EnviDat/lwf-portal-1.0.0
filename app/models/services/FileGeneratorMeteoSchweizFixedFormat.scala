@@ -115,7 +115,7 @@ class FileGeneratorMeteoSchweizFixedFormat(meteoService: MeteoService) extends F
        val measurementValues = mapFolgNrToMessArt.map(fl => {
           dt._2.find(m => m._2.messArt == fl._2).map(_._2.valueOfMeasurement).getOrElse(BigDecimal(-999))
         }).toList
-        FixedLinesFormat(station.stationNumber, dt._1.toString, measurementValues)
+        FixedLinesFormat(station.stationNumber, StringToDate.oracleDateFormat.print(dt._1), measurementValues)
       })
     }
 
