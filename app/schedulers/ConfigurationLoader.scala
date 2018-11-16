@@ -33,6 +33,18 @@ case class ConfigurationSwissSMEXData(frequency :Int,
                                          pathForLogFiles :String,
                                          pathForArchivedLogFiles :String)
 
+
+case class ConfigurationUniBaselData(frequency :Int,
+                                     userNameFtp :String,
+                                     passwordFtp :String,
+                                     pathForFtpFolder :String,
+                                     ftpUrlMeteo :String,
+                                     pathInputFile :String,
+                                     pathForLocalWrittenFiles :String,
+                                     pathForArchivedFiles :String,
+                                     pathForLogFiles :String,
+                                     pathForArchivedLogFiles :String)
+
 case class CR1000LoggerFileConfig(frequencyCR1000 :Int,
                                   ftpUrlCR1000 :String,
                                   fptUserNameCR1000 :String,
@@ -104,6 +116,20 @@ object ConfigurationLoader {
     val pathForLogFiles = configuration.getString("pathForLogFiles").get
     val pathForArchivedLogFiles = configuration.getString("pathForArchivedLogFiles").get
     ConfigurationSwissSMEXData(frequency, userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo, pathInputFile, pathForLocalWrittenFiles, pathForArchivedFiles, pathForLogFiles, pathForArchivedLogFiles)
+  }
+
+  def loadUniBaselConfiguration(configuration: Configuration) = {
+    val frequency = configuration.getInt("frequencyUniBasel").get
+    val userNameFtp = configuration.getString("fptUserNameUniBasel").get
+    val passwordFtp = configuration.getString("ftpPasswordUniBasel").get
+    val pathForFtpFolder = configuration.getString("ftpPathForOutgoingFileUniBasel").get
+    val ftpUrlMeteo = configuration.getString("ftpUrlUniBasel").get
+    val pathInputFile = configuration.getString("ftpPathForIncomingFileUniBasel").get
+    val pathForLocalWrittenFiles = configuration.getString("pathForLocalWrittenFiles").get
+    val pathForArchivedFiles = configuration.getString("pathForArchivedFiles").get
+    val pathForLogFiles = configuration.getString("pathForLogFiles").get
+    val pathForArchivedLogFiles = configuration.getString("pathForArchivedLogFiles").get
+    ConfigurationUniBaselData(frequency, userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo, pathInputFile, pathForLocalWrittenFiles, pathForArchivedFiles, pathForLogFiles, pathForArchivedLogFiles)
   }
 
 

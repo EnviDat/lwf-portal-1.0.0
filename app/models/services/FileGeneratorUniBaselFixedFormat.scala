@@ -9,7 +9,7 @@ import play.api.Logger
 import scala.collection.mutable
 
 
-class FileGeneratorMeteoSchweizFixedFormat(meteoService: MeteoService) extends FileGenerator {
+class FileGeneratorUniBaselFixedFormat(meteoService: MeteoService) extends FileGenerator {
 
   val allOrganisations: Seq[Organisation] = meteoService.getAllOrganisations()
   Logger.info(s"All Organisations where data should be sent out: ${allOrganisations.size}")
@@ -39,7 +39,7 @@ class FileGeneratorMeteoSchweizFixedFormat(meteoService: MeteoService) extends F
   def generateFiles(): List[FileInfo] = {
     val timeStampForFileName = CurrentSysDateInSimpleFormat.dateNow
 
-    allOrganisations.filter(_.organisationNr == 1).flatMap(o => {
+    allOrganisations.filter(_.organisationNr == 3).flatMap(o => {
 
       val configuredStationsForOrganisation = stationOrganisationMappings.filter(so => so.orgNr == o.organisationNr && so.shouldSendData == 1 && so.fileFormat == "FixedFormat")
 
