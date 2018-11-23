@@ -10,7 +10,7 @@ import scala.collection.mutable
 
 
 class FileGeneratorSwissSmexFromDB(meteoService: MeteoService) extends FileGenerator {
-
+  val swissMEXOrgNr = 2
   val allOrganisations: Seq[Organisation] = meteoService.getAllOrganisations()
   Logger.info(s"All Organisations where data should be sent out: ${allOrganisations.size}")
 
@@ -47,9 +47,9 @@ class FileGeneratorSwissSmexFromDB(meteoService: MeteoService) extends FileGener
 
   def generateFiles(): List[FileInfo] = {
 
-    allOrganisations.filter(_.organisationNr == 2).flatMap(o => {
+    allOrganisations.filter(_.organisationNr == swissMEXOrgNr).flatMap(o => {
 
-      val configuredStationsForOrganisation = stationOrganisationMappings.filter(so => so.orgNr == o.organisationNr && so.shouldSendData == 0)//To Do: change this to 1
+      val configuredStationsForOrganisation = stationOrganisationMappings.filter(so => so.orgNr == o.organisationNr && so.shouldSendData == 1)//To Do: change this to 1
 
       val stationNumbersConfigured = configuredStationsForOrganisation.map(_.statNr)
       val allFilesDataGenerated = allStations.filter(st => stationNumbersConfigured.contains(st.stationNumber)).map(station => {
@@ -72,7 +72,7 @@ class FileGeneratorSwissSmexFromDB(meteoService: MeteoService) extends FileGener
         val mapFolgNrToMessArt: Seq[(Int, Int)] = getMappingOfFolgeNrToMessArt(confForStation)
         Logger.info(s"mapping folgenr to messart details are: ${mapFolgNrToMessArt.mkString("\n")}")
 
-        val lastDateTimeDataWasSent: Option[DateTime] = lastTimeDataSentForStations.filter(_.orgNr == 2).find(lt => lt.orgNr == o.organisationNr && lt.stationNr== station.stationNumber).map(_.lastEinfDat)
+        val lastDateTimeDataWasSent: Option[DateTime] = lastTimeDataSentForStations.filter(_.orgNr == swissMEXOrgNr).find(lt => lt.orgNr == o.organisationNr && lt.stationNr== station.stationNumber).map(_.lastEinfDat)
 
         val latestMeteoDataForStation: Seq[MeteoDataRow] = meteoService.getLatestMeteoDataToWrite(station.stationNumber, lastDateTimeDataWasSent).sortBy(_.dateReceived)
 
@@ -124,12 +124,7 @@ class FileGeneratorSwissSmexFromDB(meteoService: MeteoService) extends FileGener
 
         val toDate = if(allDates.nonEmpty) allDates.max.toDateTime() else new DateTime()
 
-        val einfDate = if (numberOfLinesSent == 0) {
-                           lastDateTimeDataWasSent.map(_.plusDays(1)).getOrElse(new DateTime())
-                              } else {
-                            allEinfDates.max.toDateTime().plusDays(1)
-        }
-
+        val einfDate = if (numberOfLinesSent == 0) { new DateTime() } else { allEinfDates.max.toDateTime() }
 
         val logInformation = MeteoDataFileLogInfo(station.stationNumber, o.organisationNr, fileName.getOrElse(o.prefix + station.stationsName + timeStampForFileName).toString, fromDate, toDate,numberOfLinesSent, einfDate)
 

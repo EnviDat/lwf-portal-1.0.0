@@ -16,7 +16,7 @@ class SchedulerActor @Inject()(configuration: Configuration, meteoService: Meteo
   override def receive: Receive = {
     case "writeFile" =>  {
       val config = ConfigurationLoader.loadMeteoSchweizConfiguration(configuration)
-      //writeFile(config)
+      writeFile(config)
       //readFile(config)
     }
   }
@@ -46,7 +46,7 @@ class SchedulerActor @Inject()(configuration: Configuration, meteoService: Meteo
     val logInformation = fileInfos.map(_.logInformation)
     Logger.info(s"Generated File Information:${logInformation} ")
     fileInfos.toList.map( ff => {
-        FtpConnector.writeFileToFtp( List(ff.header) ::: ff.meteoData, userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo, ff.fileName, pathForLocalWrittenFiles, ".DAT")
+        FtpConnector.writeFileToFtp(List(ff.header) ::: ff.meteoData, userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo, ff.fileName, pathForLocalWrittenFiles, ".DAT")
     })
     val source = new File(pathForLocalWrittenFiles)
     Logger.info(s"Source for local written files pathForLocalWrittenFiles : ${source.getName} ")
