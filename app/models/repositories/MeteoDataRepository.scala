@@ -14,6 +14,9 @@ import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
 import play.api.db.DBApi
 
+import anorm.{ SQL, SqlParser }, SqlParser.{ int, str }
+
+
 import scala.util.{Failure, Try}
 
 
@@ -68,6 +71,51 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
 
      }
     }
+
+
+  /*For the historical file generation two methods are used:
+  1) get the distinct eindate starting from a date and until system date from meteodat and mdat tables
+   2) get the data for each einfdat timstamp for part 1
+   */
+
+
+  def findAllEinfdatesOfStationForTimePeriodDaily(stationNumber: Int, fromTime: DateTime, toTime: DateTime, fromMessart: Int, toMessart: Int, partitionNameMD: String, partitionNameMDat: String): Seq[String] = db.withConnection { implicit connection => {
+      SQL(
+        """select distinct(to_char(to_timestamp(einfdat, 'DD-MM-YYYY HH24:MI:SS.FF'), 'DD-MM-YYYY HH24:MI:SS.FF')) as einfdate from (
+            select to_char(einfdat, 'DD.MM.YYYY HH24:MI:SS.FF') as einfdat from meteodat partition(md2018) where einfdat > to_date({fromDate}, 'DD.MM.YYYY HH24:MI:SS') and einfdat < to_date({toTime}, 'DD.MM.YYYY HH24:MI:SS') and STATNR = {stationNr} and messart between {fromMessart} and {toMessart}
+            union
+            select to_char(einfdat, 'DD.MM.YYYY HH24:MI:SS.FF') as einfdat from mdat partition(mdat2018) where einfdat > to_date({fromDate}, 'DD.MM.YYYY HH24:MI:SS') and einfdat < to_date({toTime}, 'DD.MM.YYYY HH24:MI:SS') and STATNR = {stationNr} and messart between {fromMessart} and {toMessart}
+    ) order by einfdate""".stripMargin).on("stationNr" -> stationNumber, "fromDate" -> StringToDate.oracleDateFormat.print(fromTime),"toTime" -> StringToDate.oracleDateFormat.print(toTime), "fromMessart" -> fromMessart, "toMessart" -> toMessart, "partitionNameMD" -> partitionNameMD, "partitionNameMDat" -> partitionNameMDat).as(SqlParser.scalar[String] *)
+   }
+  }
+
+  def findAllDaysBetweenDates(fromTime: DateTime, toTime: DateTime): List[(String, String)] = db.withConnection { implicit connection => {
+    SQL(
+      """select to_char(to_date({fromTime},'dd-MM-yyyy') + rownum -1,'dd-MM-yyyy') as fromDate , to_char(to_date({fromTime},'dd-MM-yyyy') + rownum,'dd-MM-yyyy') as toDate
+        |from all_objects where rownum <= to_date({toTime},'dd-MM-yyyy')-to_date({fromTime},'dd-MM-yyyy')+1""".stripMargin).on("fromTime" -> StringToDate.formatOzoneDateWithNoTimeWithDash.print(fromTime),"toTime" -> StringToDate.formatOzoneDateWithNoTimeWithDash.print(toTime)).as((str("fromDate") ~ str("toDate")).map(f => (f._1, f._2)) *)
+  }
+  }
+
+  def findLastMeteoDataForStationForDate(stationNumber: Int, fromTime: String): Seq[MeteoDataRow] = db.withConnection { implicit connection => {
+    Logger.info(s"${fromTime}")
+      SQL(
+        """select statnr, messart, konfnr, to_char(messdat, 'DD-MM-YYYY HH24:MI:SS') as messdate, messwert, to_char(einfdat, 'DD-MM-YYYY HH24:MI:SS') as einfdate,ursprung,manval from meteodat partition(md2018)  where STATNR = {stationNr} and einfdat =  to_timestamp({fromDate}, 'DD.MM.YYYY HH24:MI:SS.FF')
+          |union
+          |select statnr, messart, konfnr, to_char(messdat, 'DD-MM-YYYY HH24:MI:SS') as messdate, messwert, to_char(einfdat, 'DD-MM-YYYY HH24:MI:SS') as einfdate,ursprung,manval from mdat partition(mdat2018) where STATNR = {stationNr} and einfdat =  to_timestamp({fromDate}, 'DD.MM.YYYY HH24:MI:SS.FF')
+          |order by messdate DESC""".stripMargin).on("stationNr" -> stationNumber, "fromDate" -> fromTime).as(MeteoDataRow.parser *)
+    }
+  }
+
+  def findLastMeteoDataForStationBetweenDates(stationNumber: Int, fromTime: String, toTime: String): Seq[MeteoDataRow] = db.withConnection { implicit connection => {
+    Logger.info(s"${fromTime}")
+    SQL(
+      """select statnr, messart, konfnr, to_char(messdat, 'DD-MM-YYYY HH24:MI:SS') as messdate, messwert, to_char(einfdat, 'DD-MM-YYYY HH24:MI:SS') as einfdate,ursprung,manval from meteodat partition(md2018)  where STATNR = {stationNr} and einfdat >=  to_timestamp({fromTime}, 'DD.MM.YYYY HH24:MI:SS') and einfdat <  to_timestamp({toTime}, 'DD.MM.YYYY HH24:MI:SS')
+        |union
+        |select statnr, messart, konfnr, to_char(messdat, 'DD-MM-YYYY HH24:MI:SS') as messdate, messwert, to_char(einfdat, 'DD-MM-YYYY HH24:MI:SS') as einfdate,ursprung,manval from mdat partition(mdat2018) where STATNR = {stationNr} and einfdat >=  to_timestamp({fromTime}, 'DD.MM.YYYY HH24:MI:SS') and einfdat <  to_timestamp({toTime}, 'DD.MM.YYYY HH24:MI:SS')
+        |order by messdate DESC""".stripMargin).on("stationNr" -> stationNumber, "fromTime" -> fromTime, "toTime" -> toTime).as(MeteoDataRow.parser *)
+    }
+  }
+
 
   def findLastAnalyseIdForOzoneFile(filename: String, einfdat: String) = db.withConnection{ implicit connection =>
     SQL("select analysid from PASSIVESAMFILEINFO where filename = {fileName} and einfdat = to_date({einfDat}, 'DD.MM.YYYY HH24:MI:SS')").on("fileName" -> filename, "einfDat" -> einfdat).as(SqlParser.int("analysid").single)}

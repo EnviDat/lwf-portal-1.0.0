@@ -4,7 +4,7 @@ import java.io.File
 import javax.inject.{Inject, Singleton}
 
 import akka.actor.Actor
-import models.services.{FileGeneratorGeneralFromDB, FileGeneratorSwissSmexFromDB, MeteoService}
+import models.services.{FileGeneratorGeneralFromDB, FileGeneratorHistoricalSwissSmexFromDB, FileGeneratorSwissSmexFromDB, MeteoService}
 import models.util.{CurrentSysDateInSimpleFormat, DirectoryCompressor, FtpConnector}
 import org.apache.commons.io.FileUtils
 import play.api.{Configuration, Logger}
@@ -41,7 +41,7 @@ class SchedulerActorSwissSMEX @Inject()(configuration: Configuration, meteoServi
     val pathForLocalWrittenFiles = config.pathForLocalWrittenFiles
     val pathForArchivedFiles = config.pathForArchivedFiles
     Logger.info("writing data task running")
-    val fileGenerator =  new FileGeneratorSwissSmexFromDB(meteoService)
+    val fileGenerator =  new FileGeneratorHistoricalSwissSmexFromDB(meteoService)
     val fileInfos = fileGenerator.generateFiles()
     val logInformation = fileInfos.map(_.logInformation)
     Logger.info(s"Generated File Information:${logInformation} ")

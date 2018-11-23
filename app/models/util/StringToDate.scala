@@ -23,15 +23,22 @@ object StringToDate {
 
 
   val formatDate: DateTimeFormatter = DateTimeFormat.forPattern("dd-MM-yyyy HH:mm:ss")
+  val formatDateTime: DateTimeFormatter = DateTimeFormat.forPattern("dd-MM-yyyy HH:mm:ss.SSSSSSSSS")
+
 
   val formatCR1000Date: DateTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss")
   val formatOzoneDate: DateTimeFormatter = DateTimeFormat.forPattern("dd.MM.YYYY HH:mm:ss")
 
   val formatOzoneDateWithNoTime: DateTimeFormatter = DateTimeFormat.forPattern("dd.MM.YYYY")
+  val formatOzoneDateWithNoTimeWithDash: DateTimeFormatter = DateTimeFormat.forPattern("dd-MM-YYYY")
 
 
-  def stringToDateConvert(date: String) = {
+  def stringToDateConvert(date: String): DateTime = {
       formatDate.withZone(DateTimeZone.UTC).parseDateTime(date)
+  }
+
+  def stringToDateConvertWithTime(date: String): DateTime = {
+    formatDateTime.withZone(DateTimeZone.UTC).parseDateTime(date)
   }
 
   def stringToDateConvertCR1000(date: String, lineToValidate: String): Option[CR1000Exceptions] = {

@@ -9,7 +9,7 @@ import play.api.Logger
 import scala.collection.mutable
 
 
-class FileGeneratorUniBaselFixedFormat(meteoService: MeteoService) extends FileGenerator {
+class FileGeneratorUniBaselLoggerFormat(meteoService: MeteoService) extends FileGenerator {
 
   val allOrganisations: Seq[Organisation] = meteoService.getAllOrganisations()
   Logger.info(s"All Organisations where data should be sent out: ${allOrganisations.size}")
