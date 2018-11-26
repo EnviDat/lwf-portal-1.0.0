@@ -51,10 +51,10 @@ class FileGeneratorMeteoSchweizFixedFormat(meteoService: MeteoService) extends F
         Logger.info(s"All config Loaded for the station: ${confForStation.mkString(",")}")
 
 
-        val allMessArtsForStation = allMessWerts.filter(messart => messart.orgNr == o.organisationNr && messart.statNr == station.stationNumber).toList
+        val allMessArtsForStation = allMessWerts.filter(messart => messart.orgNr == o.organisationNr && messart.statNr == station.stationNumber).sortBy(_.columnNr)
         val folgeNrForStations = allMessArtsForStation.map(_.columnNr).sorted
-        val trailor = folgeNrForStations.map(fl => allMessWerts.find(_.columnNr == fl).map(_.shortName))
-        Logger.debug(s"header line of the file is: ${fixedFormatHeader + trailor.map(_.getOrElse(",")).mkString("\n")}")
+        val trailor = allMessArtsForStation.map(_.shortName)
+        Logger.debug(s"header line of the file is: ${fixedFormatHeader + trailor.mkString(",")}")
 
         val abbrevationForStation = allAbbrevations.find(_.code == station.stationNumber)
         Logger.info(s"All abbrevations for the station: ${abbrevationForStation.mkString(",")}")
@@ -75,7 +75,7 @@ class FileGeneratorMeteoSchweizFixedFormat(meteoService: MeteoService) extends F
 
       val valuesToBeWritten = getFixedFormatDataLines(groupMeteoDataDauer, mapFolgNrToMessArt, station)
 
-      val dataHeaderToBeWritten = fixedFormatHeader + trailor.map(_.getOrElse(",")).mkString(",")
+      val dataHeaderToBeWritten = fixedFormatHeader + trailor.mkString(",")
 
       val fileName = abbrevationForStation.map(ab =>  ab.kurzName + timeStampForFileName)
 
