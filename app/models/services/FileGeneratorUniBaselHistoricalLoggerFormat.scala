@@ -63,7 +63,7 @@ class FileGeneratorUniBaselHistoricalLoggerFormat(meteoService: MeteoService) ex
 
         val t = confForStation.filter(confSk => sortedMessarts._2.map(_.code).contains(confSk.messArt))
         val folgeNrForStations = getFolegNrForStations(confForStation.filter(confSk => sortedMessarts._2.map(_.code).contains(confSk.messArt)))
-        val trailor = folgeNrForStations.map(fl => sortedMessarts._2.find(m => m.code == fl._2._2 && m.messProjNr.contains(mprojNr)).map(m => m.text + "(" + fl._2._1 + ")"))
+        val trailor = folgeNrForStations.map(fl => sortedMessarts._2.find(m => m.code == fl._2._2 && m.messProjNr.contains(mprojNr)).map(m => m.text + "[" + m.einheit + "]"  + "(" + fl._2._1 + ")"))
         Logger.debug(s"header line of the file is: ${cr10Header + trailor.map(_.getOrElse(",")).mkString("\n")}")
 
         val abbrevationForStation = allAbbrevations.find(_.code == station.stationNumber)
@@ -97,7 +97,7 @@ class FileGeneratorUniBaselHistoricalLoggerFormat(meteoService: MeteoService) ex
             else
               cr10Header + trailor.map(_.getOrElse(",")).mkString(",")
 
-          val timeStampForFileName = einfDatForData._1 + einfDatForData._2
+          val timeStampForFileName = CurrentSysDateInSimpleFormat.changeFormatOfDateForSeparators(einfDatForData._1) + "_" + CurrentSysDateInSimpleFormat.changeFormatOfDateForSeparators(einfDatForData._2)
           /*
             if(latestMeteoDataForStation.map(_.dateOfInsertion).nonEmpty) {
               CurrentSysDateInSimpleFormat.changeFormatDateTimeForFileName(StringToDate.stringToDateConvert(latestMeteoDataForStation.map(_.dateOfInsertion).max))

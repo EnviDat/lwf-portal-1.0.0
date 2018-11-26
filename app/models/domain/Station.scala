@@ -473,7 +473,7 @@ case class MeteoData(station: Station,
                     )
 
 
-case class MessArtRow(code: Int,text: String, period: Int, messProjNr: Option[Int], pDauer: Int, multi: Int)
+case class MessArtRow(code: Int,text: String, period: Int, messProjNr: Option[Int], pDauer: Int, multi: Int, einheit: String)
 object MessArtRow {
   val parser: RowParser[MessArtRow] = {
     get[Int]("CODE") ~
@@ -481,9 +481,10 @@ object MessArtRow {
       get[Int]("PERIODE") ~
       get[Option[Int]]("MPROJNR") ~
       get[Int]("PDAUER") ~
-      get[Int] ("MULTI") map {
-      case code ~ text ~ periode ~ messprojnr ~ pDauer ~multi=> {
-        MessArtRow(code, text, periode, messprojnr, pDauer, multi)
+      get[Int] ("MULTI") ~
+      get[String]("einheit") map {
+      case code ~ text ~ periode ~ messprojnr ~ pDauer ~multi ~einheit=> {
+        MessArtRow(code, text, periode, messprojnr, pDauer, multi, einheit)
       }
     }
   }

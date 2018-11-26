@@ -89,6 +89,10 @@ object CurrentSysDateInSimpleFormat {
     new SimpleDateFormat("yyyyMMddHHmmss").format(datum.toDate)
   }
 
+  def changeFormatOfDateForSeparators(dateInputFormat: String): String = {
+    dateInputFormat.split("-").mkString("_")
+  }
+
 }
 object Joda {
   implicit def dateTimeOrdering: Ordering[DateTime] = Ordering.fromLessThan(_ isBefore _)

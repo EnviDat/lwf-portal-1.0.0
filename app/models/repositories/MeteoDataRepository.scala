@@ -41,7 +41,7 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
       SQL("SELECT * FROM STATORGKONF ORDER BY ORGNR,STATNR").as(OrganisationStationMappingS.parser *)}
 
     def findAllMessArts() : Seq[MessArtRow] = db.withConnection { implicit connection =>
-      SQL("SELECT MT.CODE AS CODE, MT.TEXT  AS TEXT, MT.PERIODE AS PERIODE, MT.MPROJNR AS MPROJNR, P.PDAUER AS PDAUER, MT.MULTI AS MULTI FROM MESSART MT, PERIODE P WHERE MT.PERIODE = P.CODE  ORDER BY P.PDAUER").as(MessArtRow.parser *)}
+      SQL("SELECT MT.CODE AS CODE, MT.TEXT  AS TEXT, MT.PERIODE AS PERIODE, MT.MPROJNR AS MPROJNR, P.PDAUER AS PDAUER, MT.MULTI AS MULTI, e.text as einheit FROM MESSART MT, PERIODE P WHERE MT.PERIODE = P.CODE and mt.einheit = e.code ORDER BY P.PDAUER").as(MessArtRow.parser *)}
 
     def findAllMessartsForOrgFixedFormat() : Seq[OrgStationParamMapping] = db.withConnection { implicit connection =>
       SQL("select orgnr, projnr, statnr, parameterid, shortnamebyorg, columnnr, fromdate, todate, senddata from statorgprojparamkonf").as(OrgStationParamMappings.parser *)}
