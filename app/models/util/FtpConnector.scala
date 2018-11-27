@@ -103,7 +103,7 @@ object FtpConnector {
       Logger.info(s"Empty file before moving to ftp: ${file.getAbsolutePath}")
       val pw = new PrintWriter(file)
       dataToWrite.map(pw.println(_))
-      pw.write(dataToWrite.mkString("\n"))
+      //pw.write(dataToWrite.mkString("\n"))
       pw.close
       val newFileStream: FileInputStream = new FileInputStream(file)
       sftpChannel.put(newFileStream, file.getName)
