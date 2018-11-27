@@ -35,13 +35,13 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
       SQL("select orgnr,projnr from STATORGPROJKONF where senddata = 1").as(OrganisationProjects.parser *)}
 
     def findLogInfoForDataSentToOrganisations(): Seq[MeteoDataFileLogInfo] = db.withConnection{ implicit connection =>
-      SQL("SELECT statnr, orgnr, to_char(vondatum, 'DD-MM-YYYY HH24:MI:SS') as vondatum, to_char(bisdatum, 'DD-MM-YYYY HH24:MI:SS') as bisdatum, dateiname,reihegesendet, to_char(lasteinfdat, 'DD-MM-YYYY HH24:MI:SS') as lasteinfdat, lasteinfdat as lastdat  FROM METEODATALOGINFO where (statnr,orgnr,lasteinfdat ) in (select ml.statnr,ml.orgnr,max(ml.lasteinfdat) from METEODATALOGINFO ml group by ml.statnr,ml.orgnr) ORDER BY STATNR,lastdat DESC").as(MeteoDataFileLogsInfo.parser *)}
+      SQL("SELECT statnr, orgnr, to_char(vondatum, 'DD-MM-YYYY HH24:MI:SS') as vondatum, to_char(bisdatum, 'DD-MM-YYYY HH24:MI:SS') as bisdatum, dateiname,reihegesendet, to_char(lasteinfdat, 'DD-MM-YYYY HH24:MI:SS') as lasteinfdat, lasteinfdat as lastdat  FROM METEODATALOGINFO_temp where (statnr,orgnr,lasteinfdat ) in (select ml.statnr,ml.orgnr,max(ml.lasteinfdat) from METEODATALOGINFO_temp ml group by ml.statnr,ml.orgnr) ORDER BY STATNR,lastdat DESC").as(MeteoDataFileLogsInfo.parser *)}
 
     def findOrganisationStationMapping() : Seq[OrganisationStationMapping] = db.withConnection{ implicit connection =>
-      SQL("SELECT * FROM STATORGKONF ORDER BY ORGNR,STATNR").as(OrganisationStationMappingS.parser *)}
+      SQL("SELECT * FROM STATORGKONF_TEMP ORDER BY ORGNR,STATNR").as(OrganisationStationMappingS.parser *)}
 
     def findAllMessArts() : Seq[MessArtRow] = db.withConnection { implicit connection =>
-      SQL("SELECT MT.CODE AS CODE, MT.TEXT  AS TEXT, MT.PERIODE AS PERIODE, MT.MPROJNR AS MPROJNR, P.PDAUER AS PDAUER, MT.MULTI AS MULTI, e.text as einheit FROM MESSART MT, PERIODE P WHERE MT.PERIODE = P.CODE and mt.einheit = e.code ORDER BY P.PDAUER").as(MessArtRow.parser *)}
+      SQL("SELECT MT.CODE AS CODE, MT.TEXT  AS TEXT, MT.PERIODE AS PERIODE, MT.MPROJNR AS MPROJNR, P.PDAUER AS PDAUER, MT.MULTI AS MULTI, e.text as einheit FROM MESSART MT, PERIODE P , einheit e WHERE MT.PERIODE = P.CODE and mt.einheit = e.code ORDER BY P.PDAUER").as(MessArtRow.parser *)}
 
     def findAllMessartsForOrgFixedFormat() : Seq[OrgStationParamMapping] = db.withConnection { implicit connection =>
       SQL("select orgnr, projnr, statnr, parameterid, shortnamebyorg, columnnr, fromdate, todate, senddata from statorgprojparamkonf").as(OrgStationParamMappings.parser *)}
@@ -132,7 +132,7 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
       val toDate = s"to_date('${StringToDate.oracleDateFormat.print(ml.toDate)}', 'DD.MM.YYYY HH24:MI:SS')"
       val lastEinfDat = s"to_date('${StringToDate.oracleDateFormat.print(ml.lastEinfDat)}', 'DD.MM.YYYY HH24:MI:SS')"
 
-      val insertStatement = s"INSERT INTO METEODATALOGINFO (statnr, orgnr, vondatum, bisdatum, dateiname, reihegesendet, lasteinfdat) values(" +
+      val insertStatement = s"INSERT INTO METEODATALOGINFO_temp (statnr, orgnr, vondatum, bisdatum, dateiname, reihegesendet, lasteinfdat) values(" +
         s"${ml.stationNr}, ${ml.orgNr}, $fromDate, $toDate, '${ml.fileName}', ${ml.numberOfLinesSent}, ${lastEinfDat} )"
       Logger.info(s"statement to be executed: ${insertStatement}")
 
