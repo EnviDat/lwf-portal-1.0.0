@@ -16,7 +16,7 @@ class SchedulerActorSwissSMEX @Inject()(configuration: Configuration, meteoServi
   override def receive: Receive = {
     case "writeFile" =>  {
       val config = ConfigurationLoader.loadSwissSMEXConfiguration(configuration)
-      //writeFile(config)
+      writeFile(config)
       //readFile(config)
     }
   }

@@ -9,7 +9,6 @@ import play.api.Logger
 
 import scala.collection.{immutable, mutable}
 
-
 class FileGeneratorUniBaselLoggerFormat(meteoService: MeteoService) extends FileGenerator {
   val listOfProjects = UniBaselStationAbbrevations.listOfProjects
   val allOrganisations: Seq[Organisation] = meteoService.getAllOrganisations()
@@ -42,7 +41,7 @@ class FileGeneratorUniBaselLoggerFormat(meteoService: MeteoService) extends File
 
   def generateFiles(): List[FileInfo] = {
 
-      allOrganisations.filter(_.organisationNr == UniBaselStationAbbrevations.organisationNr).map(o => {
+      allOrganisations.filter(_.organisationNr == UniBaselStationAbbrevations.organisationNr).flatMap(o => {
 
         val configuredStationsForOrganisation = stationOrganisationMappings.filter(so => so.orgNr == o.organisationNr && so.shouldSendData == 1) //To Do: change this to 1
 
@@ -131,7 +130,6 @@ class FileGeneratorUniBaselLoggerFormat(meteoService: MeteoService) extends File
         }).toList
 
         Logger.info(s"All data and file names for the stations are: ${allFilesDataGenerated.filter(_.meteoData.nonEmpty).toList.mkString("\n")}")
-
         allFilesDataGenerated.toList
       }).toList
 

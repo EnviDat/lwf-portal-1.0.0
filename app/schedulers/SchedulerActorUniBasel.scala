@@ -41,7 +41,7 @@ class SchedulerActorUniBasel @Inject()(configuration: Configuration, meteoServic
     val pathForLocalWrittenFiles = config.pathForLocalWrittenFiles
     val pathForArchivedFiles = config.pathForArchivedFiles
     Logger.info("writing data task running")
-    val fileGenerator =  new FileGeneratorUniBaselHistoricalLoggerFormat(meteoService)
+    val fileGenerator =  new FileGeneratorUniBaselLoggerFormat(meteoService)
     val fileInfos = fileGenerator.generateFiles()
     val logInformation = fileInfos.map(_.logInformation)
     Logger.info(s"Generated File Information:${logInformation} ")
