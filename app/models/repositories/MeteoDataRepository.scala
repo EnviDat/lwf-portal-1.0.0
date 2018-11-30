@@ -109,9 +109,9 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
   def findLastMeteoDataForStationBetweenDates(stationNumber: Int, fromTime: String, toTime: String): Seq[MeteoDataRow] = db.withConnection { implicit connection => {
     Logger.info(s"${fromTime}")
     SQL(
-      """select statnr, messart, konfnr, to_char(messdat, 'DD-MM-YYYY HH24:MI:SS') as messdate, messwert, to_char(einfdat, 'DD-MM-YYYY HH24:MI:SS') as einfdate,ursprung,manval from meteodat partition(md2018)  where STATNR = {stationNr} and einfdat >=  to_timestamp({fromTime}, 'DD.MM.YYYY HH24:MI:SS') and einfdat <  to_timestamp({toTime}, 'DD.MM.YYYY HH24:MI:SS')
+      """select statnr, messart, konfnr, to_char(messdat, 'DD-MM-YYYY HH24:MI:SS') as messdate, messwert, to_char(einfdat, 'DD-MM-YYYY HH24:MI:SS') as einfdate,ursprung,manval from meteodat partition(md2017)  where STATNR = {stationNr} and einfdat >=  to_timestamp({fromTime}, 'DD.MM.YYYY HH24:MI:SS') and einfdat <  to_timestamp({toTime}, 'DD.MM.YYYY HH24:MI:SS')
         |union
-        |select statnr, messart, konfnr, to_char(messdat, 'DD-MM-YYYY HH24:MI:SS') as messdate, messwert, to_char(einfdat, 'DD-MM-YYYY HH24:MI:SS') as einfdate,ursprung,manval from mdat partition(mdat2018) where STATNR = {stationNr} and einfdat >=  to_timestamp({fromTime}, 'DD.MM.YYYY HH24:MI:SS') and einfdat <  to_timestamp({toTime}, 'DD.MM.YYYY HH24:MI:SS')
+        |select statnr, messart, konfnr, to_char(messdat, 'DD-MM-YYYY HH24:MI:SS') as messdate, messwert, to_char(einfdat, 'DD-MM-YYYY HH24:MI:SS') as einfdate,ursprung,manval from mdat partition(mdat2017) where STATNR = {stationNr} and einfdat >=  to_timestamp({fromTime}, 'DD.MM.YYYY HH24:MI:SS') and einfdat <  to_timestamp({toTime}, 'DD.MM.YYYY HH24:MI:SS')
         |order by messdate DESC""".stripMargin).on("stationNr" -> stationNumber, "fromTime" -> fromTime, "toTime" -> toTime).as(MeteoDataRow.parser *)
     }
   }

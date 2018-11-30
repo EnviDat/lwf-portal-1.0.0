@@ -45,6 +45,12 @@ case class ConfigurationUniBaselData(frequency :Int,
                                      pathForLogFiles :String,
                                      pathForArchivedLogFiles :String)
 
+case class ConfigurationHexenrubiData(frequency :Int,
+                                      userNameHexenRubi :String,
+                                      passwordHexenRubi :String,
+                                      pathForIncomingFileHexenRubi :String,
+                                      pathForArchivedFiles :String)
+
 case class CR1000LoggerFileConfig(frequencyCR1000 :Int,
                                   ftpUrlCR1000 :String,
                                   fptUserNameCR1000 :String,
@@ -130,6 +136,15 @@ object ConfigurationLoader {
     val pathForLogFiles = configuration.getString("pathForLogFiles").get
     val pathForArchivedLogFiles = configuration.getString("pathForArchivedLogFiles").get
     ConfigurationUniBaselData(frequency, userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo, pathInputFile, pathForLocalWrittenFiles, pathForArchivedFiles, pathForLogFiles, pathForArchivedLogFiles)
+  }
+
+  def loadHexenRubiConfiguration(configuration: Configuration) = {
+    val frequency = configuration.getInt("frequencyHexenRubi").get
+    val userNameHexenRubi = configuration.getString("userNameHexenRubi").get
+    val passwordHexenRubi = configuration.getString("passwordHexenRubi").get
+    val pathForIncomingFileHexenRubi = configuration.getString("pathForIncomingFileHexenRubi").get
+    val pathForArchivedFiles = configuration.getString("pathForArchivedFiles").get
+    ConfigurationHexenrubiData(frequency, userNameHexenRubi, passwordHexenRubi, pathForIncomingFileHexenRubi, pathForArchivedFiles)
   }
 
 

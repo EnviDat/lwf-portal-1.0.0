@@ -38,7 +38,7 @@ class FileGeneratorUniBaselHistoricalLoggerFormat(meteoService: MeteoService) ex
   Logger.info(s"All Configurations Loaded for the stations found are: ${allStationConfigs.mkString(",")}")
 
   val cr10Header = """Messperiode[Minuten], StationsID, ProjektID, Jahr[JJJJ], Tag im Jahr[TTT], Uhrzeit(UTC)[HH24]"""
-  val toa5Header = """Datum[JJJJ-MM-DD HH24:MI:SS.FF"], RecordID, StationsID, ProjektID, Messperiode[Minuten],"""
+  val toa5Header = """Datum[JJJJ-MM-DDTHH24:MI:SS.FFFZ], RecordID, StationsID, ProjektID, Messperiode[Minuten],"""
 
   def generateFiles(): List[FileInfo] = {
     listOfProjects.flatMap(mprojNr => {
@@ -58,7 +58,7 @@ class FileGeneratorUniBaselHistoricalLoggerFormat(meteoService: MeteoService) ex
 
           val messartsGroupedByDuration: Map[Int, Seq[MessArtRow]] = allMessWerts.filter(m => confForStation.map(_.messArt).contains(m.code)).groupBy(_.pDauer)
           Logger.info(s"All messarts for station for project for durations: ${messartsGroupedByDuration.mkString(",")}")
-          val allEinfDatesForStation = meteoService.getAllDaysBetweenDates(StringToDate.stringToDateConvert("15-11-2018 00:00:00"), StringToDate.stringToDateConvert("23-11-2018 00:00:00"))
+          val allEinfDatesForStation = meteoService.getAllDaysBetweenDates(StringToDate.stringToDateConvert("01-01-2018 00:00:00"), StringToDate.stringToDateConvert("01-11-2018 00:00:00"))
           allEinfDatesForStation.flatMap(einfDatForData => {
             messartsGroupedByDuration.map(sortedMessarts => {
 
@@ -85,20 +85,20 @@ class FileGeneratorUniBaselHistoricalLoggerFormat(meteoService: MeteoService) ex
 
               val meteoDataForDuration: mutable.Map[DateTime, mutable.LinkedHashSet[MeteoDataRow]] =
                 latestMeteoDataForStation.filter(lt => sortedMessarts._2.map(_.code).contains(lt.messArt)).groupByOrdered(mdat => StringToDate.stringToDateConvert(mdat.dateReceived))
+              if(meteoDataForDuration.nonEmpty) {
+                //val valuesToBeWrittenForCR10 = if(!listOfCR1000Stations.contains(station.stationNumber)) getCR10FormattedDataLines(meteoDataForDuration, sortedMessarts, station, mapFolgNrToMessArt).flatten else Seq()
+                val valuesToBeWrittenForCR1000 = if (listOfCR1000Stations.contains(station.stationNumber)) getTR05FormattedDataLines(meteoDataForDuration, sortedMessarts._2, station, mapFolgNrToMessArt, sortedMessarts._1, mprojNr) else Seq()
 
-              //val valuesToBeWrittenForCR10 = if(!listOfCR1000Stations.contains(station.stationNumber)) getCR10FormattedDataLines(meteoDataForDuration, sortedMessarts, station, mapFolgNrToMessArt).flatten else Seq()
-              val valuesToBeWrittenForCR1000 = if (listOfCR1000Stations.contains(station.stationNumber)) getTR05FormattedDataLines(meteoDataForDuration, sortedMessarts._2, station, mapFolgNrToMessArt, sortedMessarts._1, mprojNr) else Seq()
+                //Logger.debug(s"All data To be written for the  CR1000 stations: ${valuesToBeWrittenForCR1000.toList.sortBy(_.measurementTime).mkString("\n")}")
 
-              //Logger.debug(s"All data To be written for the  CR1000 stations: ${valuesToBeWrittenForCR1000.toList.sortBy(_.measurementTime).mkString("\n")}")
+                val dataHeaderToBeWritten =
+                  if (listOfCR1000Stations.contains(station.stationNumber))
+                    toa5Header + trailor.map(_.getOrElse(",")).mkString(",")
+                  else
+                    cr10Header + trailor.map(_.getOrElse(",")).mkString(",")
 
-              val dataHeaderToBeWritten =
-                if (listOfCR1000Stations.contains(station.stationNumber))
-                  toa5Header + trailor.map(_.getOrElse(",")).mkString(",")
-                else
-                  cr10Header + trailor.map(_.getOrElse(",")).mkString(",")
-
-              val timeStampForFileName = CurrentSysDateInSimpleFormat.changeFormatOfDateForSeparators(einfDatForData._1) + "_" + CurrentSysDateInSimpleFormat.changeFormatOfDateForSeparators(einfDatForData._2)
-              /*
+                val timeStampForFileName = CurrentSysDateInSimpleFormat.changeFormatOfDateForSeparators(einfDatForData._1) + "_" + CurrentSysDateInSimpleFormat.changeFormatOfDateForSeparators(einfDatForData._2)
+                /*
             if(latestMeteoDataForStation.map(_.dateOfInsertion).nonEmpty) {
               CurrentSysDateInSimpleFormat.changeFormatDateTimeForFileName(StringToDate.stringToDateConvert(latestMeteoDataForStation.map(_.dateOfInsertion).max))
             } else {
@@ -106,30 +106,38 @@ class FileGeneratorUniBaselHistoricalLoggerFormat(meteoService: MeteoService) ex
 
             }*/
 
+                val durationKey: String = UniBaselStationAbbrevations.mappingduration.getOrElse(sortedMessarts._1, sortedMessarts._1.toString)
+                val projectNrKey = UniBaselStationAbbrevations.mappingProjNr.getOrElse(mprojNr, mprojNr)
 
-              val fileName = abbrevationForStation.map(ab => ab.kurzName + "_" + sortedMessarts._1 + "_" + mprojNr + "_" + timeStampForFileName + "_" + CurrentSysDateInSimpleFormat.dateNow)
+                val cr1000DataSortedDuration = valuesToBeWrittenForCR1000.toList
+                //val cr10DataSortedDuration = valuesToBeWrittenForCR10.toList.sortBy(_.duration)
 
-              val cr1000DataSortedDuration = valuesToBeWrittenForCR1000.toList
-              //val cr10DataSortedDuration = valuesToBeWrittenForCR10.toList.sortBy(_.duration)
+                val dataLinesToBeWrittenCR1000 = cr1000DataSortedDuration.map(dl => dl.measurementTime + "," + cr1000DataSortedDuration.indexOf(dl) + "," + dl.stationId + "," + dl.projectId + "," + dl.duration + "," + dl.measurementValues.mkString(","))
+                //val dataLinesToBeWrittenCR10 = cr10DataSortedDuration.map(dl => dl.duration + "," + dl.stationId + "," + dl.projectId + "," + dl.year + "," + dl.yearToDate + "," + dl.time + "," + dl.measurementValues.mkString(","))
 
-              val dataLinesToBeWrittenCR1000 = cr1000DataSortedDuration.map(dl => dl.measurementTime + "," + cr1000DataSortedDuration.indexOf(dl) + "," + dl.stationId + "," + dl.projectId + "," + dl.duration + "," + dl.measurementValues.mkString(","))
-              //val dataLinesToBeWrittenCR10 = cr10DataSortedDuration.map(dl => dl.duration + "," + dl.stationId + "," + dl.projectId + "," + dl.year + "," + dl.yearToDate + "," + dl.time + "," + dl.measurementValues.mkString(","))
+                Logger.debug(s"Data lines to be written for CR1000 stations: ${dataLinesToBeWrittenCR1000.mkString("\n")}")
+                //Logger.debug(s"Data lines to be written for CR10x stations: ${dataLinesToBeWrittenCR10.mkString("\n")}")
+                import Joda._
+                val allDates = latestMeteoDataForStation.map(lt => StringToDate.stringToDateConvert(lt.dateReceived)).sorted
+                val numberOfLinesSent = latestMeteoDataForStation.size
+                val allEinfDates = latestMeteoDataForStation.map(lt => StringToDate.stringToDateConvert(lt.dateOfInsertion)).sorted
 
-              Logger.debug(s"Data lines to be written for CR1000 stations: ${dataLinesToBeWrittenCR1000.mkString("\n")}")
-              //Logger.debug(s"Data lines to be written for CR10x stations: ${dataLinesToBeWrittenCR10.mkString("\n")}")
-              import Joda._
-              val allDates = latestMeteoDataForStation.map(lt => StringToDate.stringToDateConvert(lt.dateReceived)).sorted
-              val numberOfLinesSent = latestMeteoDataForStation.size
-              val allEinfDates = latestMeteoDataForStation.map(lt => StringToDate.stringToDateConvert(lt.dateOfInsertion)).sorted
+                val fromDate = if (allDates.nonEmpty) allDates.min.toDateTime() else new DateTime()
 
-              val fromDate = if (allDates.nonEmpty) allDates.min.toDateTime() else new DateTime()
+                val toDate = if (allDates.nonEmpty) allDates.max.toDateTime() else new DateTime()
 
-              val toDate = if (allDates.nonEmpty) allDates.max.toDateTime() else new DateTime()
+                val einfDate = if (allDates.nonEmpty) allEinfDates.max.toDateTime() else new DateTime()
+                val minDate = if (meteoDataForDuration.size > 0) meteoDataForDuration.map(_._1).min else fromDate
+                val maxDate = if (meteoDataForDuration.size > 0) meteoDataForDuration.map(_._1).max else toDate
+                val fileName = abbrevationForStation.map(ab => ab.kurzName + "_" + projectNrKey + "_" + durationKey + "_" + CurrentSysDateInSimpleFormat.changeFormatDateTimeForFileNameWithUTC(minDate) + "_" + CurrentSysDateInSimpleFormat.changeFormatDateTimeForFileNameWithUTC(maxDate) + "_" + CurrentSysDateInSimpleFormat.dateNow)
 
-              val einfDate = if (allDates.nonEmpty) allEinfDates.max.toDateTime() else new DateTime()
-              val logInformation = MeteoDataFileLogInfo(station.stationNumber, o.organisationNr, fileName.getOrElse(o.prefix + station.stationsName + timeStampForFileName).toString, fromDate, toDate, numberOfLinesSent, einfDate)
+                val logInformation = MeteoDataFileLogInfo(station.stationNumber, o.organisationNr, fileName.getOrElse(o.prefix + station.stationsName + timeStampForFileName).toString, fromDate, toDate, numberOfLinesSent, einfDate)
 
-              FileInfo(fileName.getOrElse(o.prefix + station.stationsName + "_" + sortedMessarts._1 + "_" + mprojNr + "_" + timeStampForFileName).toString, dataHeaderToBeWritten, dataLinesToBeWrittenCR1000, logInformation)
+                FileInfo(fileName.getOrElse(o.prefix + station.stationsName + "_" + sortedMessarts._1 + "_" + mprojNr + "_" + timeStampForFileName).toString, dataHeaderToBeWritten, dataLinesToBeWrittenCR1000, logInformation)
+              }
+              else {
+                FileInfo("NoData" + CurrentSysDateInSimpleFormat.changeFormatDateTimeForFileNameWithUTC(new DateTime()), "",List(),MeteoDataFileLogInfo(station.stationNumber, o.organisationNr, "NoData", new DateTime(), new DateTime(), 0, new DateTime()))
+              }
             })
           })
         })
@@ -212,7 +220,7 @@ class FileGeneratorUniBaselHistoricalLoggerFormat(meteoService: MeteoService) ex
           val messArtFound = dataLine._2.map(_.configuration).find(_ == fl._2._1)
           dataLine._2.find(dt => messArtFound.contains(dt.configuration)).map(_.valueOfMeasurement).getOrElse(BigDecimal(-999))
         }).toList
-      TOA5LinesFormatHOB(dataLine._1.toString,0,"HOB",messProjNr,duration, measurementValues)
+      TOA5LinesFormatHOB(dataLine._1.toString,0,UniBaselStationAbbrevations.listOfAllStationsAndAbbrvations.find(_.code == station.stationNumber).map(_.kurzName).getOrElse(station.stationNumber.toString),messProjNr,duration, measurementValues)
     }).toList
   }
 

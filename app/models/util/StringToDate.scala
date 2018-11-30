@@ -2,7 +2,7 @@ package models.util
 
 import java.text.SimpleDateFormat
 import java.time.format.DateTimeParseException
-import java.util.Date
+import java.util.{Date, TimeZone}
 
 import models.domain
 import models.domain.{CR1000Exceptions, CR1000InvalidDateException}
@@ -89,8 +89,14 @@ object CurrentSysDateInSimpleFormat {
     new SimpleDateFormat("yyyyMMddHHmmss").format(datum.toDate)
   }
 
+  def changeFormatDateTimeForFileNameWithUTC(datum: DateTime): String = {
+   val simpleDate =  new SimpleDateFormat("yyyyMMddHHmmss")
+    simpleDate.setTimeZone(TimeZone.getTimeZone("UTC"))
+    simpleDate.format(datum.toDate)
+  }
+
   def changeFormatOfDateForSeparators(dateInputFormat: String): String = {
-    dateInputFormat.split("-").mkString("_")
+    dateInputFormat.split("-").mkString("")
   }
 
 }

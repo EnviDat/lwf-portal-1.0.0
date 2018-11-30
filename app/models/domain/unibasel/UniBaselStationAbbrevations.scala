@@ -19,4 +19,8 @@ object UniBaselStationAbbrevations {
     StationAbbrevations(200,"GP2_HOB_8_", "Hoelstein_Bestand_GP2_Logger_8"))
 
 
+  val mappingduration: Map[Int, String] = List(10 -> "10mins", 60 -> "60mins", 240 -> "240mins").toMap
+  val mappingProjNr: Map[Int, String] = List(1 -> "WeatherData", 4 -> "DeviceStatus", 5 -> "SoilData", 35 -> "GP2").toMap
+
+
 }

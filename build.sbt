@@ -19,8 +19,11 @@ libraryDependencies += "com.jcraft" % "jsch" % "0.1.53"
 libraryDependencies += "commons-io" % "commons-io" % "2.5"
 libraryDependencies += "org.apache.commons" % "commons-compress" % "1.9"
 libraryDependencies += "org.apache.commons" % "commons-email" % "1.5"
+libraryDependencies += "jcifs" % "jcifs" % "1.3.17"
+
 
 libraryDependencies += specs2 % Test
+
 
 
 

@@ -42,6 +42,9 @@ class Module extends AbstractModule with AkkaGuiceSupport {
     bindActor[SchedulerActorETHLaegeren]("scheduler-actor-ethlae")
     bind(classOf[SchedulerETHLaegeren]).asEagerSingleton()
 
+    bindActor[SchedulerActorHexenRubi]("scheduler-actor-hexenrubi")
+    bind(classOf[SchedulerHexenRubi]).asEagerSingleton()
+
   }
 
 }
