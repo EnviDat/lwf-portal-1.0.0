@@ -43,7 +43,7 @@ class SchedulerActorUniBasel @Inject()(configuration: Configuration, meteoServic
     Logger.info("writing data task running")
     val fileGenerator =  new FileGeneratorUniBaselLoggerFormat(meteoService)
     val fileInfos = fileGenerator.generateFiles()
-    val logInformation = fileInfos.map(_.logInformation)
+    val logInformation = fileInfos.filter(_.fileName.startsWith("NoData") == false).map(_.logInformation)
     Logger.info(s"Generated File Information:${logInformation} ")
     fileInfos.toList.map( ff => {
       if(!ff.fileName.startsWith("NoData")) {
