@@ -126,7 +126,7 @@ class FileGeneratorUniBaselLoggerFormat(meteoService: MeteoService) extends File
               val durationKey: String = UniBaselStationAbbrevations.mappingduration.getOrElse(sortedMessarts._1, sortedMessarts._1.toString)
               val projectNrKey = UniBaselStationAbbrevations.mappingProjNr.getOrElse(mprojNr, mprojNr)
 
-              val fileName = abbrevationForStation.map(ab => ab.kurzName + "_" + projectNrKey + "_" + durationKey + "_" + timeStampForFileName + "_" + CurrentSysDateInSimpleFormat.changeFormatDateTimeForFileNameWithUTC(minDate) + "_" + CurrentSysDateInSimpleFormat.changeFormatDateTimeForFileNameWithUTC(maxDate) + "_" + CurrentSysDateInSimpleFormat.dateNow)
+              val fileName = abbrevationForStation.map(ab => ab.kurzName + "_" + projectNrKey + "_" + durationKey + "_" +  CurrentSysDateInSimpleFormat.changeFormatDateTimeForFileNameWithUTC(minDate) + "_" + CurrentSysDateInSimpleFormat.changeFormatDateTimeForFileNameWithUTC(maxDate) + "_" + CurrentSysDateInSimpleFormat.dateNow)
 
               val logInformation = MeteoDataFileLogInfo(station.stationNumber, o.organisationNr, fileName.getOrElse(o.prefix + station.stationsName + timeStampForFileName).toString, fromDate, toDate, numberOfLinesSent, einfDate)
 

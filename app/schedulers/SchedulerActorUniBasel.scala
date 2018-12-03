@@ -61,7 +61,7 @@ class SchedulerActorUniBasel @Inject()(configuration: Configuration, meteoServic
     Logger.info("Compressing the files generated")
     DirectoryCompressor.compressAllFiles(source,destination)
     //ZipUtil.packEntry(new File("\\csvFiles\\"), new File("\\csvFiles" + ".zip"))
-    //fileGenerator.saveLogInfoOfGeneratedFiles(logInformation)
+    fileGenerator.saveLogInfoOfGeneratedFiles(logInformation)
     FileUtils.cleanDirectory(source)
     Logger.info("writing data task finished")
   }
