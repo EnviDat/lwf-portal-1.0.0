@@ -144,11 +144,11 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
   }
 
   def insertCR1000MeteoDataForFilesSent(meteoData: Seq[MeteoDataRowTableInfo]): Option[CR1000OracleError] = {
+    meteoData.flatMap(m => {
     val conn = db.getConnection()
     try {
-      conn.setAutoCommit(false)
+      conn.setAutoCommit(true)
       val stmt: Statement = conn.createStatement()
-        meteoData.map(m => {
 
           val ml = m.meteoDataRow
           //code that throws sql exception
@@ -171,7 +171,6 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
           }
           //Insert information into MetaBlag
 
-        })
 
       insertInfoIntoMetablag(meteoData, stmt)
       stmt.close()
@@ -182,7 +181,7 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
       case ex: SQLException => {
         if(ex.getErrorCode() == 1){
         Logger.info(s"Data was already read. Primary key violation ${ex}")
-        conn.rollback()
+        //conn.rollback()
           conn.close()
 
           None
@@ -193,7 +192,7 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
 
       }
     }
-
+    }).headOption
 
   }
 

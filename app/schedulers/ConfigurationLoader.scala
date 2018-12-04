@@ -49,7 +49,12 @@ case class ConfigurationHexenrubiData(frequency :Int,
                                       userNameHexenRubi :String,
                                       passwordHexenRubi :String,
                                       pathForIncomingFileHexenRubi :String,
-                                      pathForArchivedFiles :String)
+                                      pathForArchivedFiles :String,
+                                      dataFileNameHexenRubi :String,
+                                      stationNrHexenRubi :Int,
+                                      projectNrHexenRubi : Int,
+                                      periodeHexenRubi: Int,
+                                      emailUserListHexenRubi: String)
 
 case class CR1000LoggerFileConfig(frequencyCR1000 :Int,
                                   ftpUrlCR1000 :String,
@@ -144,7 +149,12 @@ object ConfigurationLoader {
     val passwordHexenRubi = configuration.getString("passwordHexenRubi").get
     val pathForIncomingFileHexenRubi = configuration.getString("pathForIncomingFileHexenRubi").get
     val pathForArchivedFiles = configuration.getString("pathForArchivedFiles").get
-    ConfigurationHexenrubiData(frequency, userNameHexenRubi, passwordHexenRubi, pathForIncomingFileHexenRubi, pathForArchivedFiles)
+    val dataFileNameHexenRubi = configuration.getString("dataFileNameHexenRubi").get
+    val stationNrHexenRubi = configuration.getInt("stationNrHexenRubi").get
+    val projectNrHexenRubi = configuration.getInt("projectNrHexenRubi").get
+    val periodeHexenRubi = configuration.getInt("periodeHexenRubi").get
+    val emailUserListHexenRubi = configuration.getString("emailUserListHexenRubi").get
+    ConfigurationHexenrubiData(frequency, userNameHexenRubi, passwordHexenRubi, pathForIncomingFileHexenRubi, pathForArchivedFiles, dataFileNameHexenRubi ,stationNrHexenRubi, projectNrHexenRubi, periodeHexenRubi, emailUserListHexenRubi )
   }
 
 

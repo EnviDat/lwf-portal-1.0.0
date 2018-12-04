@@ -24,3 +24,15 @@ object UniBaselStationAbbrevations {
 
 
 }
+
+object HexenRubiStationAbbrevations {
+
+  val projectNr = 36
+
+  val stationNr = 190
+
+  val listOfAllStationsAndAbbrvations = List(StationAbbrevations(190,"HEX", "Hexenrubi"))
+
+
+
+}
