@@ -11,7 +11,9 @@ import models.domain.{CR1000ErrorFileInfo, CR1000Exceptions, FormatMessage}
 import models.ozone.{OzoneFileLevelInfoMissingError, _}
 import models.phano.{PhanoFileParser, PhanoFileValidator}
 import models.services._
+import models.util.StringToDate.formatCR1000Date
 import org.apache.commons.io.FileUtils
+import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
 import schedulers.StationKonfig
 
@@ -321,7 +323,7 @@ object FtpConnector {
 
 
   @throws[Exception]
-  def readETHLaeFileFromFtp(userNameFtp: String, passwordFtp: String, pathForFtpFolder: String, ftpUrlMeteo: String, stationKonfigs: List[StationKonfig], emailUserList: String, meteoService: MeteorologyService, pathForArchiveFiles: String): Unit = {
+  def readETHLaeFileFromFtp(userNameFtp: String, passwordFtp: String, pathForFtpFolder: String, ftpUrlMeteo: String, stationKonfigs: List[StationKonfig], emailUserList: String, meteoService: MeteoService, pathForArchiveFiles: String): Unit = {
     val jsch = new JSch
     try {
 
@@ -336,6 +338,14 @@ object FtpConnector {
       val sftpChannel = channel.asInstanceOf[ChannelSftp]
       sftpChannel.cd(pathForFtpFolder)
       Logger.info(s"Logged in to ftp folder")
+      import org.joda.time.Days
+      import Joda._
+      val start = DateTime.now.minusDays(5)
+      val end   = DateTime.now.plusDays(5)
+
+      val daysCount = Days.daysBetween(start, end).getDays()
+      val allDays = Iterator.iterate(start) { _.plusMinutes(10) }.takeWhile(_.isBefore(end)).toList
+
       import scala.collection.JavaConverters._
       val listOfFiles = sftpChannel.ls("*.lwf").asScala
         .map(_.asInstanceOf[sftpChannel.LsEntry])
@@ -344,6 +354,22 @@ object FtpConnector {
           val br = new BufferedReader(new InputStreamReader(stream))
           val linesToParse = Stream.continually(br.readLine()).takeWhile(_ != null).toList
           val validLines = linesToParse.filter(l => CurrentSysDateInSimpleFormat.dateRegex.findFirstIn(l).nonEmpty)
+          val allDatesInFiles = validLines.map(l => formatCR1000Date.withZone(DateTimeZone.UTC).parseDateTime(l.split(",")(0).replace("\"", ""))).sorted
+          val minDateInFile = allDatesInFiles.min
+          val maxDateInFile = allDatesInFiles.max
+          val daysCount = Days.daysBetween(minDateInFile.withTimeAtStartOfDay(), maxDateInFile).getDays()
+          val allDays = Iterator.iterate(minDateInFile.withTimeAtStartOfDay()) { _.plusMinutes(10) }.takeWhile(_.isBefore(maxDateInFile)).toList
+          val allDaysTimeStamps = allDays.map(d => (d.minusMinutes(10),d)).sorted
+          val allLinesGrouped: Map[((DateTime, DateTime), Int), List[String]] = allDaysTimeStamps.map(dt => {
+            val linesBetweenTimePeriod = validLines.filter(l => {
+              val dateTimeStampInLine = formatCR1000Date.withZone(DateTimeZone.UTC).parseDateTime(l.split(",")(0).replace("\"", ""))
+              dateTimeStampInLine.isAfter(dt._1) && (dateTimeStampInLine.isBefore(dt._2) || dateTimeStampInLine.isEqual(dt._2))
+            })
+            ((dt,linesBetweenTimePeriod.length), linesBetweenTimePeriod)}).toMap
+
+          allLinesGrouped.map(dataForTimeStamp => {
+            ETHLaeFileParser.parseAndSaveData(dataForTimeStamp._2, meteoService, entry.getFilename)
+          })
           val errors: Seq[(Int, List[CR1000Exceptions])] = validLines.zipWithIndex.map(l => (l._2,ETHLaeFileValidator.validateLine(entry.getFilename,l._1,stationKonfigs)))
           CR1000ErrorFileInfo(entry.getFilename,errors, validLines)
         }
@@ -356,7 +382,7 @@ object FtpConnector {
             (s"File not processed: ${file.fileName} \n errors: ${errorstring} \n",Some(errorstring))
           } else {
             val projNrForFile: Option[Int] = stationKonfigs.find(sk => file.fileName.startsWith(sk.fileName)).flatMap(_.projs.headOption.map(_.projNr))
-            val caughtExceptions = ETHLaeFileParser.parseAndSaveData(file.linesToSave, meteoService, file.fileName, projNrForFile)
+            val caughtExceptions = ETHLaeFileParser.parseAndSaveData(file.linesToSave, meteoService, file.fileName)
             caughtExceptions match {
               case None =>  {
                 sftpChannel.get(file.fileName, pathForArchiveFiles + file.fileName)

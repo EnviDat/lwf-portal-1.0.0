@@ -2,7 +2,7 @@ package models.domain.meteorology.ethlaegeren.parser
 
 import models.domain._
 import models.domain.meteorology.ethlaegeren.domain.{MeasurementParameter, StationConfiguration}
-import models.services.MeteorologyService
+import models.services.{MeteoService, MeteorologyService}
 import models.util.StringToDate.formatCR1000Date
 import models.util.{NumberParser, StringToDate}
 import org.joda.time.{DateTime, DateTimeZone}
@@ -10,8 +10,8 @@ import org.joda.time.{DateTime, DateTimeZone}
 
 object ETHLaeFileParser {
 
-  def parseAndSaveData(ethLaeFileData: List[String], meteoService: MeteorologyService, fileName: String, projNrForFile: Option[Int]): Option[CR1000OracleError] = {
-    val allMessWerts: Seq[MeasurementParameter] = meteoService.getAllMessArts
+  def parseAndSaveData(ethLaeFileData: List[String], meteoService: MeteoService, fileName: String): Option[CR1000OracleError] = {
+    /*val allMessWerts: Seq[MeasurementParameter] = meteoService.getAllMessArts
     val allStationConfigs: List[StationConfiguration] = meteoService.getStatKonfForStation().filter(sk => allMessWerts.map(_.code).contains( sk.measurementParam))
 
     val allRowsToBeInserted = ethLaeFileData.flatMap(line => {
@@ -53,7 +53,8 @@ object ETHLaeFileParser {
         } yield values
       valuesToBeInserted
     }).flatten.toList
-    meteoService.insertMeteoDataETHLae(allRowsToBeInserted)
+    meteoService.insertMeteoDataETHLae(allRowsToBeInserted)*/
+    None
   }
 
   private def getMappingOfFolgeNrToMessArt(confForStation: List[MeteoStationConfiguration]) = {

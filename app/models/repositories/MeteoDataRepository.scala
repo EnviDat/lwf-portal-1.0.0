@@ -144,7 +144,7 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
   }
 
   def insertCR1000MeteoDataForFilesSent(meteoData: Seq[MeteoDataRowTableInfo]): Option[CR1000OracleError] = {
-    meteoData.flatMap(m => {
+   val exceptionsInsertingDataRows = meteoData.flatMap(m => {
     val conn = db.getConnection()
     try {
       conn.setAutoCommit(true)
@@ -157,13 +157,13 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
             case Some(1) => {
               val insertStatement = s"INSERT INTO METEODAT  (statnr, messart, konfnr, messdat, messwert, ursprung, valstat, einfdat) values(" +
                 s"${ml.station}, ${ml.messArt}, ${ml.configuration}, ${ml.dateReceived}, ${ml.valueOfMeasurement}, ${ml.methodApplied}, ${ml.status.getOrElse(0)},${ml.dateOfInsertion})"
-              Logger.info(s"statement to be executed: ${insertStatement}")
+              //Logger.info(s"statement to be executed: ${insertStatement}")
               stmt.executeUpdate(insertStatement)
             }
             case Some(2) => {
               val insertStatement = s"INSERT INTO MDAT  (statnr, messart, konfnr, messdat, messwert, ursprung, valstat, einfdat) values(" +
                 s"${ml.station}, ${ml.messArt}, ${ml.configuration}, ${ml.dateReceived}, ${ml.valueOfMeasurement}, ${ml.methodApplied}, ${ml.status.getOrElse(0)},${ml.dateOfInsertion})"
-              Logger.info(s"statement to be executed: ${insertStatement}")
+              //Logger.info(s"statement to be executed: ${insertStatement}")
               stmt.executeUpdate(insertStatement)
 
             }
@@ -172,7 +172,7 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
           //Insert information into MetaBlag
 
 
-      insertInfoIntoMetablag(meteoData, stmt)
+      //insertInfoIntoMetablag(meteoData, stmt)
       stmt.close()
       conn.commit()
       conn.close()
@@ -193,10 +193,15 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
       }
     }
     }).headOption
-
+    if (exceptionsInsertingDataRows.isEmpty) insertInfoIntoMetablag(meteoData)
+    exceptionsInsertingDataRows
   }
 
-  def insertInfoIntoMetablag(meteoData: Seq[MeteoDataRowTableInfo],stmt: Statement) = {
+  def insertInfoIntoMetablag(meteoData: Seq[MeteoDataRowTableInfo]) = {
+    val conn = db.getConnection()
+    try {
+      conn.setAutoCommit(true)
+      val stmt: Statement = conn.createStatement()
     val groupedFiles = meteoData.groupBy(_.filename)
     meteoData.groupBy(_.filename).map(l => {
       val fileName = l._1
@@ -214,6 +219,25 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
         }
         case _ =>
       }})
+      stmt.close()
+      conn.commit()
+      conn.close()
+      None
+    } catch {
+      case ex: SQLException => {
+        if(ex.getErrorCode() == 1){
+          Logger.info(s"Data was already read. Primary key violation ${ex}")
+          //conn.rollback()
+          conn.close()
+
+          None
+        } else {
+          conn.close()
+          Some(CR1000OracleError(8, s"Oracle Exception: ${ex}"))
+        }
+
+      }
+    }
   }
 
   def insertOzoneDataForFilesSent(ozoneData: PassSammData, analyseid: Int): Option[OzoneOracleError] = {

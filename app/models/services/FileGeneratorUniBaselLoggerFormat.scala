@@ -36,7 +36,7 @@ class FileGeneratorUniBaselLoggerFormat(meteoService: MeteoService) extends File
   Logger.info(s"All Configurations Loaded for the stations found are: ${allStationConfigs.mkString(",")}")
 
   val cr10Header = """Messperiode[Minuten], StationsID, ProjektID, Jahr[JJJJ], Tag im Jahr[TTT], Uhrzeit(UTC)[HH24]"""
-  val toa5Header = """Datum[JJJJ-MM-DDTHH24:MI:SS.FFFZ], RecordID, StationsID, ProjektID, Messperiode[Minuten],"""
+  val toa5Header = """Datum[JJJJ-MM-DDTHH24:MI:SS.FFFZ],StationsID,ProjektID,Messperiode[Minuten],"""
 
 
   def generateFiles(): List[FileInfo] = {
@@ -106,7 +106,7 @@ class FileGeneratorUniBaselLoggerFormat(meteoService: MeteoService) extends File
               val cr1000DataSortedDuration = valuesToBeWrittenForCR1000.toList
               //val cr10DataSortedDuration = valuesToBeWrittenForCR10.toList.sortBy(_.duration)
 
-              val dataLinesToBeWrittenCR1000 = cr1000DataSortedDuration.map(dl => dl.measurementTime + "," + cr1000DataSortedDuration.indexOf(dl) + "," + dl.stationId + "," + dl.projectId + "," + dl.duration + "," + dl.measurementValues.mkString(","))
+              val dataLinesToBeWrittenCR1000 = cr1000DataSortedDuration.map(dl => dl.measurementTime + "," + dl.stationId + "," + dl.projectId + "," + dl.duration + "," + dl.measurementValues.mkString(","))
               //val dataLinesToBeWrittenCR10 = cr10DataSortedDuration.map(dl => dl.duration + "," + dl.stationId + "," + dl.projectId + "," + dl.year + "," + dl.yearToDate + "," + dl.time + "," + dl.measurementValues.mkString(","))
 
               Logger.debug(s"Data lines to be written for CR1000 stations: ${dataLinesToBeWrittenCR1000.mkString("\n")}")
@@ -187,7 +187,7 @@ class FileGeneratorUniBaselLoggerFormat(meteoService: MeteoService) extends File
         })
         val finalMeasurementValues =  if(missingFolgNr.isEmpty) measurementValues else if(listWithMissingValues.size > 1) listWithMissingValues.last else  listWithMissingValues.flatten
 
-        Logger.debug(s"fimalMeasurementValues: ${finalMeasurementValues}")
+        Logger.debug(s"finalMeasurementValues: ${finalMeasurementValues}")
 
         Cr10LinesFormat(dataLine._1,
           station.stationNumber,
