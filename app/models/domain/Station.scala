@@ -428,7 +428,9 @@ case class MeteoStationConfiguration(station: Int,
                                      validFromDate: String,
                                      validToDate: Option[String],
                                      folgeNr: Option[Int],
-                                     clusterNr: Option[Int]
+                                     clusterNr: Option[Int],
+                                     completeness: Option[Int],
+                                     methode: Option[String]
                                     )
 
 object MeteoStationConfiguration {
@@ -440,8 +442,10 @@ object MeteoStationConfiguration {
             get[String]("ABDATUM") ~
               get[Option[String]]("BISDATUM") ~
                 get[Option[Int]]("FOLGENR") ~
-                  get[Option[Int]]("CLNR") map {
-                    case station ~ messart ~ confnr ~ sensor ~ abdatum ~ bisdatum ~ folgnr ~ clnr => MeteoStationConfiguration(station, messart, confnr, sensor, abdatum, bisdatum, folgnr, clnr)
+                  get[Option[Int]]("CLNR")~
+                    get[Option[Int]]("completeness")~
+                      get[Option[String]]("apply_method_agg") map {
+                    case station ~ messart ~ confnr ~ sensor ~ abdatum ~ bisdatum ~ folgnr ~ clnr ~ completeness ~ method => MeteoStationConfiguration(station, messart, confnr, sensor, abdatum, bisdatum, folgnr, clnr, completeness, method)
     }
   }
 }

@@ -72,13 +72,14 @@ object FtpConnector {
       val emailList = emailUserList.split(";").toSeq
       if(infoAboutFileProcessed.nonEmpty) {
         if(infoAboutFileProcessed.exists(_._2.nonEmpty)) {
-          EmailService.sendEmail("CR 1000 Processor", "simpal.kumar@wsl.ch", emailList, emailList, "CR 1000 Processing Report With Errors", s"file Processed Report${infoAboutFileProcessed.map(_._1).mkString("\n")}")
+          Logger.info(s"CR 1000 Processor, simpal.kumar@wsl.ch ${emailList}, CR 1000 Processing Report With Errors file Processed Report${infoAboutFileProcessed.map(_._1).mkString("\n")}")
+         // EmailService.sendEmail("CR 1000 Processor", "simpal.kumar@wsl.ch", emailList, emailList, "CR 1000 Processing Report With Errors", s"file Processed Report${infoAboutFileProcessed.map(_._1).mkString("\n")}")
         } else {
-          EmailService.sendEmail("CR 1000 Processor", "simpal.kumar@wsl.ch", emailList, emailList, "CR 1000 Processing Report OK", s"file Processed Report${infoAboutFileProcessed.map(_._1).mkString("\n")}")
+          Logger.info(s"CR 1000 Processor, simpal.kumar@wsl.ch ${emailList}, CR 1000 Processing Report OK, file Processed Report${infoAboutFileProcessed.map(_._1).mkString("\n")}")
+          //EmailService.sendEmail("CR 1000 Processor", "simpal.kumar@wsl.ch", emailList, emailList, "CR 1000 Processing Report OK", s"file Processed Report${infoAboutFileProcessed.map(_._1).mkString("\n")}")
         }
       }
       Logger.info(s"list of files received: ${infoAboutFileProcessed.map(_._1).mkString("\n")}")
-
       sftpChannel.exit()
       session.disconnect()
     } catch {
@@ -368,21 +369,21 @@ object FtpConnector {
             ((dt,linesBetweenTimePeriod.length), linesBetweenTimePeriod)}).toMap
 
           allLinesGrouped.map(dataForTimeStamp => {
-            ETHLaeFileParser.parseAndSaveData(dataForTimeStamp._2, meteoService, entry.getFilename)
+            ETHLaeFileParser.parseAndSaveData(dataForTimeStamp._1._1._2, dataForTimeStamp._1._2,dataForTimeStamp._2, meteoService, entry.getFilename, maxDateInFile, stationKonfigs)
           })
           val errors: Seq[(Int, List[CR1000Exceptions])] = validLines.zipWithIndex.map(l => (l._2,ETHLaeFileValidator.validateLine(entry.getFilename,l._1,stationKonfigs)))
           CR1000ErrorFileInfo(entry.getFilename,errors, validLines)
         }
         )
         .toList
-      val infoAboutFileProcessed =
+     /* val infoAboutFileProcessed =
         listOfFiles.toList.map(file => {
           if(file.errors.flatMap(_._2).nonEmpty) {
             val errorstring = FormatMessage.formatCR1000ErrorMessage(file.errors)
             (s"File not processed: ${file.fileName} \n errors: ${errorstring} \n",Some(errorstring))
           } else {
             val projNrForFile: Option[Int] = stationKonfigs.find(sk => file.fileName.startsWith(sk.fileName)).flatMap(_.projs.headOption.map(_.projNr))
-            val caughtExceptions = ETHLaeFileParser.parseAndSaveData(file.linesToSave, meteoService, file.fileName)
+            val caughtExceptions = ETHLaeFileParser.parseAndSaveData(file.linesToSave, meteoService, file.fileName,)
             caughtExceptions match {
               case None =>  {
                 sftpChannel.get(file.fileName, pathForArchiveFiles + file.fileName)
@@ -404,7 +405,7 @@ object FtpConnector {
         }
       }
       Logger.info(s"list of files received: ${infoAboutFileProcessed.map(_._1).mkString("\n")}")
-
+*/
       sftpChannel.exit()
       session.disconnect()
     } catch {
