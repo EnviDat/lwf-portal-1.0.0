@@ -38,7 +38,7 @@ class FileGeneratorUniBaselHistoricalLoggerFormat(meteoService: MeteoService) ex
   Logger.info(s"All Configurations Loaded for the stations found are: ${allStationConfigs.mkString(",")}")
 
   val cr10Header = """Messperiode[Minuten], StationsID, ProjektID, Jahr[JJJJ], Tag im Jahr[TTT], Uhrzeit(UTC)[HH24]"""
-  val toa5Header = """Datum[JJJJ-MM-DDTHH24:MI:SS.FFFZ], RecordID, StationsID, ProjektID, Messperiode[Minuten],"""
+  val toa5Header = """Datum[JJJJ-MM-DDTHH24:MI:SS.FFFZ],RecordID,StationsID,ProjektID,Messperiode[Minuten],"""
 
   def generateFiles(): List[FileInfo] = {
     listOfProjects.flatMap(mprojNr => {
@@ -49,7 +49,7 @@ class FileGeneratorUniBaselHistoricalLoggerFormat(meteoService: MeteoService) ex
       })
       allOrganisations.filter(_.organisationNr == UniBaselStationAbbrevations.organisationNr).flatMap(o => {
 
-        val configuredStationsForOrganisation = stationOrganisationMappings.filter(so => so.orgNr == o.organisationNr && so.shouldSendData == 1) //To Do: change this to 1
+        val configuredStationsForOrganisation = stationOrganisationMappings.filter(so => so.orgNr == o.organisationNr && so.shouldSendData == 1 && so.statNr != 192) //To Do: change this to 1
 
         val stationNumbersConfigured = configuredStationsForOrganisation.map(_.statNr)
         val allFilesDataGenerated = allStations.filter(st => stationNumbersConfigured.contains(st.stationNumber)).flatMap(station => {
@@ -58,7 +58,7 @@ class FileGeneratorUniBaselHistoricalLoggerFormat(meteoService: MeteoService) ex
 
           val messartsGroupedByDuration: Map[Int, Seq[MessArtRow]] = allMessWerts.filter(m => confForStation.map(_.messArt).contains(m.code)).groupBy(_.pDauer)
           Logger.info(s"All messarts for station for project for durations: ${messartsGroupedByDuration.mkString(",")}")
-          val allEinfDatesForStation = meteoService.getAllDaysBetweenDates(StringToDate.stringToDateConvert("01-01-2018 00:00:00"), StringToDate.stringToDateConvert("01-11-2018 00:00:00"))
+          val allEinfDatesForStation = meteoService.getAllDaysBetweenDates(StringToDate.stringToDateConvert("01-01-2018 00:00:00"), StringToDate.stringToDateConvert("07-12-2018 00:00:00"))
           allEinfDatesForStation.flatMap(einfDatForData => {
             messartsGroupedByDuration.map(sortedMessarts => {
 
@@ -112,7 +112,7 @@ class FileGeneratorUniBaselHistoricalLoggerFormat(meteoService: MeteoService) ex
                 val cr1000DataSortedDuration = valuesToBeWrittenForCR1000.toList
                 //val cr10DataSortedDuration = valuesToBeWrittenForCR10.toList.sortBy(_.duration)
 
-                val dataLinesToBeWrittenCR1000 = cr1000DataSortedDuration.map(dl => dl.measurementTime + "," + cr1000DataSortedDuration.indexOf(dl) + "," + dl.stationId + "," + dl.projectId + "," + dl.duration + "," + dl.measurementValues.mkString(","))
+                val dataLinesToBeWrittenCR1000 = cr1000DataSortedDuration.map(dl => dl.measurementTime + "," +  dl.stationId + "," + dl.projectId + "," + dl.duration + "," + dl.measurementValues.mkString(","))
                 //val dataLinesToBeWrittenCR10 = cr10DataSortedDuration.map(dl => dl.duration + "," + dl.stationId + "," + dl.projectId + "," + dl.year + "," + dl.yearToDate + "," + dl.time + "," + dl.measurementValues.mkString(","))
 
                 Logger.debug(s"Data lines to be written for CR1000 stations: ${dataLinesToBeWrittenCR1000.mkString("\n")}")

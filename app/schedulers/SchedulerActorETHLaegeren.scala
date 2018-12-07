@@ -15,7 +15,7 @@ class SchedulerActorETHLaegeren @Inject()(configuration: Configuration, meteoSer
     case "processEthLaeFile" =>  {
 
       val config = ConfigurationLoader.loadETHLaeConfiguration(configuration)
-      processFile(config)
+      //processFile(config)
       //readFile(config)
     }
   }

@@ -16,7 +16,7 @@ class SchedulerActorUniBasel @Inject()(configuration: Configuration, meteoServic
   override def receive: Receive = {
     case "writeFile" =>  {
       val config = ConfigurationLoader.loadUniBaselConfiguration(configuration)
-      //writeFile(config)
+      writeFile(config)
       //readFile(config)
     }
   }
@@ -41,7 +41,7 @@ class SchedulerActorUniBasel @Inject()(configuration: Configuration, meteoServic
     val pathForLocalWrittenFiles = config.pathForLocalWrittenFiles
     val pathForArchivedFiles = config.pathForArchivedFiles
     Logger.info("writing data task running")
-    val fileGenerator =  new FileGeneratorUniBaselLoggerFormat(meteoService)
+    val fileGenerator =  new FileGeneratorUniBaselHistoricalLoggerFormat(meteoService)
     val fileInfos = fileGenerator.generateFiles()
     val logInformation = fileInfos.filter(_.fileName.startsWith("NoData") == false).map(_.logInformation)
     Logger.info(s"Generated File Information:${logInformation} ")
