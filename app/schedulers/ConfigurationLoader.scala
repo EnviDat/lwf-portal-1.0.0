@@ -56,6 +56,8 @@ case class ConfigurationHexenrubiData(frequency :Int,
                                       periodeHexenRubi: Int,
                                       emailUserListHexenRubi: String)
 
+case class ConfigurationOttPluvioData(frequencyOttPluvio: Int, stationNrOttPluvio: Int, messartOttPluvio: Int, emailUserListOttPluvio: String, startTimeForOttPulvio: String)
+
 case class CR1000LoggerFileConfig(frequencyCR1000 :Int,
                                   ftpUrlCR1000 :String,
                                   fptUserNameCR1000 :String,
@@ -95,7 +97,9 @@ case class ETHLaegerenLoggerFileConfig(frequencyETHLae :Int,
                                   ftpPathForETHLaeFaultyFile :String,
                                   ftpPathForETHLaeArchiveFiles :String,
                                   stationConfigs: List[StationKonfig],
-                                  emailUserList: String
+                                  emailUserList: String,
+                                       ethHeaderLineT1_47: String,
+                                       ethHeaderPrefixT1_47: String
                                  )
 
 object ConfigurationLoader {
@@ -155,6 +159,15 @@ object ConfigurationLoader {
     val periodeHexenRubi = configuration.getInt("periodeHexenRubi").get
     val emailUserListHexenRubi = configuration.getString("emailUserListHexenRubi").get
     ConfigurationHexenrubiData(frequency, userNameHexenRubi, passwordHexenRubi, pathForIncomingFileHexenRubi, pathForArchivedFiles, dataFileNameHexenRubi ,stationNrHexenRubi, projectNrHexenRubi, periodeHexenRubi, emailUserListHexenRubi )
+  }
+
+  def loadOttPluvioConfiguration(configuration: Configuration) = {
+    val frequencyOttPluvio = configuration.getInt("frequencyOttPluvio").get
+    val stationNrOttPluvio = configuration.getInt("stationNrOttPluvio").get
+    val messartOttPluvio = configuration.getInt("messartOttPluvio").get
+    val emailUserListOttPluvio = configuration.getString("emailUserListOttPluvio").get
+    val startTimeForOttPulvio = configuration.getString("startTimeForOttPulvio").get
+    ConfigurationOttPluvioData(frequencyOttPluvio, stationNrOttPluvio, messartOttPluvio, emailUserListOttPluvio, startTimeForOttPulvio)
   }
 
 
@@ -226,6 +239,8 @@ object ConfigurationLoader {
     val ftpPathForETHLaeFaultyFile = configuration.getString("ftpPathForETHLaeFaultyFile").get
     val ftpPathForETHLaeArchiveFiles = configuration.getString("ftpPathForETHLaeArchiveFiles").get
     val ethLaeEmailUserList = configuration.getString("etHLaeEmailUserList").get
+    val ethHeaderLineT1_47 = configuration.getString("ethHeaderLineT1_47").get
+    val ethHeaderPrefixT1_47 = configuration.getString("ethHeaderPrefixT1_47").get
     import scala.collection.JavaConversions._
 
     val statKonfigs =  configuration.getConfigList("stationConfigETH").map { statKonfig =>
@@ -249,6 +264,6 @@ object ConfigurationLoader {
     }.getOrElse(List())
     Logger.info(s"Station config are: ${statKonfigs.mkString("\n")}")
 
-    ETHLaegerenLoggerFileConfig(frequencyETHLae, ftpUrlETHLae, fptUserNameETHLae, ftpPasswordETHLae, ftpPathForIncomingFileETHLae, ftpPathForETHLaeFaultyFile, ftpPathForETHLaeArchiveFiles, statKonfigs, ethLaeEmailUserList)
+    ETHLaegerenLoggerFileConfig(frequencyETHLae, ftpUrlETHLae, fptUserNameETHLae, ftpPasswordETHLae, ftpPathForIncomingFileETHLae, ftpPathForETHLaeFaultyFile, ftpPathForETHLaeArchiveFiles, statKonfigs, ethLaeEmailUserList, ethHeaderLineT1_47, ethHeaderPrefixT1_47)
   }
 }

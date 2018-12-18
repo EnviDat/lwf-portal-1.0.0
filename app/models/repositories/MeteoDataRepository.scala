@@ -44,9 +44,13 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
       SQL("SELECT MT.CODE AS CODE, MT.TEXT  AS TEXT, MT.PERIODE AS PERIODE, MT.MPROJNR AS MPROJNR, P.PDAUER AS PDAUER, MT.MULTI AS MULTI, e.text as einheit FROM MESSART MT, PERIODE P , einheit e WHERE MT.PERIODE = P.CODE and mt.einheit = e.code ORDER BY P.PDAUER").as(MessArtRow.parser *)}
 
     def findAllMessartsForOrgFixedFormat() : Seq[OrgStationParamMapping] = db.withConnection { implicit connection =>
-      SQL("select orgnr, projnr, statnr, parameterid, shortnamebyorg, columnnr, fromdate, todate, senddata from statorgprojparamkonf").as(OrgStationParamMappings.parser *)}
+      SQL("select orgnr, projnr, statnr, parameterid, shortnamebyorg, columnnr, fromdate, todate, senddata, agg_method, completeness from statorgprojparamkonf where agg_method is null and completeness is null").as(OrgStationParamMappings.parser *)}
 
-    def getAllStatKonf()= db.withConnection { implicit connection =>
+  def findAllMessartsForOrgFixedAggFormat() : Seq[OrgStationParamMapping] = db.withConnection { implicit connection =>
+    SQL("select orgnr, projnr, statnr, parameterid, shortnamebyorg, columnnr, fromdate, todate, senddata, agg_method, completeness from statorgprojparamkonf where agg_method is not null and completeness is not null").as(OrgStationParamMappings.parser *)}
+
+
+  def getAllStatKonf()= db.withConnection { implicit connection =>
       SQL("SELECT STATNR, MESSART, KONFNR, SENSORNR, konfnr, to_char(ABDATUM, 'DD-MM-YYYY HH24:MI:SS') as ABDATUM , to_char(BISDATUM, 'DD-MM-YYYY HH24:MI:SS') as BISDATUM, FOLGENR, CLNR,completeness, apply_method_agg FROM STATKONF WHERE BISDATUM IS NULL ORDER BY STATNR, MESSART").as(MeteoStationConfiguration.parser *)}
 
     def getStationAbbrevations() = db.withConnection { implicit connection =>
@@ -96,6 +100,13 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
   }
   }
 
+  def findAllDaysBetweenLast15Days(): Seq[(String, String)] = db.withConnection { implicit connection => {
+    SQL(
+      """select to_char(to_date(sysdate - 15,'dd-MM-yyyy') + rownum -1,'dd-MM-yyyy') as fromDate , to_char(to_date(sysdate - 15,'dd-MM-yyyy') + rownum,'dd-MM-yyyy') as toDate
+    from all_objects where rownum <= to_date(sysdate,'dd-MM-yyyy')-to_date(sysdate - 15,'dd-MM-yyyy')+1""".stripMargin).as((str("fromDate") ~ str("toDate")).map(f => (f._1, f._2)) *)
+    }
+  }
+
   def findLastMeteoDataForStationForDate(stationNumber: Int, fromTime: String): Seq[MeteoDataRow] = db.withConnection { implicit connection => {
     Logger.info(s"${fromTime}")
       SQL(
@@ -115,6 +126,13 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
         |order by messdate DESC""".stripMargin).on("stationNr" -> stationNumber, "fromTime" -> fromTime, "toTime" -> toTime).as(MeteoDataRow.parser *)
     }
   }
+
+  def getLastOneDayOttPulvioDataForStation(stationNr: Int, messart: Int) = db.withConnection { implicit connection => {
+    SQL(
+      """select sum(messwert) as summessart,count(*) as countval  from meteodat partition(md2018)  where STATNR = {stationNr} and messart = {messart} and messdat >= sysdate - 1  - (1 / 24)""".stripMargin).on("stationNr" -> stationNr, "messart" -> messart).as(OttPulvioData.parser *)
+      }
+  }
+
 
 
   def findLastAnalyseIdForOzoneFile(filename: String, einfdat: String) = db.withConnection{ implicit connection =>
@@ -144,7 +162,7 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
   }
 
   def insertCR1000MeteoDataForFilesSent(meteoData: Seq[MeteoDataRowTableInfo]): Option[CR1000OracleError] = {
-   val exceptionsInsertingDataRows = meteoData.flatMap(m => {
+   val exceptionsInsertingDataRows = meteoData.par.flatMap(m => {
     val conn = db.getConnection()
     try {
       conn.setAutoCommit(true)
@@ -180,7 +198,7 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
       } catch {
       case ex: SQLException => {
         if(ex.getErrorCode() == 1){
-        Logger.info(s"Data was already read. Primary key violation ${ex}")
+        Logger.info(s"Data was already read. Primary key violation ${ex} ${m.meteoDataRow.toString}")
         //conn.rollback()
           conn.close()
 
@@ -193,8 +211,11 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
       }
     }
     }).headOption
-    if (exceptionsInsertingDataRows.isEmpty) insertInfoIntoMetablag(meteoData)
-    exceptionsInsertingDataRows
+   val metablagException = if (exceptionsInsertingDataRows.isEmpty) insertInfoIntoMetablag(meteoData) else None
+    exceptionsInsertingDataRows match {
+      case Some(x) => Some(x)
+      case None => metablagException
+    }
   }
 
   def insertInfoIntoMetablag(meteoData: Seq[MeteoDataRowTableInfo]) = {

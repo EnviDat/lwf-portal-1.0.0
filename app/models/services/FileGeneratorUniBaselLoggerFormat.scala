@@ -60,7 +60,6 @@ class FileGeneratorUniBaselLoggerFormat(meteoService: MeteoService) extends File
           Logger.info(s"All messarts for station for project for durations: ${messartsGroupedByDuration.mkString(",")}")
             messartsGroupedByDuration.map(sortedMessarts => {
 
-
               val t = confForStation.filter(confSk => sortedMessarts._2.map(_.code).contains(confSk.messArt))
               val folgeNrForStations = getFolegNrForStations(confForStation.filter(confSk => sortedMessarts._2.map(_.code).contains(confSk.messArt)))
               val trailor = folgeNrForStations.map(fl => sortedMessarts._2.find(m => m.code == fl._2._2 && m.messProjNr.contains(mprojNr)).map(m => m.text + "[" + m.einheit + "]" + "(" + fl._2._1 + ")"))

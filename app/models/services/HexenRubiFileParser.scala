@@ -1,6 +1,6 @@
 package models.services
 
-import java.time.{LocalDateTime, Year, ZoneId, ZoneOffset}
+import java.time._
 import java.util.Date
 
 import models.domain._
@@ -17,11 +17,11 @@ object HexenRubiFileParser {
     val allMessWerts: Seq[MessArtRow] = meteoService.getAllMessArts
     val allStationConfigs: List[MeteoStationConfiguration] = meteoService.getStatKonfForStation().filter(sk => allMessWerts.map(_.code).contains( sk.messArt))
 
-    val allRowsToBeInserted = cr100FileData.flatMap(line => {
+    val allRowsToBeInserted = cr100FileData.par.flatMap(line => {
       val words = line.split(",")
       val dayOfYear = words(2).toInt
       val yearInLine = Year.of( words(1).toInt )
-      val dateFromDayOfYear = yearInLine.atDay( dayOfYear )
+      val dateFromDayOfYear: LocalDate = yearInLine.atDay( dayOfYear )
 
       val (hrs, mins) = words(3).length match {
         case 1 => (0,0)
@@ -34,11 +34,12 @@ object HexenRubiFileParser {
         }
         case _ => (0, 0)
       }
-      Logger.info(s"line parsed: ${line}")
+      //Logger.info(s"line parsed: ${line}")
 
-      val dateTimeFromDataLine: LocalDateTime = dateFromDayOfYear.atTime(hrs, mins)
-     val dateInstance = dateTimeFromDataLine.atZone(ZoneId.of("CET")).toInstant
-      val messDatum = Date.from(dateInstance)
+      //val dateTimeFromDataLine = ZonedDateTime.of(dateFromDayOfYear.getYear,dateFromDayOfYear.getMonth.getValue,dateFromDayOfYear.getDayOfMonth,hrs,mins,0,0, ZoneId.of("UTC")).toInstant
+     //val dateInstance = dateTimeFromDataLine.withZoneSameInstant(ZoneId.of("UTC")).toInstant
+      //val messDatum = Date.from(dateTimeFromDataLine)
+      val messDatum = dateFromDayOfYear.getDayOfMonth.toString  + "." + dateFromDayOfYear.getMonth.getValue.toString + "." + dateFromDayOfYear.getYear.toString + " " + hrs.toString  + ":" + mins.toString + ":00"
 
       val stationNumber =  Some(stationNr)
       val projectNumber =  Some(projectNr)
@@ -67,7 +68,7 @@ object HexenRubiFileParser {
             }}
             for {
               valueMessart <- messartValueToSave
-              messDate = s"to_date('${StringToDate.oracleDateFormat.print(new DateTime(messDatum))}', 'DD.MM.YYYY HH24:MI:SS')"
+              messDate = s"to_date('${messDatum}', 'DD.MM.YYYY HH24:MI:SS')"
               einfDate = s"TO_TIMESTAMP('${StringToDate.oracleMetaBlagDateFormat.print(new DateTime())}', 'DD.MM.YYYY HH24:MI:SS.FF3')"
               mrow = MeteoDataRowTableInfo(MeteoDataRow(statNr,messart,configNum,messDate,valueMessart,einfDate,1,Some(1)),multi, fileName)
             } yield mrow

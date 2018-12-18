@@ -21,17 +21,9 @@ class SchedulerActorETHLaegeren @Inject()(configuration: Configuration, meteoSer
   }
 
   def processFile(config: ETHLaegerenLoggerFileConfig): Unit ={
-    val userNameFtp = config.fptUserNameETHLae
-    val passwordFtp = config.ftpPasswordETHLae
-    val pathForFtpFolder = config.ftpPathForIncomingFileETHLae
-    val ftpUrlMeteo = config.ftpUrlETHLae
-    val pathForFaultyFiles = config.ftpPathForETHLaeFaultyFile
     val pathForArchiveFiles = config.ftpPathForETHLaeArchiveFiles
-    val stationKonfigs = config.stationConfigs
-    val emailUserList = config.emailUserList
     Logger.info("processing data task running")
-    FtpConnector.readETHLaeFileFromFtp(userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo, stationKonfigs, emailUserList, meteoService, pathForArchiveFiles)
-
+    FtpConnector.readETHLaeFileFromFtp(config, meteoService, pathForArchiveFiles)
     Logger.info("File processing task finished")
   }
 }

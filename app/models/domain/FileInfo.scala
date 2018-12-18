@@ -48,7 +48,7 @@ object OrganisationStationMappingS {
 }
 
 
-case class OrgStationParamMapping(statNr: Int, orgNr: Int, projnr: Int, paramId: Int, shortName: String, columnNr: Int)
+case class OrgStationParamMapping(statNr: Int, orgNr: Int, projnr: Int, paramId: Int, shortName: String, columnNr: Int, aggMethod: Option[String], completeness: Option[Int])
 
 object OrgStationParamMappings {
   val parser: RowParser[OrgStationParamMapping] = {
@@ -57,8 +57,10 @@ object OrgStationParamMappings {
       get[Int]("projnr") ~
       get[Int]("parameterid") ~
       get[String]("shortnamebyorg") ~
-      get[Int]("columnnr") map {
-      case stationnr ~ orgNr ~ projnr ~parameterId~shortName~columnNr => OrgStationParamMapping(stationnr, orgNr, projnr, parameterId, shortName, columnNr)
+      get[Int]("columnnr") ~
+      get[Option[String]]("agg_method") ~
+      get[Option[Int]]("completeness") map {
+      case stationnr ~ orgNr ~ projnr ~parameterId~shortName~columnNr~aggMethod~completeness => OrgStationParamMapping(stationnr, orgNr, projnr, parameterId, shortName, columnNr, aggMethod, completeness)
     }
   }
 }

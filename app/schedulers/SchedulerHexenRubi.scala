@@ -1,5 +1,7 @@
 package schedulers
 
+import java.text.SimpleDateFormat
+import java.util.{Date, TimeZone}
 import javax.inject.{Inject, Named}
 
 import akka.actor.{ActorRef, ActorSystem}
@@ -13,5 +15,4 @@ class SchedulerHexenRubi @Inject()(val system: ActorSystem, @Named("scheduler-ac
   val frequency = config.frequency
   var actor = system.scheduler.schedule(
     0.microseconds, frequency.seconds, schedulerActor, "processFile")
-
 }

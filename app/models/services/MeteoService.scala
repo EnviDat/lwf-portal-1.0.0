@@ -76,11 +76,15 @@ class MeteoService @Inject()(meteoRepo: MeteoDataRepository) {
   def getLastMeteoDataForStationBetweenDates(stationNr: Int, fromTime:  String, toTime: String) = meteoRepo.findLastMeteoDataForStationBetweenDates(stationNr, fromTime, toTime)
 
 
+  def getLastOneDayOttPulvioDataForStation(stationNr : Int, messart: Int) = meteoRepo.getLastOneDayOttPulvioDataForStation(stationNr, messart)
+
   def getStatKonfForStation() = meteoRepo.getAllStatKonf()
 
   def getAllStatAbbrevations() = meteoRepo.getStationAbbrevations()
 
   def getLastDataSentInformation() = meteoRepo.findLogInfoForDataSentToOrganisations()
+
+  def findAllDaysBetweenLast15Days() = meteoRepo.findAllDaysBetweenLast15Days()
 
   def getAllOrganisations() = meteoRepo.findAllOrganisations()
 
@@ -105,6 +109,7 @@ class MeteoService @Inject()(meteoRepo: MeteoDataRepository) {
   def getOzoneFileDataForYear(year: Int): List[String] = meteoRepo.getOzoneFileDataForTheYearSamplerOne(year) ::: meteoRepo.getOzoneFileDataForTheYearSamplerTwo(year) ::: meteoRepo.getOzoneFileDataForTheYearSamplerThree(year)
 
   def getAllMessartsForOrgFixedFormat() = meteoRepo.findAllMessartsForOrgFixedFormat()
+  def getAllMessartsForOrgFixedAggFormat = meteoRepo.findAllMessartsForOrgFixedAggFormat()
 
   def insertPhanoPlotBesuchDatums(besuchInfo: List[BesuchInfo], einfdat: String) = meteoRepo.insertPhanoPlotBesuchDatums(besuchInfo, einfdat)
 

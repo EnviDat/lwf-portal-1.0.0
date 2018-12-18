@@ -3,16 +3,16 @@ package schedulers
 import java.io.File
 import javax.inject.{Inject, Singleton}
 
-import org.apache.commons.io.FileUtils
 import akka.actor.Actor
-import models.services.{FileGeneratorGeneralFromDB, FileGeneratorMeteoSchweizFixedFormat, MeteoService}
+import models.services.{FileGeneratorMeteoSchweizFixedAggregatedFormat, FileGeneratorMeteoSchweizFixedFormat, MeteoService}
 import models.util.{CurrentSysDateInSimpleFormat, DirectoryCompressor, FtpConnector}
+import org.apache.commons.io.FileUtils
 import play.api.{Configuration, Logger}
 
 import scala.concurrent.ExecutionContext
 
 @Singleton
-class SchedulerActor @Inject()(configuration: Configuration, meteoService: MeteoService)(implicit ec: ExecutionContext) extends Actor {
+class SchedulerActorHexenRübiFixedFormatExport @Inject()(configuration: Configuration, meteoService: MeteoService)(implicit ec: ExecutionContext) extends Actor {
   override def receive: Receive = {
     case "writeFile" =>  {
       val config = ConfigurationLoader.loadMeteoSchweizConfiguration(configuration)
@@ -41,7 +41,7 @@ class SchedulerActor @Inject()(configuration: Configuration, meteoService: Meteo
     val pathForLocalWrittenFiles = config.pathForLocalWrittenFiles
     val pathForArchivedFiles = config.pathForArchivedFiles
     Logger.info("writing data task running")
-    val fileGenerator =  new FileGeneratorMeteoSchweizFixedFormat(meteoService)
+    val fileGenerator =  new FileGeneratorMeteoSchweizFixedAggregatedFormat(meteoService)
     val fileInfos = fileGenerator.generateFiles()
     val logInformation = fileInfos.map(_.logInformation)
     Logger.info(s"Generated File Information:${logInformation} ")
@@ -59,7 +59,7 @@ class SchedulerActor @Inject()(configuration: Configuration, meteoService: Meteo
     Logger.info("Compressing the files generated")
     DirectoryCompressor.compressAllFiles(source,destination)
     //ZipUtil.packEntry(new File("\\csvFiles\\"), new File("\\csvFiles" + ".zip"))
-    fileGenerator.saveLogInfoOfGeneratedFiles(logInformation)
+    //fileGenerator.saveLogInfoOfGeneratedFiles(logInformation)
     FileUtils.cleanDirectory(source)
     Logger.info("writing data task finished")
   }

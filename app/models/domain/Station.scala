@@ -466,6 +466,17 @@ object StationAbbrevation {
 }
 
 
+case class OttPulvioDataRow(sumPrecipitation: BigDecimal, countValues: BigDecimal)
+object OttPulvioData {
+  val parser: RowParser[OttPulvioDataRow] = {
+    get[BigDecimal]("summessart") ~
+      get[BigDecimal]("countval") map {
+      case summessart ~ countval => OttPulvioDataRow(summessart, countval)
+    }
+  }
+}
+
+
 case class MeteoData(station: Station,
                      messArt: MessArt,
                      configuration: MeteoStationConfiguration,

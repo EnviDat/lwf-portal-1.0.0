@@ -7,7 +7,7 @@ import models.domain.Ozone.{OzoneFileConfig, OzoneKeysConfig}
 import models.domain.meteorology.ethlaegeren.parser.ETHLaeFileParser
 import models.domain.meteorology.ethlaegeren.validator.ETHLaeFileValidator
 import models.domain.pheno.{BesuchInfo, PhanoFileLevelInfo, PhanoPlotKeysConfig}
-import models.domain.{CR1000ErrorFileInfo, CR1000Exceptions, FormatMessage}
+import models.domain.{CR1000ErrorFileInfo, CR1000Exceptions, CR1000OracleError, FormatMessage}
 import models.ozone.{OzoneFileLevelInfoMissingError, _}
 import models.phano.{PhanoFileParser, PhanoFileValidator}
 import models.services._
@@ -15,7 +15,10 @@ import models.util.StringToDate.formatCR1000Date
 import org.apache.commons.io.FileUtils
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
-import schedulers.StationKonfig
+import schedulers.{ETHLaegerenLoggerFileConfig, StationKonfig}
+
+import scala.collection.parallel.ParMap
+import scala.collection.{immutable, mutable}
 
 object FtpConnector {
 
@@ -72,11 +75,11 @@ object FtpConnector {
       val emailList = emailUserList.split(";").toSeq
       if(infoAboutFileProcessed.nonEmpty) {
         if(infoAboutFileProcessed.exists(_._2.nonEmpty)) {
-          Logger.info(s"CR 1000 Processor, simpal.kumar@wsl.ch ${emailList}, CR 1000 Processing Report With Errors file Processed Report${infoAboutFileProcessed.map(_._1).mkString("\n")}")
-         // EmailService.sendEmail("CR 1000 Processor", "simpal.kumar@wsl.ch", emailList, emailList, "CR 1000 Processing Report With Errors", s"file Processed Report${infoAboutFileProcessed.map(_._1).mkString("\n")}")
+          Logger.info(s"CR 1000 Processor, CR1000_Data_Processing@klaros.wsl.ch ${emailList}, CR 1000 Processing Report With Errors file Processed Report${infoAboutFileProcessed.map(_._1).mkString("\n")}")
+         EmailService.sendEmail("CR 1000 Processor", "CR1000_Data_Processing@klaros.wsl.ch", emailList, emailList, "CR 1000 Processing Report With Errors", s"file Processed Report${infoAboutFileProcessed.map(_._1).mkString("\n")}")
         } else {
-          Logger.info(s"CR 1000 Processor, simpal.kumar@wsl.ch ${emailList}, CR 1000 Processing Report OK, file Processed Report${infoAboutFileProcessed.map(_._1).mkString("\n")}")
-          //EmailService.sendEmail("CR 1000 Processor", "simpal.kumar@wsl.ch", emailList, emailList, "CR 1000 Processing Report OK", s"file Processed Report${infoAboutFileProcessed.map(_._1).mkString("\n")}")
+          Logger.info(s"CR 1000 Processor, CR1000_Data_Processing@klaros.wsl.ch ${emailList}, CR 1000 Processing Report OK, file Processed Report${infoAboutFileProcessed.map(_._1).mkString("\n")}")
+          EmailService.sendEmail("CR 1000 Processor", "CR1000_Data_Processing@klaros.wsl.ch", emailList, emailList, "CR 1000 Processing Report OK", s"file Processed Report${infoAboutFileProcessed.map(_._1).mkString("\n")}")
         }
       }
       Logger.info(s"list of files received: ${infoAboutFileProcessed.map(_._1).mkString("\n")}")
@@ -324,7 +327,15 @@ object FtpConnector {
 
 
   @throws[Exception]
-  def readETHLaeFileFromFtp(userNameFtp: String, passwordFtp: String, pathForFtpFolder: String, ftpUrlMeteo: String, stationKonfigs: List[StationKonfig], emailUserList: String, meteoService: MeteoService, pathForArchiveFiles: String): Unit = {
+  def readETHLaeFileFromFtp(config: ETHLaegerenLoggerFileConfig, meteoService: MeteoService, pathForArchiveFiles: String): Unit = {
+    val userNameFtp = config.fptUserNameETHLae
+    val passwordFtp = config.ftpPasswordETHLae
+    val pathForFtpFolder = config.ftpPathForIncomingFileETHLae
+    val ftpUrlMeteo = config.ftpUrlETHLae
+    val stationKonfigs = config.stationConfigs
+    val emailUserList = config.emailUserList
+    val headerT1_47File = config.ethHeaderLineT1_47
+    val headerPrefixT1_47 = config.ethHeaderPrefixT1_47
     val jsch = new JSch
     try {
 
@@ -341,71 +352,43 @@ object FtpConnector {
       Logger.info(s"Logged in to ftp folder")
       import org.joda.time.Days
       import Joda._
-      val start = DateTime.now.minusDays(5)
-      val end   = DateTime.now.plusDays(5)
 
-      val daysCount = Days.daysBetween(start, end).getDays()
-      val allDays = Iterator.iterate(start) { _.plusMinutes(10) }.takeWhile(_.isBefore(end)).toList
 
       import scala.collection.JavaConverters._
-      val listOfFiles = sftpChannel.ls("*.lwf").asScala
+      val allLinesCollectedFromFiles = sftpChannel.ls("*.lwf").asScala
         .map(_.asInstanceOf[sftpChannel.LsEntry])
-        .map(entry => {
-          val stream = sftpChannel.get(entry.getFilename)
-          val br = new BufferedReader(new InputStreamReader(stream))
-          val linesToParse = Stream.continually(br.readLine()).takeWhile(_ != null).toList
-          val validLines = linesToParse.filter(l => CurrentSysDateInSimpleFormat.dateRegex.findFirstIn(l).nonEmpty)
-          val allDatesInFiles = validLines.map(l => formatCR1000Date.withZone(DateTimeZone.UTC).parseDateTime(l.split(",")(0).replace("\"", ""))).sorted
-          val minDateInFile = allDatesInFiles.min
-          val maxDateInFile = allDatesInFiles.max
-          val daysCount = Days.daysBetween(minDateInFile.withTimeAtStartOfDay(), maxDateInFile).getDays()
-          val allDays = Iterator.iterate(minDateInFile.withTimeAtStartOfDay()) { _.plusMinutes(10) }.takeWhile(_.isBefore(maxDateInFile)).toList
-          val allDaysTimeStamps = allDays.map(d => (d.minusMinutes(10),d)).sorted
-          val allLinesGrouped: Map[((DateTime, DateTime), Int), List[String]] = allDaysTimeStamps.map(dt => {
-            val linesBetweenTimePeriod = validLines.filter(l => {
-              val dateTimeStampInLine = formatCR1000Date.withZone(DateTimeZone.UTC).parseDateTime(l.split(",")(0).replace("\"", ""))
-              dateTimeStampInLine.isAfter(dt._1) && (dateTimeStampInLine.isBefore(dt._2) || dateTimeStampInLine.isEqual(dt._2))
-            })
-            ((dt,linesBetweenTimePeriod.length), linesBetweenTimePeriod)}).toMap
-
-          allLinesGrouped.map(dataForTimeStamp => {
-            ETHLaeFileParser.parseAndSaveData(dataForTimeStamp._1._1._2, dataForTimeStamp._1._2,dataForTimeStamp._2, meteoService, entry.getFilename, maxDateInFile, stationKonfigs)
+        .flatMap(entry => {
+          val fileName =  entry.getFilename
+          val mapStationKonfig: Option[StationKonfig] = stationKonfigs.find(sk => fileName.startsWith(sk.fileName))
+            mapStationKonfig.map(statKonf => {
+              val stream = sftpChannel.get(fileName)
+              val fileAttributes = entry.getAttrs
+              val lastModified = fileAttributes.getMtimeString
+              val lastModifiedDate = new org.joda.time.DateTime(StringToDate.formatFromDateToStringDefaultJava.parse(lastModified))
+              val diffInSysdate = Days.daysBetween(lastModifiedDate,new org.joda.time.DateTime()).getDays
+              val validLinesToBeparsed =  if(diffInSysdate <= 31) {
+                  val br = new BufferedReader(new InputStreamReader(stream))
+                  val linesToParse = Stream.continually(br.readLine()).takeWhile(_ != null).toList
+                  val headerLine = linesToParse.filter(l => l.contains(headerPrefixT1_47))
+                  val validHeaderLine = headerLine.filter(l => l.replaceAll("\"", "").contains(headerT1_47File.replaceAll("\"", ""))).headOption
+                 if(validHeaderLine.isEmpty)
+                   EmailService.sendEmail("Lageren File Header doesn't match", "laegeren_no_reply@wsl.ch", emailUserList.split(";").toList, emailUserList.split(";").toList, "Laegeren File Processing Report With Errors", s"${headerT1_47File} doesn't match in file.")
+                validHeaderLine.map(vLine => {
+                  linesToParse.filter(l => CurrentSysDateInSimpleFormat.dateRegex.findFirstIn(l).nonEmpty)
+                  }).getOrElse(List())
+              } else List()
+              (statKonf,validLinesToBeparsed)
           })
-          val errors: Seq[(Int, List[CR1000Exceptions])] = validLines.zipWithIndex.map(l => (l._2,ETHLaeFileValidator.validateLine(entry.getFilename,l._1,stationKonfigs)))
-          CR1000ErrorFileInfo(entry.getFilename,errors, validLines)
-        }
-        )
-        .toList
-     /* val infoAboutFileProcessed =
-        listOfFiles.toList.map(file => {
-          if(file.errors.flatMap(_._2).nonEmpty) {
-            val errorstring = FormatMessage.formatCR1000ErrorMessage(file.errors)
-            (s"File not processed: ${file.fileName} \n errors: ${errorstring} \n",Some(errorstring))
-          } else {
-            val projNrForFile: Option[Int] = stationKonfigs.find(sk => file.fileName.startsWith(sk.fileName)).flatMap(_.projs.headOption.map(_.projNr))
-            val caughtExceptions = ETHLaeFileParser.parseAndSaveData(file.linesToSave, meteoService, file.fileName,)
-            caughtExceptions match {
-              case None =>  {
-                sftpChannel.get(file.fileName, pathForArchiveFiles + file.fileName)
-                sftpChannel.rm(file.fileName)
-                Thread.sleep(10)
-                (s"File is processed successfully: ${file.fileName}",None)
-              }
-              case Some(x) => (s"File is not processed successfully: ${file.fileName} reason: ${x.errorMessage}",Some(x.errorMessage))
-            }
-          }
         })
 
-      val emailList = emailUserList.split(";").toSeq
-      if(infoAboutFileProcessed.nonEmpty) {
-        if(infoAboutFileProcessed.exists(_._2.nonEmpty)) {
-          EmailService.sendEmail("CR 1000 Processor", "simpal.kumar@wsl.ch", emailList, emailList, "CR 1000 Processing Report With Errors", s"file Processed Report${infoAboutFileProcessed.map(_._1).mkString("\n")}")
-        } else {
-          EmailService.sendEmail("CR 1000 Processor", "simpal.kumar@wsl.ch", emailList, emailList, "CR 1000 Processing Report OK", s"file Processed Report${infoAboutFileProcessed.map(_._1).mkString("\n")}")
-        }
-      }
-      Logger.info(s"list of files received: ${infoAboutFileProcessed.map(_._1).mkString("\n")}")
-*/
+      val groupByConfig = allLinesCollectedFromFiles.groupBy(_._1)
+      val groupedValidLines = groupByConfig.map(l => (l._1,groupValidLinesForTimeStampsWithTenMinutes(l._2.flatMap(_._2).toList)))
+      val fileName = "MergedLaegerenDataFile_" + CurrentSysDateInSimpleFormat.dateNow
+     val errors =  groupedValidLines.flatMap(dataForStatKonf => {
+       dataForStatKonf._2.map(
+       dataForTimeStamp => {
+          ETHLaeFileParser.parseAndSaveData(dataForTimeStamp._1._1._2, dataForTimeStamp._1._2, dataForTimeStamp._2, meteoService, fileName, dataForStatKonf._1)
+        })}).flatten
       sftpChannel.exit()
       session.disconnect()
     } catch {
@@ -417,4 +400,37 @@ object FtpConnector {
   }
 
 
+  private def groupValidLinesForTimeStampsWithTenMinutes(validLines: List[String]) = {
+    import org.joda.time.Days
+    import Joda._
+    val allDatesInFiles = validLines.map(l => (formatCR1000Date.withZone(DateTimeZone.UTC).parseDateTime(l.split(",")(0).replace("\"", "")),l)).sortBy(_._1)
+    val minDateInFile = allDatesInFiles.map(_._1).min
+    val maxDateInFile = allDatesInFiles.map(_._1).max
+    val allDays = Iterator.iterate(minDateInFile.withTimeAtStartOfDay()) {
+      _.plusMinutes(10)
+    }.takeWhile(_.isBefore(maxDateInFile)).toList
+    val allDaysTimeStamps = allDays.map(d => (d.minusMinutes(10), d)).sorted
+    /*
+    val allLinesGrouped: Map[((DateTime, DateTime), Int), List[String]] = allDaysTimeStamps.map(dt => {
+      val linesBetweenTimePeriod = validLines.filter(l => {
+        val dateTimeStampInLine = formatCR1000Date.withZone(DateTimeZone.UTC).parseDateTime(l.split(",")(0).replace("\"", ""))
+        dateTimeStampInLine.isAfter(dt._1) && (dateTimeStampInLine.isBefore(dt._2) || dateTimeStampInLine.isEqual(dt._2))
+      })
+      ((dt, linesBetweenTimePeriod.length), linesBetweenTimePeriod)
+    }).toMap
+    */
+    val allLinesGrouped: ParMap[((DateTime, DateTime), Int), List[String]] = allDaysTimeStamps.par.map(dt => {
+      val linesBetweenTimePeriod = allDatesInFiles.filter(l => {
+        val dateTimeStampInLine = l._1
+        dateTimeStampInLine.isAfter(dt._1) && (dateTimeStampInLine.isBefore(dt._2) || dateTimeStampInLine.isEqual(dt._2))
+      }).map(_._2)
+      Logger.info(s"grouping is done for time stamp ${dt._1.toString() + dt._2.toString()}")
+      ((dt, linesBetweenTimePeriod.length), linesBetweenTimePeriod)
+    }).toMap
+    Logger.info("grouping task finished")
+
+    allLinesGrouped
+
+      //.getOrElse(Map.empty[((DateTime, DateTime), Int), List[String]])
+  }
 }
