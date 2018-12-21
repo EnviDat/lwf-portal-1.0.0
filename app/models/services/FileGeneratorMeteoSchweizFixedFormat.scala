@@ -1,6 +1,7 @@
 package models.services
 
 import models.domain._
+import models.repositories.StationAbbrevationsList
 import models.util.GroupByOrderedImplicit._
 import models.util.{CurrentSysDateInSimpleFormat, Joda, StringToDate}
 import org.joda.time.DateTime
@@ -56,7 +57,7 @@ class FileGeneratorMeteoSchweizFixedFormat(meteoService: MeteoService) extends F
         val trailor = allMessArtsForStation.map(_.shortName)
         Logger.debug(s"header line of the file is: ${fixedFormatHeader + trailor.mkString(",")}")
 
-        val abbrevationForStation = allAbbrevations.find(_.code == station.stationNumber)
+        val abbrevationForStation = allAbbrevations.find(_.code == station.stationNumber).map(_.kurzName).getOrElse(StationAbbrevationsList.stationAbbrevationsMeteoSchweiz.find(_.code == station.stationNumber).map(_.kurzName).getOrElse(o.prefix + station.stationsName))
         Logger.info(s"All abbrevations for the station: ${abbrevationForStation.mkString(",")}")
 
         val mapFolgNrToMessArt: Seq[(Int, Int)] = allMessArtsForStation.map(m => (m.columnNr, m.paramId)).sortBy(_._1)
@@ -77,7 +78,7 @@ class FileGeneratorMeteoSchweizFixedFormat(meteoService: MeteoService) extends F
 
       val dataHeaderToBeWritten = fixedFormatHeader + trailor.mkString(",")
 
-      val fileName = abbrevationForStation.map(ab =>  ab.kurzName + timeStampForFileName)
+      val fileName = abbrevationForStation + timeStampForFileName
 
       val dataLinesToBeWrittenFixedFormat = valuesToBeWritten.map(dl => dl.stationId + "," + dl.measurementTime + "," + dl.measurementValues.mkString(",")).toList
 
@@ -93,9 +94,9 @@ class FileGeneratorMeteoSchweizFixedFormat(meteoService: MeteoService) extends F
 
         val einfDate = if(allDates.nonEmpty) allEinfDates.max.toDateTime() else new DateTime()
 
-        val logInformation = MeteoDataFileLogInfo(station.stationNumber, o.organisationNr, fileName.getOrElse(o.prefix + station.stationsName + timeStampForFileName).toString, fromDate, toDate,numberOfLinesSent, new DateTime())
+        val logInformation = MeteoDataFileLogInfo(station.stationNumber, o.organisationNr, fileName, fromDate, toDate,numberOfLinesSent, new DateTime())
 
-      FileInfo(fileName.getOrElse(o.prefix + station.stationsName + timeStampForFileName).toString, dataHeaderToBeWritten, dataLinesToBeWrittenFixedFormat, logInformation)
+      FileInfo(fileName, dataHeaderToBeWritten, dataLinesToBeWrittenFixedFormat, logInformation)
     })
     Logger.info(s"All data and file names for the stations are: ${allFilesDataGenerated.filter(_.meteoData.nonEmpty).toList.mkString("\n")}")
 

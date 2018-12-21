@@ -8,6 +8,8 @@ import scala.collection.mutable
 
 case class StationKonfig(fileName: String, statNr: Int,  projs : List[ParametersProject])
 
+case class SpecialParamKonfig(measurementParameter: String, konfNr: Int)
+
 case class ParametersProject(projNr :Int, param :Int, duration: Int)
 
 
@@ -54,7 +56,9 @@ case class ConfigurationHexenrubiData(frequency :Int,
                                       stationNrHexenRubi :Int,
                                       projectNrHexenRubi : Int,
                                       periodeHexenRubi: Int,
-                                      emailUserListHexenRubi: String)
+                                      emailUserListHexenRubi: String,
+                                      specialStationKonfNrsHexenRubi: Seq[SpecialParamKonfig]
+                                     )
 
 case class ConfigurationOttPluvioData(frequencyOttPluvio: Int, stationNrOttPluvio: Int, messartOttPluvio: Int, emailUserListOttPluvio: String, startTimeForOttPulvio: String)
 
@@ -99,7 +103,8 @@ case class ETHLaegerenLoggerFileConfig(frequencyETHLae :Int,
                                   stationConfigs: List[StationKonfig],
                                   emailUserList: String,
                                        ethHeaderLineT1_47: String,
-                                       ethHeaderPrefixT1_47: String
+                                       ethHeaderPrefixT1_47: String,
+                                       specialStationKonfNrsETHLae: Seq[SpecialParamKonfig]
                                  )
 
 object ConfigurationLoader {
@@ -158,7 +163,15 @@ object ConfigurationLoader {
     val projectNrHexenRubi = configuration.getInt("projectNrHexenRubi").get
     val periodeHexenRubi = configuration.getInt("periodeHexenRubi").get
     val emailUserListHexenRubi = configuration.getString("emailUserListHexenRubi").get
-    ConfigurationHexenrubiData(frequency, userNameHexenRubi, passwordHexenRubi, pathForIncomingFileHexenRubi, pathForArchivedFiles, dataFileNameHexenRubi ,stationNrHexenRubi, projectNrHexenRubi, periodeHexenRubi, emailUserListHexenRubi )
+    import scala.collection.JavaConversions._
+
+    val specialStationKonfNrsHexenRubi: Seq[SpecialParamKonfig] =  configuration.getConfigList("specialStationKonfNrsHexenRubi").map { specialStatKonfig =>
+      specialStatKonfig.flatMap(sk => {
+        val windSpeed = sk.getInt("windSpeed").get
+        val windDirection = sk.getInt("windDirection").get
+        List(SpecialParamKonfig("windSpeed", windSpeed),SpecialParamKonfig("windDirection", windDirection))
+      })}.toList.flatten
+    ConfigurationHexenrubiData(frequency, userNameHexenRubi, passwordHexenRubi, pathForIncomingFileHexenRubi, pathForArchivedFiles, dataFileNameHexenRubi ,stationNrHexenRubi, projectNrHexenRubi, periodeHexenRubi, emailUserListHexenRubi, specialStationKonfNrsHexenRubi )
   }
 
   def loadOttPluvioConfiguration(configuration: Configuration) = {
@@ -262,8 +275,17 @@ object ConfigurationLoader {
 
       }).toList
     }.getOrElse(List())
+
+    import scala.collection.JavaConversions._
+
+    val specialStationKonfNrsETHLae: Seq[SpecialParamKonfig] =  configuration.getConfigList("specialStationKonfNrsETHLae").map { specialStatKonfig =>
+      specialStatKonfig.flatMap(sk => {
+        val windSpeed = sk.getInt("windSpeed").get
+        val windDirection = sk.getInt("windDirection").get
+        List(SpecialParamKonfig("windSpeed", windSpeed),SpecialParamKonfig("windDirection", windDirection))
+      })}.toList.flatten
     Logger.info(s"Station config are: ${statKonfigs.mkString("\n")}")
 
-    ETHLaegerenLoggerFileConfig(frequencyETHLae, ftpUrlETHLae, fptUserNameETHLae, ftpPasswordETHLae, ftpPathForIncomingFileETHLae, ftpPathForETHLaeFaultyFile, ftpPathForETHLaeArchiveFiles, statKonfigs, ethLaeEmailUserList, ethHeaderLineT1_47, ethHeaderPrefixT1_47)
+    ETHLaegerenLoggerFileConfig(frequencyETHLae, ftpUrlETHLae, fptUserNameETHLae, ftpPasswordETHLae, ftpPathForIncomingFileETHLae, ftpPathForETHLaeFaultyFile, ftpPathForETHLaeArchiveFiles, statKonfigs, ethLaeEmailUserList, ethHeaderLineT1_47, ethHeaderPrefixT1_47, specialStationKonfNrsETHLae)
   }
 }

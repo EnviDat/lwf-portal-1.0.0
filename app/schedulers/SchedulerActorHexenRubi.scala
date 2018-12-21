@@ -18,7 +18,7 @@ class SchedulerActorHexenRubi @Inject()(configuration: Configuration, meteoServi
   override def receive: Receive = {
     case "processFile" =>  {
       val config = ConfigurationLoader.loadHexenRubiConfiguration(configuration)
-      //processFile(config)
+      processFile(config)
       //readFile(config)
     }
   }
@@ -52,10 +52,10 @@ class SchedulerActorHexenRubi @Inject()(configuration: Configuration, meteoServi
         val caughtExceptions = HexenRubiFileParser.parseAndSaveData(content, meteoService, f.getName, config.stationNrHexenRubi, config.projectNrHexenRubi, config.periodeHexenRubi)
         caughtExceptions match {
           case None => {
-            EmailService.sendEmail("HexenRubi File Processor", "CR1000_Data_Processing@klaros.wsl.ch", emailList, emailList, "Hexenrubi File Processing Report OK", s"file Processed Report${f.getName})}")
+            EmailService.sendEmail("HexenRubi File Processor", "CR1000_Data_Processing@klaros.wsl.ch", emailList, emailList, "Hexenrubi File Processing Report OK", s"file Processed Report${f.getName}. \n PS: ***If there is any change in  wind direction and wind speed parameter, please contact Database Manager LWF to change in DB and Akka config.}")
           }
             case Some(_)
-            => EmailService.sendEmail("HexenRubi File Processor", "CR1000_Data_Processing@klaros.wsl.ch", emailList, emailList, "Hexenrubi File Processing Report With errors", s"file Processed Report${f.getName})}")
+            => EmailService.sendEmail("HexenRubi File Processor", "CR1000_Data_Processing@klaros.wsl.ch", emailList, emailList, "Hexenrubi File Processing Report With errors", s"file Processed Report${f.getName}. \n PS: ***If there is any change in  wind direction and wind speed parameter, please contact Database Manager LWF to change in DB and Akka config.}}")
           }
             Logger.info(s"content of file read:${content}")
       }

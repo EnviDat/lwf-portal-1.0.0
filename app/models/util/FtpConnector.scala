@@ -15,7 +15,7 @@ import models.util.StringToDate.formatCR1000Date
 import org.apache.commons.io.FileUtils
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
-import schedulers.{ETHLaegerenLoggerFileConfig, StationKonfig}
+import schedulers.{ETHLaegerenLoggerFileConfig, SpecialParamKonfig, StationKonfig}
 
 import scala.collection.parallel.ParMap
 import scala.collection.{immutable, mutable}
@@ -336,6 +336,7 @@ object FtpConnector {
     val emailUserList = config.emailUserList
     val headerT1_47File = config.ethHeaderLineT1_47
     val headerPrefixT1_47 = config.ethHeaderPrefixT1_47
+    val specialParamKonfig = config.specialStationKonfNrsETHLae
     val jsch = new JSch
     try {
 
@@ -370,7 +371,7 @@ object FtpConnector {
                   val br = new BufferedReader(new InputStreamReader(stream))
                   val linesToParse = Stream.continually(br.readLine()).takeWhile(_ != null).toList
                   val headerLine = linesToParse.filter(l => l.contains(headerPrefixT1_47))
-                  val validHeaderLine = headerLine.filter(l => l.replaceAll("\"", "").contains(headerT1_47File.replaceAll("\"", ""))).headOption
+                  val validHeaderLine = headerLine.find(l => l.replaceAll("\"", "").contains(headerT1_47File.replaceAll("\"", "")))
                  if(validHeaderLine.isEmpty)
                    EmailService.sendEmail("Lageren File Header doesn't match", "laegeren_no_reply@wsl.ch", emailUserList.split(";").toList, emailUserList.split(";").toList, "Laegeren File Processing Report With Errors", s"${headerT1_47File} doesn't match in file.")
                 validHeaderLine.map(vLine => {
@@ -384,11 +385,18 @@ object FtpConnector {
       val groupByConfig = allLinesCollectedFromFiles.groupBy(_._1)
       val groupedValidLines = groupByConfig.map(l => (l._1,groupValidLinesForTimeStampsWithTenMinutes(l._2.flatMap(_._2).toList)))
       val fileName = "MergedLaegerenDataFile_" + CurrentSysDateInSimpleFormat.dateNow
-     val errors =  groupedValidLines.flatMap(dataForStatKonf => {
+     val errors: immutable.Iterable[CR1000OracleError] =  groupedValidLines.flatMap(dataForStatKonf => {
        dataForStatKonf._2.map(
        dataForTimeStamp => {
-          ETHLaeFileParser.parseAndSaveData(dataForTimeStamp._1._1._2, dataForTimeStamp._1._2, dataForTimeStamp._2, meteoService, fileName, dataForStatKonf._1)
+          ETHLaeFileParser.parseAndSaveData(dataForTimeStamp._1._1._2, dataForTimeStamp._1._2, dataForTimeStamp._2, meteoService, fileName, dataForStatKonf._1, specialParamKonfig)
         })}).flatten
+      errors.nonEmpty match {
+        case false => {
+          EmailService.sendEmail("Lägeren ETH-EMPA Tower File Processor", "LWF_Data_Processing@klaros.wsl.ch", emailUserList.split(";"), emailUserList.split(";"), "Läegeren ETH-EMPA File Processing Report OK", s"file Processed Successfully. \n PS: ***If there is any change in  wind direction and wind speed parameter, please contact Database Manager LWF to change in DB and Akka config.}")
+        }
+        case true =>
+          EmailService.sendEmail("Lägeren ETH-EMPA Tower File Processor", "LWF_Data_Processing@klaros.wsl.ch", emailUserList.split(";"), emailUserList.split(";"), "Läegeren ETH-EMPA File Processing Report With errors", s"file Processed Report${errors.map(_.errorMessage).mkString(",")}. \n PS: ***If there is any change in  wind direction and wind speed parameter, please contact Database Manager LWF to change in DB and Akka config.}}")
+      }
       sftpChannel.exit()
       session.disconnect()
     } catch {

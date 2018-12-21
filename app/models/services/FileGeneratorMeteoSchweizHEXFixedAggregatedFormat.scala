@@ -1,14 +1,17 @@
 package models.services
 
+import java.io
 import java.math.MathContext
 
 import models.domain._
 import models.domain.meteorology.ethlaegeren.parser.ETHLaeFileParser.aggregateAccordingToMethod
+import models.repositories.StationAbbrevationsList
 import models.util.GroupByOrderedImplicit._
 import models.util.StringToDate.formatCR1000Date
 import models.util.{CurrentSysDateInSimpleFormat, Joda, StringToDate}
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
+import schedulers.SpecialParamKonfig
 
 import scala.collection.immutable.Range
 import scala.collection.parallel.immutable
@@ -19,7 +22,7 @@ import scala.math.BigDecimal.RoundingMode
 
 
 
-class FileGeneratorMeteoSchweizFixedAggregatedFormat(meteoService: MeteoService) extends FileGenerator {
+class FileGeneratorMeteoSchweizHEXFixedAggregatedFormat(meteoService: MeteoService) {
 
   val allOrganisations: Seq[Organisation] = meteoService.getAllOrganisations()
   Logger.info(s"All Organisations where data should be sent out: ${allOrganisations.size}")
@@ -28,13 +31,13 @@ class FileGeneratorMeteoSchweizFixedAggregatedFormat(meteoService: MeteoService)
   Logger.info(s"Number of stations found: ${allStations.size}")
   Logger.info(s"Name of stations found are: ${allStations.map(_.stationsName).mkString(",")}")
 
-  val allAbbrevations: List[StationAbbrevations] = List(StationAbbrevations(190,"HEX", "HexenRübi")) //meteoService.getAllStatAbbrevations()
+  val allAbbrevations: List[StationAbbrevations] = meteoService.getAllStatAbbrevations()
   Logger.info(s"Abbrevations for the stations found are: ${allAbbrevations.map(_.kurzName).mkString(",")}")
 
   val allMessWerts: Seq[OrgStationParamMapping] = meteoService.getAllMessartsForOrgFixedAggFormat
   Logger.info(s"All Messwerts for the stations found are: ${allMessWerts.mkString(",")}")
 
-  val lastTimeDataSentForStations: Seq[MeteoDataFileLogInfo] = List(MeteoDataFileLogInfo(190,1,"Rawdata",StringToDate.stringToDateConvert("01-12-2018 00:00:00"),StringToDate.stringToDateConvert("07-12-2018 00:00:00"),0,StringToDate.stringToDateConvert("07-12-2018 00:00:00")))//meteoService.getLastDataSentInformation()
+  val lastTimeDataSentForStations: Seq[MeteoDataFileLogInfo] = meteoService.getLastDataSentInformation() //List(MeteoDataFileLogInfo(190,1,"Rawdata",StringToDate.stringToDateConvert("01-12-2018 00:00:00"),StringToDate.stringToDateConvert("07-12-2018 00:00:00"),0,StringToDate.stringToDateConvert("07-12-2018 00:00:00")))
 
   Logger.info(s"All information about the station when data was sent out: ${lastTimeDataSentForStations.mkString(",")}")
 
@@ -47,7 +50,7 @@ class FileGeneratorMeteoSchweizFixedAggregatedFormat(meteoService: MeteoService)
   val fixedFormatHeader = """StationsID, Datum[DD.MM.YYYY HH24:MI:SS"],"""
 
 
-  def generateFiles(): List[FileInfo] = {
+  def generateFiles(specialParamKonfig: Seq[SpecialParamKonfig]): List[FileInfo] = {
     import org.joda.time.Days
     import Joda._
 
@@ -55,7 +58,7 @@ class FileGeneratorMeteoSchweizFixedAggregatedFormat(meteoService: MeteoService)
 
     allOrganisations.filter(_.organisationNr == 1).flatMap(o => {
 
-      val configuredStationsForOrganisation = stationOrganisationMappings.filter(so => so.orgNr == o.organisationNr && so.shouldSendData == 0 && so.fileFormat == "FixedAggFormat")
+      val configuredStationsForOrganisation = stationOrganisationMappings.filter(so => so.orgNr == o.organisationNr && so.shouldSendData == 1 && so.fileFormat == "FixedAggFormat")
 
       val stationNumbersConfigured = configuredStationsForOrganisation.map(_.statNr)
       val allFilesDataGenerated = allStations.filter(st => stationNumbersConfigured.contains(st.stationNumber)).map(station => {
@@ -70,7 +73,7 @@ class FileGeneratorMeteoSchweizFixedAggregatedFormat(meteoService: MeteoService)
         val trailor = allMessArtsForStation.map(_.shortName)
         Logger.debug(s"header line of the file is: ${fixedFormatHeader + trailor.mkString(",")}")
 
-        val abbrevationForStation = allAbbrevations.find(_.code == station.stationNumber)
+        val abbrevationForStation: String = allAbbrevations.find(_.code == station.stationNumber).map(_.kurzName).getOrElse(StationAbbrevationsList.stationAbbrevationsMeteoSchweiz.find(_.code == station.stationNumber).map(_.kurzName).getOrElse(o.prefix + station.stationsName))
         Logger.info(s"All abbrevations for the station: ${abbrevationForStation.mkString(",")}")
 
         val mapFolgNrToMessArt: Seq[(Int, Int)] = allMessArtsForStation.map(m => (m.columnNr, m.paramId)).sortBy(_._1)
@@ -92,11 +95,15 @@ class FileGeneratorMeteoSchweizFixedAggregatedFormat(meteoService: MeteoService)
         val aggregatedMessartValuesForEachConfig = groupByKonf.flatMap(valueForKonf => {
           val completenessRequired = allStationConfigs.filter(_.configNumber == valueForKonf._1).flatMap(_.completeness).headOption
           val methodToApply = allStationConfigs.filter(_.configNumber == valueForKonf._1).flatMap(_.methode).headOption
+          val windSpeedKonfNr = specialParamKonfig.find(_.measurementParameter == "windSpeed").map(_.konfNr)
+          val windDirectionKonfNr = specialParamKonfig.find(_.measurementParameter == "windDirection").map(_.konfNr)
           val aggregatedMeasurementValue = for {
             completeness <- completenessRequired
             method <- methodToApply
+            windSpeedKonf <- windSpeedKonfNr
+            windDirectionKonf <- windDirectionKonfNr
             messartValue =  if(valueForKonf._2.size == 2) {
-              aggregateAccordingToMethod(method, valueForKonf._2.map(_.valueOfMeasurement).toList, windSpeedValues)
+              aggregateAccordingToMethod(method, valueForKonf._2.map(_.valueOfMeasurement).toList, windSpeedValues, windSpeedKonf, windDirectionKonf)
             } else BigDecimal(-9999)
           } yield messartValue
           val aggregatedValueToEnter = valueForKonf._2.headOption.map(_.copy(valueOfMeasurement = aggregatedMeasurementValue.getOrElse(BigDecimal(-9999)), dateReceived = StringToDate.formatDate.print(dt._1._1._2).toString))
@@ -116,7 +123,7 @@ class FileGeneratorMeteoSchweizFixedAggregatedFormat(meteoService: MeteoService)
 
       val dataHeaderToBeWritten = fixedFormatHeader + trailor.mkString(",")
 
-      val fileName = abbrevationForStation.map(ab =>  ab.kurzName + timeStampForFileName)
+      val fileName = abbrevationForStation + timeStampForFileName
 
       val dataLinesToBeWrittenFixedFormat = valuesToBeWritten.map(dl => dl.stationId + "," + dl.measurementTime + "," + dl.measurementValues.map(_.setScale(3,RoundingMode.HALF_DOWN)).mkString(",")).toList
 
@@ -132,9 +139,9 @@ class FileGeneratorMeteoSchweizFixedAggregatedFormat(meteoService: MeteoService)
 
         val einfDate = if(allDates.nonEmpty) allEinfDates.max.toDateTime() else new DateTime()
 
-        val logInformation = MeteoDataFileLogInfo(station.stationNumber, o.organisationNr, fileName.getOrElse(o.prefix + station.stationsName + timeStampForFileName).toString, fromDate, toDate,numberOfLinesSent, new DateTime())
+        val logInformation = MeteoDataFileLogInfo(station.stationNumber, o.organisationNr, fileName, fromDate, toDate,numberOfLinesSent, new DateTime())
 
-      FileInfo(fileName.getOrElse(o.prefix + station.stationsName + timeStampForFileName).toString, dataHeaderToBeWritten, dataLinesToBeWrittenFixedFormat, logInformation)
+      FileInfo(fileName, dataHeaderToBeWritten, dataLinesToBeWrittenFixedFormat, logInformation)
     })
     Logger.info(s"All data and file names for the stations are: ${allFilesDataGenerated.filter(_.meteoData.nonEmpty).toList.mkString("\n")}")
 
@@ -196,22 +203,22 @@ class FileGeneratorMeteoSchweizFixedAggregatedFormat(meteoService: MeteoService)
     //.getOrElse(Map.empty[((DateTime, DateTime), Int), List[String]])
   }
 
-  private def aggregateAccordingToMethod(method: String, measurements: List[BigDecimal], windSpeedValues: scala.collection.immutable.Iterable[((String, Int), BigDecimal)]): BigDecimal = {
+  private def aggregateAccordingToMethod(method: String, measurements: List[BigDecimal], windSpeedValues: scala.collection.immutable.Iterable[((String, Int), BigDecimal)], windSpeedKonf: Int, windDirectionKonf: Int): BigDecimal = {
     method match {
       case "avg" => (measurements.sum/measurements.size)
       case "sum" => measurements.sum
-      case "windFormula" => computeWindDirectionFromMeasurements(measurements, windSpeedValues)
+      case "windFormula" => computeWindDirectionFromMeasurements(measurements, windSpeedValues, windSpeedKonf, windDirectionKonf)
       case "max" => measurements.max
       case _ => (measurements.sum/measurements.size)    }
   }
 
-  private def computeWindDirectionFromMeasurements(measurements: List[BigDecimal], windSpeedValues: scala.collection.immutable.Iterable[((String, Int), BigDecimal)]): BigDecimal = {
+  private def computeWindDirectionFromMeasurements(measurements: List[BigDecimal], windSpeedValues: scala.collection.immutable.Iterable[((String, Int), BigDecimal)], windSpeedKonf: Int, windDirectionKonf: Int): BigDecimal = {
    val sinCosComponents = windSpeedValues.groupBy(_._1._1).map(values => {
-      val windSpeed = values._2.find(v => v._1._2 == 5536).map(_._2).getOrElse(BigDecimal(-9999))
-      val windDirection = values._2.find(v => v._1._2 == 5538).map(_._2).getOrElse(BigDecimal(-9999))
+      val windSpeed = values._2.find(v => v._1._2 == windSpeedKonf).map(_._2).getOrElse(BigDecimal(-9999))
+      val windDirection = values._2.find(v => v._1._2 == windDirectionKonf).map(_._2).getOrElse(BigDecimal(-9999))
       val sinCosW = if(windSpeed != -9999 && windDirection != -9999) {
-        val wx = Math.sin(windDirection.toDouble * (3.14/180)) * windSpeed
-        val wy = Math.cos(windDirection.toDouble * (3.14/180)) * windSpeed
+        val wx = Math.sin(windDirection.toDouble * (Math.PI/180)) * windSpeed
+        val wy = Math.cos(windDirection.toDouble * (Math.PI/180)) * windSpeed
         (wx, wy)
       } else (BigDecimal(-9999), BigDecimal(-9999))
       sinCosW
@@ -221,7 +228,7 @@ class FileGeneratorMeteoSchweizFixedAggregatedFormat(meteoService: MeteoService)
     val sumSinW = sinCosComponents.map(_._1).sum
     val sumCosW = sinCosComponents.map(_._2).sum
     val d = if(sumSinW != 0 && sumCosW != 0) {
-      (180/3.14) * Math.atan(sumCosW.toDouble/sumSinW.toDouble)
+      (180/Math.PI) * Math.atan(sumCosW.toDouble/sumSinW.toDouble)
     } else 0
 
     val wd = if(sumSinW == 0 && sumCosW > 0) 0

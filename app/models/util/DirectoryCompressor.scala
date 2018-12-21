@@ -22,7 +22,7 @@ object DirectoryCompressor {
 
   def compressAllFiles(source: File, destination: File): Unit = {
 
-    val archiveStream = new FileOutputStream(destination)
+    val archiveStream = new FileOutputStream(destination.getAbsolutePath)
     val archive = new ArchiveStreamFactory().createArchiveOutputStream(ArchiveStreamFactory.ZIP, archiveStream)
 
     val fileList = FileUtils.listFiles(source, null, true)
