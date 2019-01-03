@@ -15,7 +15,7 @@ import schedulers.SpecialParamKonfig
 
 import scala.collection.immutable.Range
 import scala.collection.parallel.immutable
-import scala.collection.parallel.immutable.ParIterable
+import scala.collection.parallel.immutable.{ParIterable, ParMap}
 import scala.math.BigDecimal.RoundingMode
 
 
@@ -86,7 +86,7 @@ class FileGeneratorMeteoSchweizHEXFixedAggregatedFormat(meteoService: MeteoServi
         //Logger.debug(s"All data Loaded for the station: ${latestMeteoDataForStation.mkString(",")}")
         val dataForRequiredMessartsToBeSentOut: Seq[(DateTime, MeteoDataRow)] = latestMeteoDataForStation.filter(lt => allMessArtsForStation.map(_.paramId).contains(lt.messArt)).map(dt => StringToDate.stringToDateConvert(dt.dateReceived) -> dt).sortBy(_._1)
 
-        val groupedDataHourly =  groupValidMeasurementsForTimeStampsWithOneHour(dataForRequiredMessartsToBeSentOut)
+        val groupedDataHourly: ParMap[((DateTime, DateTime), Int), Seq[MeteoDataRow]] =  groupValidMeasurementsForTimeStampsWithOneHour(dataForRequiredMessartsToBeSentOut)
 
        val valuesToWrite = groupedDataHourly.flatMap(dt => {
 
@@ -125,7 +125,7 @@ class FileGeneratorMeteoSchweizHEXFixedAggregatedFormat(meteoService: MeteoServi
 
       val fileName = abbrevationForStation + timeStampForFileName
 
-      val dataLinesToBeWrittenFixedFormat = valuesToBeWritten.map(dl => dl.stationId + "," + dl.measurementTime + "," + dl.measurementValues.map(_.setScale(3,RoundingMode.HALF_DOWN)).mkString(",")).toList
+      val dataLinesToBeWrittenFixedFormat = valuesToBeWritten.filter(m => m.measurementValues.exists(_ != m.measurementValues.head)).map(dl => dl.stationId + "," + dl.measurementTime + "," + dl.measurementValues.map(_.setScale(3,RoundingMode.HALF_DOWN)).mkString(",")).toList
 
       Logger.debug(s"Data lines to be written for Fixed Format stations: ${dataLinesToBeWrittenFixedFormat.mkString("\n")}")
         import Joda._
@@ -139,7 +139,7 @@ class FileGeneratorMeteoSchweizHEXFixedAggregatedFormat(meteoService: MeteoServi
 
         val einfDate = if(allDates.nonEmpty) allEinfDates.max.toDateTime() else new DateTime()
 
-        val logInformation = MeteoDataFileLogInfo(station.stationNumber, o.organisationNr, fileName, fromDate, toDate,numberOfLinesSent, new DateTime())
+        val logInformation = MeteoDataFileLogInfo(station.stationNumber, o.organisationNr, fileName, fromDate, toDate,numberOfLinesSent, einfDate)
 
       FileInfo(fileName, dataHeaderToBeWritten, dataLinesToBeWrittenFixedFormat, logInformation)
     })
@@ -173,12 +173,14 @@ class FileGeneratorMeteoSchweizHEXFixedAggregatedFormat(meteoService: MeteoServi
   private def groupValidMeasurementsForTimeStampsWithOneHour(dataForRequiredMessartsToBeSentOut: Seq[(DateTime, MeteoDataRow)]): immutable.ParMap[((DateTime, DateTime), Int), Seq[MeteoDataRow]] = {
     import org.joda.time.Days
     import Joda._
-    val minDateInFile = dataForRequiredMessartsToBeSentOut.map(_._1).min
-    val maxDateInFile = dataForRequiredMessartsToBeSentOut.map(_._1).max
-    val allDays = Iterator.iterate(minDateInFile.withTimeAtStartOfDay()) {
-      _.plusMinutes(60)
-    }.takeWhile(_.isBefore(maxDateInFile)).toList
-    val allDaysTimeStamps = allDays.map(d => (d.minusMinutes(60), d)).sorted
+    val allDaysTimeStamps =  if(dataForRequiredMessartsToBeSentOut.map(_._1).nonEmpty) {
+      val minDateInFile = dataForRequiredMessartsToBeSentOut.map(_._1).min
+      val maxDateInFile = dataForRequiredMessartsToBeSentOut.map(_._1).max
+      val allDays = Iterator.iterate(minDateInFile.withTimeAtStartOfDay()) {
+        _.plusMinutes(60)
+      }.takeWhile(_.isBefore(maxDateInFile)).toList
+      allDays.map(d => (d.minusMinutes(60), d)).sorted
+    } else Seq()
     /*
     val allLinesGrouped: Map[((DateTime, DateTime), Int), List[String]] = allDaysTimeStamps.map(dt => {
       val linesBetweenTimePeriod = validLines.filter(l => {
