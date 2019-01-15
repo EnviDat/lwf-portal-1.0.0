@@ -12,6 +12,6 @@ class SchedulerHexenRubiExport @Inject()(val system: ActorSystem, @Named("schedu
   val config = ConfigurationLoader.loadMeteoSchweizConfiguration(configuration)
   val frequency = config.frequency
   var actor = system.scheduler.schedule(
-    0.microseconds, 4200.seconds, schedulerActor, "writeFile")
+    300.seconds, 3600.seconds, schedulerActor, "writeFile")
 
 }

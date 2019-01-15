@@ -2,6 +2,7 @@ package schedulers
 
 import java.io._
 import java.net.MalformedURLException
+import java.sql.Date
 import javax.inject.{Inject, Singleton}
 
 import akka.actor.Actor
@@ -10,6 +11,7 @@ import models.util.{CurrentSysDateInSimpleFormat, DirectoryCompressor, FtpConnec
 import org.apache.commons.io.FileUtils
 import play.api.{Configuration, Logger}
 import jcifs.smb.{SmbException, _}
+import org.joda.time.DateTime
 
 import scala.concurrent.ExecutionContext
 
@@ -47,8 +49,8 @@ class SchedulerActorHexenRubi @Inject()(configuration: Configuration, meteoServi
 
     for(f <- sFile) {
       if (f.getName.startsWith(config.dataFileNameHexenRubi) && (f.getName.endsWith(".dat") || f.getName.endsWith(".Dat") || f.getName.endsWith(".DAT"))) {
-
-        val content = readFileContent(f).toList
+       val lastModifiedTime = new DateTime(f.getLastModified)
+        /*val content = readFileContent(f).toList
         val caughtExceptions = HexenRubiFileParser.parseAndSaveData(content, meteoService, f.getName, config.stationNrHexenRubi, config.projectNrHexenRubi, config.periodeHexenRubi)
         caughtExceptions match {
           case None => {
@@ -56,8 +58,8 @@ class SchedulerActorHexenRubi @Inject()(configuration: Configuration, meteoServi
           }
             case Some(_)
             => EmailService.sendEmail("HexenRubi File Processor", "CR1000_Data_Processing@klaros.wsl.ch", emailList, emailList, "Hexenrubi File Processing Report With errors", s"file Processed Report${f.getName}. \n PS: ***If there is any change in  wind direction and wind speed parameter, please contact Database Manager LWF to change in DB and Akka config.}}")
-          }
-            Logger.info(s"content of file read:${content}")
+          }*/
+            Logger.info(s"Last timestamp when file was changed:${f.getName} time: ${lastModifiedTime}")
       }
     }
     /*val sfos = new SmbFileOutputStream(sFile)

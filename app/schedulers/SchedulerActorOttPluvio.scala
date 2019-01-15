@@ -16,7 +16,7 @@ class SchedulerActorOttPluvio @Inject()(configuration: Configuration, meteoServi
   override def receive: Receive = {
     case "sendMeasurementEmail" =>  {
       val config = ConfigurationLoader.loadOttPluvioConfiguration(configuration)
-      sendMeasurementEmail(config)
+      //sendMeasurementEmail(config)
       //readFile(config)
     }
   }

@@ -137,7 +137,7 @@ class FileGeneratorMeteoSchweizHEXFixedAggregatedFormat(meteoService: MeteoServi
 
         val toDate = if(allDates.nonEmpty) allDates.max.toDateTime() else new DateTime()
 
-        val einfDate = if(allDates.nonEmpty) allEinfDates.max.toDateTime() else new DateTime()
+        val einfDate = if(allDates.nonEmpty) allEinfDates.max.toDateTime().minusHours(1) else new DateTime().minusHours(1)
 
         val logInformation = MeteoDataFileLogInfo(station.stationNumber, o.organisationNr, fileName, fromDate, toDate,numberOfLinesSent, einfDate)
 
