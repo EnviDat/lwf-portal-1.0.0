@@ -100,7 +100,7 @@ object OzoneKeysConfig {
 
   def icpForestAQPandAQBFileHeader = "!Sequence; country; plot; sampler; date_start; date_end; compound; value; other_observations"
 
-  def icpForestPPSFileHeader = "!Sequence;country;plot;latitude;longitude;altitude;compound;sampler;manufacturer;date_monitoring_first;date_monitoring_last;measurements;col;altitude_m;elevation_lowest2500;elevation_lowest5000; other_observations"
+  def icpForestPPSFileHeader = "!Sequence;country;plot;latitude;longitude;altitude;compound;sampler;manufacturer;date_monitoring_first;date_monitoring_last;measurements;col;altitude_m;elevation_lowest2500;elevation_lowest5000;sampling_height;other_observations(Rule_ID: )"
 
 
   def forNumberOfParametersInFile = List("Wert 4")

@@ -20,9 +20,9 @@ import scala.util.{Failure, Try}
 @javax.inject.Singleton
 class MeteorologyDataRepository  @Inject() (dbapi: DBApi) {
 
-  private val db = dbapi.database("meteorology")
+  private val db = dbapi.database("bodenspa")
 
-  def findAllMessArts() : Seq[MeasurementParameter] = db.withConnection { implicit connection =>
+  /*def findAllMessArts() : Seq[MeasurementParameter] = db.withConnection { implicit connection =>
     SQL("SELECT ID, NAME, DURATION_MINS, MULTI FROM MEAS_PARAMETERS").as(MeasurementParameterRow.parser *)}
 
   def getAllStatKonf()= db.withConnection { implicit connection =>
@@ -84,29 +84,24 @@ class MeteorologyDataRepository  @Inject() (dbapi: DBApi) {
     stmt.close()
     conn.close()
 
-  }
+  }*/
 
-  def insertETHLaeMeteoDataForFilesSent(meteoData: Seq[MeteoDataRowTableInfo]): Option[CR1000OracleError] = {
+  def insertSoilBodenSpaMeasurementsData(meteoData: Seq[BodenDataRow]): Option[CR1000OracleError] = {
     val conn = db.getConnection()
     try {
       conn.setAutoCommit(false)
       val stmt: Statement = conn.createStatement()
       meteoData.map(m => {
 
-        val ml = m.meteoDataRow
-        //code that throws sql exception
+         //code that throws sql exception
 
 
-            val insertStatement = s"insert into measurements (id, station_id, station_konfid, mess_dat, einf_dat, mess_value, val_ver) values(measurement_SEQ.nextval," +
-              s"${ml.station}, ${ml.configuration}, ${ml.dateReceived}, ${ml.dateOfInsertion}, ${ml.valueOfMeasurement}, 0)"
+            val insertStatement = s"insert into measurements (profil_nr, profil_konf_id, meas_date, value, valid, val_version) values ( ${m.profilNr}, ${m.profilKonfId}, ${m.measurementDate}, ${m.valueOfMeasurement}, ${m.valid}, ${m.valVersion})"
             Logger.info(s"statement to be executed: ${insertStatement}")
             stmt.executeUpdate(insertStatement)
 
 
       })
-
-      val filesProcessed = insertInfoIntoFileInfo(meteoData, stmt)
-      Logger.info(s"Number of Files processed and saved are: ${filesProcessed.size}")
       stmt.close()
       conn.commit()
       conn.close()
@@ -153,7 +148,7 @@ class MeteorologyDataRepository  @Inject() (dbapi: DBApi) {
 
 
 
-  def insertOzoneDataForFilesSent(ozoneData: PassSammData, analyseid: Int): Option[OzoneOracleError] = {
+ /* def insertOzoneDataForFilesSent(ozoneData: PassSammData, analyseid: Int): Option[OzoneOracleError] = {
     val conn = db.getConnection()
     try {
       conn.setAutoCommit(false)
@@ -215,7 +210,7 @@ class MeteorologyDataRepository  @Inject() (dbapi: DBApi) {
         }
       }
     }
-  }
+  }*/
 
 }
 

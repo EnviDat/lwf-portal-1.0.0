@@ -51,6 +51,10 @@ class Module extends AbstractModule with AkkaGuiceSupport {
     bindActor[SchedulerActorHexenRübiFixedFormatExport]("scheduler-actor-hexenrubi-export")
     bind(classOf[SchedulerHexenRubiExport]).asEagerSingleton()
 
+    bindActor[SchedulerActorBodenSpa]("scheduler-actor-bodenspa")
+    bind(classOf[SchedulerBodenSpa]).asEagerSingleton()
+
+
   }
 
 }

@@ -47,13 +47,14 @@ class SchedulerActorHexenRübiFixedFormatExport @Inject()(configuration: Configu
     val fileInfos = fileGenerator.generateFiles(configHexenrubi.specialStationKonfNrsHexenRubi)
     val logInformation = fileInfos.map(_.logInformation)
     Logger.info(s"Generated File Information:${logInformation} ")
+    val pathForTempFiles = configMeteoSwiss.pathForTempFiles //change it as it is temporarily set
     fileInfos.toList.map( ff => {
-        FtpConnector.writeFileToFtp(List(ff.header) ::: ff.meteoData, userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo, ff.fileName, pathForLocalWrittenFiles, ".DAT")
+        FtpConnector.writeFileToFtp(List(ff.header) ::: ff.meteoData, userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo, ff.fileName, pathForLocalWrittenFiles, ".DAT", pathForTempFiles)
     })
     val source = new File(pathForLocalWrittenFiles)
     Logger.info(s"Source for local written files pathForLocalWrittenFiles : ${source.getName} ")
     val destination = new File(pathForArchivedFiles + "generatedArchivedFiles" + CurrentSysDateInSimpleFormat.dateNow + ".zip")
-    Logger.info(s"Destination for archive files ${pathForArchivedFiles + "generatedArchivedFiles" + CurrentSysDateInSimpleFormat.dateNow + ".zip"} ")
+    Logger.info(s"Destination for archive files ${pathForArchivedFiles + "generatedArchivedFiles" + CurrentSysDateInSimpleFormat.dateNow + "_HEX_.zip"} ")
 
     destination.setReadable(true, false)
     destination.setExecutable(true, false)

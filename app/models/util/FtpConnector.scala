@@ -62,8 +62,11 @@ object FtpConnector {
           val caughtExceptions = CR1000FileParser.parseAndSaveData(file.linesToSave, meteoService, file.fileName)
           caughtExceptions match {
             case None =>  {
-              sftpChannel.get(file.fileName, pathForArchiveFiles + file.fileName)
-              sftpChannel.rm(file.fileName)
+             val phoneixExists = new java.io.File(pathForArchiveFiles).exists
+              if(phoneixExists) {
+                sftpChannel.get(file.fileName, pathForArchiveFiles + file.fileName)
+                sftpChannel.rm(file.fileName)
+              }
               Thread.sleep(10)
               (s"File is processed successfully: ${file.fileName}",None)
             }
@@ -94,7 +97,7 @@ object FtpConnector {
   }
 
   @throws[Exception]
-  def writeFileToFtp(dataToWrite: List[String],userNameFtp: String, passwordFtp: String, pathForFtpFolder: String, ftpUrlMeteo: String, fileName: String, pathForLocalWrittenFiles: String, extensionFile: String): Unit = {
+  def writeFileToFtp(dataToWrite: List[String],userNameFtp: String, passwordFtp: String, pathForFtpFolder: String, ftpUrlMeteo: String, fileName: String, pathForLocalWrittenFiles: String, extensionFile: String, pathForTempFiles: String): Unit = {
     val jsch = new JSch
     try {
       val session = jsch.getSession(userNameFtp, ftpUrlMeteo, 22)
@@ -105,7 +108,7 @@ object FtpConnector {
       channel.connect()
       val sftpChannel = channel.asInstanceOf[ChannelSftp]
       sftpChannel.cd(pathForFtpFolder)
-      val file = new File(fileName + extensionFile)
+      val file = new File(pathForTempFiles + fileName + extensionFile)
       Logger.info(s"Empty file before moving to ftp: ${file.getAbsolutePath}")
       val pw = new PrintWriter(file)
       dataToWrite.map(pw.println(_))
@@ -115,7 +118,7 @@ object FtpConnector {
       sftpChannel.put(newFileStream, file.getName)
       sftpChannel.exit()
       session.disconnect()
-      val srcFile = FileUtils.getFile(fileName + extensionFile)
+      val srcFile = FileUtils.getFile(pathForTempFiles + fileName + extensionFile)
       val destFile = FileUtils.getFile(pathForLocalWrittenFiles)
       newFileStream.close()
         FileUtils.moveFileToDirectory(srcFile, destFile, true)

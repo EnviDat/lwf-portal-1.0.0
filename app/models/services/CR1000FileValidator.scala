@@ -10,7 +10,7 @@ import scala.util.{Failure, Success, Try}
 object CR1000FileValidator {
 
   def validateLine(fileName: String, lineToValidate: String, stationKonfigs: List[StationKonfig]): List[CR1000Exceptions] = {
-    Logger.info(s"Stat Konfig loaded ${stationKonfigs.mkString("\n")}")
+    Logger.info(s"Station Konfig loaded ${stationKonfigs.mkString("\n")}")
     val mapStatKonfig = stationKonfigs.filter(sk => fileName.toUpperCase.startsWith(sk.fileName))
 
     try {
@@ -40,7 +40,7 @@ object CR1000FileValidator {
     }
   catch {
     case e: ArrayIndexOutOfBoundsException =>
-      List(CR1000NotSufficientParameters(999, "File was either empty or contained lines with error values"))
+      List(CR1000NotSufficientParameters(999, "File was either empty or contained lines with error values. Exception thrown is: ArrayIndexOutOfBoundsException")) //TO DO: Change the error message to size of array
     case error : Throwable =>
       List(CR1000FileError(-1, error.toString))
     }

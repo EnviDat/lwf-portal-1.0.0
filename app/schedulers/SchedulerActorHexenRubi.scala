@@ -20,7 +20,7 @@ class SchedulerActorHexenRubi @Inject()(configuration: Configuration, meteoServi
   override def receive: Receive = {
     case "processFile" =>  {
       val config = ConfigurationLoader.loadHexenRubiConfiguration(configuration)
-      processFile(config)
+      //processFile(config)
       //readFile(config)
     }
   }
@@ -49,8 +49,8 @@ class SchedulerActorHexenRubi @Inject()(configuration: Configuration, meteoServi
 
     for(f <- sFile) {
       if (f.getName.startsWith(config.dataFileNameHexenRubi) && (f.getName.endsWith(".dat") || f.getName.endsWith(".Dat") || f.getName.endsWith(".DAT"))) {
-       val lastModifiedTime = new DateTime(f.getLastModified)
-        /*val content = readFileContent(f).toList
+       //val lastModifiedTime = new DateTime(f.getLastModified)
+        val content = readFileContent(f).toList
         val caughtExceptions = HexenRubiFileParser.parseAndSaveData(content, meteoService, f.getName, config.stationNrHexenRubi, config.projectNrHexenRubi, config.periodeHexenRubi)
         caughtExceptions match {
           case None => {
@@ -58,8 +58,8 @@ class SchedulerActorHexenRubi @Inject()(configuration: Configuration, meteoServi
           }
             case Some(_)
             => EmailService.sendEmail("HexenRubi File Processor", "CR1000_Data_Processing@klaros.wsl.ch", emailList, emailList, "Hexenrubi File Processing Report With errors", s"file Processed Report${f.getName}. \n PS: ***If there is any change in  wind direction and wind speed parameter, please contact Database Manager LWF to change in DB and Akka config.}}")
-          }*/
-            Logger.info(s"Last timestamp when file was changed:${f.getName} time: ${lastModifiedTime}")
+          }
+            //Logger.info(s"Last timestamp when file was changed:${f.getName} time: ${lastModifiedTime}")
       }
     }
     /*val sfos = new SmbFileOutputStream(sFile)

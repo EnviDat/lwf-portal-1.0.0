@@ -34,6 +34,7 @@ class SchedulerActorOzone @Inject()(configuration: Configuration, meteoService: 
     val pathForFaultyFiles = config.ftpPathForOzoneFaultyFile
     val pathForArchiveFiles = config.ftpPathForOzoneArchiveFiles
     val emailUserList = config.emailUserList
+
     Logger.info("processing data task running")
     FtpConnector.readOzoneCSVFileFromFtp(userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo, emailUserList, meteoService, pathForArchiveFiles)
 
@@ -47,12 +48,13 @@ class SchedulerActorOzone @Inject()(configuration: Configuration, meteoService: 
     val ftpUrlMeteo = config.ftpUrlOzone
     val pathForLocalWrittenFiles = config.ftpPathForOzoneArchiveFiles
     val pathForArchivedFiles = config.ftpPathForOzoneArchiveFiles
+    val pathForTempFiles = config.pathForTempFiles
     Logger.info("writing data task running")
     val fileGenerator =  new OzoneFileGeneratorFromDB(meteoService)
-    val years = List(2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018)
+    val years = List(2017,2018) //List(2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018)
     val fileInfos = fileGenerator.generateFiles(years)
     fileInfos.toList.map( ff => {
-      FtpConnector.writeFileToFtp(List(ff.header) ::: ff.ozoneData, userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo, ff.fileName, pathForLocalWrittenFiles,".csv")
+      FtpConnector.writeFileToFtp(List(ff.header) ::: ff.ozoneData, userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo, ff.fileName, pathForLocalWrittenFiles,".csv", pathForTempFiles)
     })
     val source = new File(pathForLocalWrittenFiles)
     Logger.info(s"Source for local written files pathForLocalWrittenFiles : ${source.getName} ")
@@ -78,10 +80,12 @@ class SchedulerActorOzone @Inject()(configuration: Configuration, meteoService: 
     val pathForArchivedFiles = config.ftpPathForOzoneArchiveFiles
     Logger.info("icp forests data task running")
     val fileGenerator =  new OzoneFileGeneratorFromDB(meteoService)
-    val years = List(2004) //List(2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017)
+    val years = List(2017,2018) //List(2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017)
     val fileInfos = fileGenerator.generateICPForestsAQPFiles(years)
+    val pathForTempFiles = config.pathForTempFiles
+
     fileInfos.toList.map( ff => {
-      FtpConnector.writeFileToFtp(List(ff.header) ::: ff.ozoneData, userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo, ff.fileName, pathForLocalWrittenFiles,".aqp")
+      FtpConnector.writeFileToFtp(List(ff.header) ::: ff.ozoneData, userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo, ff.fileName, pathForLocalWrittenFiles,".aqp", pathForTempFiles)
     })
     val source = new File(pathForLocalWrittenFiles)
     Logger.info(s"Source for local written files pathForLocalWrittenFiles : ${source.getName} ")
@@ -107,10 +111,11 @@ class SchedulerActorOzone @Inject()(configuration: Configuration, meteoService: 
     val pathForArchivedFiles = config.ftpPathForOzoneArchiveFiles
     Logger.info("icp forests data task running")
     val fileGenerator =  new OzoneFileGeneratorFromDB(meteoService)
-    val years = List(2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018)
+    val years = List(2017, 2018) //List(2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018)
     val fileInfos = fileGenerator.generateICPForestsAQBFiles(years)
+    val pathForTempFiles = config.pathForTempFiles
     fileInfos.toList.map( ff => {
-      FtpConnector.writeFileToFtp(List(ff.header) ::: ff.ozoneData, userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo, ff.fileName, pathForLocalWrittenFiles,".aqb")
+      FtpConnector.writeFileToFtp(List(ff.header) ::: ff.ozoneData, userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo, ff.fileName, pathForLocalWrittenFiles,".aqb", pathForTempFiles)
     })
     val source = new File(pathForLocalWrittenFiles)
     Logger.info(s"Source for local written files pathForLocalWrittenFiles : ${source.getName} ")
@@ -136,10 +141,12 @@ class SchedulerActorOzone @Inject()(configuration: Configuration, meteoService: 
     val pathForArchivedFiles = config.ftpPathForOzoneArchiveFiles
     Logger.info("icp forests data task running")
     val fileGenerator =  new OzoneFileGeneratorFromDB(meteoService)
-    val years = List(2011,2012,2013,2014,2015,2016,2017,2018)//List(2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018)
+    val years = List(2018) //List(2011,2012,2013,2014,2015,2016,2017,2018)//List(2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018)
     val fileInfos = fileGenerator.generateICPForestsPPSFiles(years)
+    val pathForTempFiles = config.pathForTempFiles
+
     fileInfos.toList.map( ff => {
-      FtpConnector.writeFileToFtp(List(ff.header) ::: ff.ozoneData, userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo, ff.fileName, pathForLocalWrittenFiles,".pps")
+      FtpConnector.writeFileToFtp(List(ff.header) ::: ff.ozoneData, userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo, ff.fileName, pathForLocalWrittenFiles,".pps", pathForTempFiles)
     })
     val source = new File(pathForLocalWrittenFiles)
     Logger.info(s"Source for local written files pathForLocalWrittenFiles : ${source.getName} ")

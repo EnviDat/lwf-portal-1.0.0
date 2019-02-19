@@ -214,7 +214,7 @@ class FileGeneratorFromMeteorologyDB(meteoService: MeteorologyService) extends F
 
   def saveLogInfoOfGeneratedFiles(fileInfos: List[MeteoDataFileLogInfo]) = {
     Logger.info(s"saving log information in database: ${fileInfos.mkString(",")}")
-    meteoService.insertLogInformation(fileInfos)
+    //meteoService.insertLogInformation(fileInfos)
   }
 
 }

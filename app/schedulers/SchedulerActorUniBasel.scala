@@ -16,7 +16,7 @@ class SchedulerActorUniBasel @Inject()(configuration: Configuration, meteoServic
   override def receive: Receive = {
     case "writeFile" =>  {
       val config = ConfigurationLoader.loadUniBaselConfiguration(configuration)
-      //writeFile(config)
+      writeFile(config)
       //readFile(config)
     }
   }
@@ -45,15 +45,17 @@ class SchedulerActorUniBasel @Inject()(configuration: Configuration, meteoServic
     val fileInfos = fileGenerator.generateFiles()
     val logInformation = fileInfos.filter(_.fileName.startsWith("NoData") == false).map(_.logInformation)
     Logger.info(s"Generated File Information:${logInformation} ")
+    val pathForTempFiles = config.pathForTempFiles
+
     fileInfos.toList.map( ff => {
       if(!ff.fileName.startsWith("NoData")) {
-        FtpConnector.writeFileToFtp(List(ff.header) ::: ff.meteoData, userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo, ff.fileName, pathForLocalWrittenFiles, ".DAT")
+        FtpConnector.writeFileToFtp(List(ff.header) ::: ff.meteoData, userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo, ff.fileName, pathForLocalWrittenFiles, ".DAT", pathForTempFiles)
       }
     })
     val source = new File(pathForLocalWrittenFiles)
     Logger.info(s"Source for local written files pathForLocalWrittenFiles : ${source.getName} ")
     val destination = new File(pathForArchivedFiles + "generatedArchivedFiles" + CurrentSysDateInSimpleFormat.dateNow + ".zip")
-    Logger.info(s"Destination for archive files ${pathForArchivedFiles + "generatedArchivedFiles" + CurrentSysDateInSimpleFormat.dateNow + ".zip"} ")
+    Logger.info(s"Destination for archive files ${pathForArchivedFiles + "generatedArchivedFiles" + CurrentSysDateInSimpleFormat.dateNow + "_BASEL.zip"} ")
 
     destination.setReadable(true, false)
     destination.setExecutable(true, false)

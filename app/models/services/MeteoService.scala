@@ -86,6 +86,8 @@ class MeteoService @Inject()(meteoRepo: MeteoDataRepository) {
 
   def findAllDaysBetweenLast15Days() = meteoRepo.findAllDaysBetweenLast15Days()
 
+  def findMaxMeasurementDateForAStation(statNr: Int) = meteoRepo.findMaxMeasurementDateForAStation(statNr)
+
   def getAllOrganisations() = meteoRepo.findAllOrganisations()
 
   def getAllOrganisationsProjnrConfig() = meteoRepo.findAllOrganisationsAndProjectsConfig()

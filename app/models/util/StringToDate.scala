@@ -79,7 +79,7 @@ object CurrentSysDateInSimpleFormat {
   def dateNow = new SimpleDateFormat("yyyyMMddHHmmss").format(new  java.util.Date())
   def dateNowOnlyDay = new SimpleDateFormat("yyyy-MM-dd").format(new  java.util.Date())
 
-  def dateRegex = raw"(\d{4})-(\d{2})-(\d{2})".r
+  def dateRegex = raw"(\d{4})-(\d{2})-(\d{2})\s(\d{2}):(\d{2}):(\d{2})".r
 
   val systemDateForEinfdat = s"${StringToDate.formatOzoneDate.print(new DateTime())}"
   val sysdateDateInOracleformat = s"TO_date('${systemDateForEinfdat}', 'DD.MM.YYYY HH24:MI:SS')"

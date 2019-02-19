@@ -107,6 +107,13 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
     }
   }
 
+  def findMaxMeasurementDateForAStation(statNr: Int): Seq[String] = db.withConnection { implicit connection => {
+    SQL(
+      """select max(m.messdat) as maxDate from meteodat m where m.messdat > sysdate -90 and m.statnr = {stationNr}""".stripMargin).on("stationNr" -> statNr).as((str("maxdate")).map(f => f)*)
+    }
+  }
+
+
   def findLastMeteoDataForStationForDate(stationNumber: Int, fromTime: String): Seq[MeteoDataRow] = db.withConnection { implicit connection => {
     Logger.info(s"${fromTime}")
       SQL(
@@ -219,8 +226,8 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
   }
 
   def insertInfoIntoMetablag(meteoData: Seq[MeteoDataRowTableInfo]) = {
-    val conn = db.getConnection()
     try {
+      val conn = db.getConnection()
       conn.setAutoCommit(true)
       val stmt: Statement = conn.createStatement()
     val groupedFiles = meteoData.groupBy(_.filename)
@@ -385,7 +392,8 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
  |    from passsamdat t, passivesamfileinfo p
       where to_char(startdat,'yyyy') = {year}
       and t.startdat <> to_date('01.01.1900 00:00:00', 'DD.MM.YYYY HH24:MI:SS')
-      and t.clnr not in (374674,-1112,337588.1,337588.2,337588.3,337588.4,335577)
+      |and t.enddat <> to_date('01.01.1900 00:00:00', 'DD.MM.YYYY HH24:MI:SS')
+      |and t.clnr not in (374674,-1112,337588.1,337588.2,337588.3,337588.4,335577)
       and t.blindsampler <> 4
       and t.analysid = p.analysid order by t.clnr,t.startdat""".stripMargin).on("year" -> year).as(OzoneDataRow.parser *)
 

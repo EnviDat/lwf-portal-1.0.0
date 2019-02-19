@@ -6,14 +6,16 @@ lazy val root = (project in file(".")).enablePlugins(PlayScala)
 resolvers += Resolver.url("typesafe", url("http://repo.typesafe.com/typesafe/ivy-releases/"))(Resolver.ivyStylePatterns)
 
 
-scalaVersion := "2.11.11"
+scalaVersion := "2.12.6"
 
 libraryDependencies += jdbc
-libraryDependencies += cache
+libraryDependencies += ehcache
 libraryDependencies += ws
-libraryDependencies += "org.scalatestplus.play" %% "scalatestplus-play" % "2.0.0" % Test
-libraryDependencies += "com.typesafe.play" %% "play-json" % "2.5.14"
-libraryDependencies += "com.typesafe.play" %% "anorm" % "2.5.0"
+libraryDependencies += guice
+libraryDependencies += openId
+libraryDependencies += "org.scalatestplus.play" %% "scalatestplus-play" % "4.0.1" % Test
+libraryDependencies += "com.typesafe.play" %% "play-json" % "2.6.0"
+libraryDependencies += "org.playframework.anorm" %% "anorm-akka" % "2.6.0"
 libraryDependencies += "com.jcraft" % "jsch" % "0.1.53"
 //libraryDependencies += "org.zeroturnaround" % "zt-zip" % "1.8"
 libraryDependencies += "commons-io" % "commons-io" % "2.5"

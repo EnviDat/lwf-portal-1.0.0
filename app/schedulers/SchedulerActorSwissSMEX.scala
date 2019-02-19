@@ -16,7 +16,7 @@ class SchedulerActorSwissSMEX @Inject()(configuration: Configuration, meteoServi
   override def receive: Receive = {
     case "writeFile" =>  {
       val config = ConfigurationLoader.loadSwissSMEXConfiguration(configuration)
-      //writeFile(config)
+      writeFile(config)
       //readFile(config)
     }
   }
@@ -39,14 +39,17 @@ class SchedulerActorSwissSMEX @Inject()(configuration: Configuration, meteoServi
     val pathForFtpFolder = config.pathForFtpFolder
     val ftpUrlMeteo = config.ftpUrlMeteo
     val pathForLocalWrittenFiles = config.pathForLocalWrittenFiles
+
     val pathForArchivedFiles = config.pathForArchivedFiles
     Logger.info("writing data task running")
     val fileGenerator =  new FileGeneratorSwissSmexFromDB(meteoService)
     val fileInfos = fileGenerator.generateFiles()
     val logInformation = fileInfos.map(_.logInformation)
     Logger.info(s"Generated File Information:${logInformation} ")
+    val pathForTempFiles = config.pathForTempFiles //change it as it is temporarily set
+
     fileInfos.toList.map( ff => {
-        FtpConnector.writeFileToFtp( ff.meteoData, userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo, ff.fileName, pathForLocalWrittenFiles, ".DAT")
+        FtpConnector.writeFileToFtp( ff.meteoData, userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo, ff.fileName, pathForLocalWrittenFiles, ".DAT", pathForTempFiles)
     })
     val source = new File(pathForLocalWrittenFiles)
     Logger.info(s"Source for local written files pathForLocalWrittenFiles : ${source.getName} ")

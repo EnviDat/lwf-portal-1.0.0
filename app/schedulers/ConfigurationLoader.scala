@@ -22,7 +22,8 @@ case class ConfigurationMeteoSchweizData(frequency :Int,
                                          pathForLocalWrittenFiles :String,
                                          pathForArchivedFiles :String,
                                          pathForLogFiles :String,
-                                         pathForArchivedLogFiles :String)
+                                         pathForArchivedLogFiles :String,
+                                         pathForTempFiles: String)
 
 case class ConfigurationSwissSMEXData(frequency :Int,
                                          userNameFtp :String,
@@ -33,7 +34,8 @@ case class ConfigurationSwissSMEXData(frequency :Int,
                                          pathForLocalWrittenFiles :String,
                                          pathForArchivedFiles :String,
                                          pathForLogFiles :String,
-                                         pathForArchivedLogFiles :String)
+                                         pathForArchivedLogFiles :String,
+                                         pathForTempFiles: String)
 
 
 case class ConfigurationUniBaselData(frequency :Int,
@@ -45,7 +47,8 @@ case class ConfigurationUniBaselData(frequency :Int,
                                      pathForLocalWrittenFiles :String,
                                      pathForArchivedFiles :String,
                                      pathForLogFiles :String,
-                                     pathForArchivedLogFiles :String)
+                                     pathForArchivedLogFiles :String,
+                                     pathForTempFiles: String)
 
 case class ConfigurationHexenrubiData(frequency :Int,
                                       userNameHexenRubi :String,
@@ -59,6 +62,10 @@ case class ConfigurationHexenrubiData(frequency :Int,
                                       emailUserListHexenRubi: String,
                                       specialStationKonfNrsHexenRubi: Seq[SpecialParamKonfig]
                                      )
+case class ConfigurationBodenSpaData(frequencyBodenSpa :Int,
+                                     pathForIncomingFileBodenSpa :String,
+                                     pathForArchivedFilesBodenSpa :String,
+                                     dataFileNameBodenSpa: String)
 
 case class ConfigurationOttPluvioData(frequencyOttPluvio: Int, stationNrOttPluvio: Int, messartOttPluvio: Int, emailUserListOttPluvio: String, startTimeForOttPulvio: String)
 
@@ -80,7 +87,8 @@ case class OzoneFileConfig(frequencyOzone :Int,
                                   ftpPathForIncomingFileOzone :String,
                                   ftpPathForOzoneFaultyFile :String,
                                   ftpPathForOzoneArchiveFiles :String,
-                                  emailUserList: String
+                                  emailUserList: String,
+                                  pathForTempFiles: String
                                  )
 case class PhanoFileConfig(frequencyPhano :Int,
                            ftpUrlPhano :String,
@@ -121,7 +129,8 @@ object ConfigurationLoader {
     val pathForArchivedFiles = configuration.getString("pathForArchivedFiles").get
     val pathForLogFiles = configuration.getString("pathForLogFiles").get
     val pathForArchivedLogFiles = configuration.getString("pathForArchivedLogFiles").get
-    ConfigurationMeteoSchweizData(frequency, userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo, pathInputFile, pathForLocalWrittenFiles, pathForArchivedFiles, pathForLogFiles, pathForArchivedLogFiles)
+    val pathForTempFiles = configuration.getString("pathForTempFiles").get
+    ConfigurationMeteoSchweizData(frequency, userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo, pathInputFile, pathForLocalWrittenFiles, pathForArchivedFiles, pathForLogFiles, pathForArchivedLogFiles, pathForTempFiles)
   }
 
   def loadSwissSMEXConfiguration(configuration: Configuration) = {
@@ -135,7 +144,9 @@ object ConfigurationLoader {
     val pathForArchivedFiles = configuration.getString("pathForArchivedFiles").get
     val pathForLogFiles = configuration.getString("pathForLogFiles").get
     val pathForArchivedLogFiles = configuration.getString("pathForArchivedLogFiles").get
-    ConfigurationSwissSMEXData(frequency, userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo, pathInputFile, pathForLocalWrittenFiles, pathForArchivedFiles, pathForLogFiles, pathForArchivedLogFiles)
+    val pathForTempFiles = configuration.getString("pathForTempFiles").get
+
+    ConfigurationSwissSMEXData(frequency, userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo, pathInputFile, pathForLocalWrittenFiles, pathForArchivedFiles, pathForLogFiles, pathForArchivedLogFiles, pathForTempFiles)
   }
 
   def loadUniBaselConfiguration(configuration: Configuration) = {
@@ -149,7 +160,9 @@ object ConfigurationLoader {
     val pathForArchivedFiles = configuration.getString("pathForArchivedFiles").get
     val pathForLogFiles = configuration.getString("pathForLogFiles").get
     val pathForArchivedLogFiles = configuration.getString("pathForArchivedLogFiles").get
-    ConfigurationUniBaselData(frequency, userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo, pathInputFile, pathForLocalWrittenFiles, pathForArchivedFiles, pathForLogFiles, pathForArchivedLogFiles)
+    val pathForTempFiles = configuration.getString("pathForTempFiles").get
+
+    ConfigurationUniBaselData(frequency, userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo, pathInputFile, pathForLocalWrittenFiles, pathForArchivedFiles, pathForLogFiles, pathForArchivedLogFiles, pathForTempFiles)
   }
 
   def loadHexenRubiConfiguration(configuration: Configuration) = {
@@ -172,6 +185,16 @@ object ConfigurationLoader {
         List(SpecialParamKonfig("windSpeed", windSpeed),SpecialParamKonfig("windDirection", windDirection))
       })}.toList.flatten
     ConfigurationHexenrubiData(frequency, userNameHexenRubi, passwordHexenRubi, pathForIncomingFileHexenRubi, pathForArchivedFiles, dataFileNameHexenRubi ,stationNrHexenRubi, projectNrHexenRubi, periodeHexenRubi, emailUserListHexenRubi, specialStationKonfNrsHexenRubi )
+  }
+
+  def loadBodenSpaConfiguration(configuration: Configuration) = {
+    val frequency = configuration.getInt("frequencyBodenSpa").get
+    val pathForIncomingFileBodenSpa = configuration.getString("pathForIncomingFileBodenSpa").get
+    val pathForArchivedFilesBodenSpa = configuration.getString("pathForArchivedFilesBodenSpa").get
+    val dataFileNameBodenSpa = configuration.getString("dataFileNameBodenSpa").get
+
+
+    ConfigurationBodenSpaData(frequency, pathForIncomingFileBodenSpa, pathForArchivedFilesBodenSpa, dataFileNameBodenSpa)
   }
 
   def loadOttPluvioConfiguration(configuration: Configuration) = {
@@ -228,7 +251,9 @@ object ConfigurationLoader {
     val ftpPathForOzoneFaultyFile = configuration.getString("ftpPathForOzoneFaultyFile").get
     val ftpPathForOzoneArchiveFiles = configuration.getString("ftpPathForOzoneArchiveFiles").get
     val ozoneEmailUserList = configuration.getString("emailUserListOzone").get
-    OzoneFileConfig(frequencyOzone, ftpUrlOzone, fptUserNameOzone, ftpPasswordOzone, ftpPathForIncomingFileOzone, ftpPathForOzoneFaultyFile, ftpPathForOzoneArchiveFiles, ozoneEmailUserList)
+    val pathForTempFiles = configuration.getString("pathForTempFiles").get
+
+    OzoneFileConfig(frequencyOzone, ftpUrlOzone, fptUserNameOzone, ftpPasswordOzone, ftpPathForIncomingFileOzone, ftpPathForOzoneFaultyFile, ftpPathForOzoneArchiveFiles, ozoneEmailUserList, pathForTempFiles)
   }
 
   def loadPhanoConfiguration(configuration: Configuration) = {

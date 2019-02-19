@@ -534,3 +534,10 @@ object MeteoDataRow {
     }
   }
 }
+
+case class BodenDataRow(profilNr: Int,
+                        profilKonfId: Int,
+                        measurementDate: String,
+                        valueOfMeasurement: BigDecimal,
+                        valid: Int,
+                        valVersion: Int)
