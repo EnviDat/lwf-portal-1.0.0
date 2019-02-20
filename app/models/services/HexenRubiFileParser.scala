@@ -10,6 +10,8 @@ import models.util.{NumberParser, StringToDate}
 import org.joda.time.{DateTime, DateTimeZone, Hours}
 import play.api.Logger
 
+import scala.collection.immutable
+
 
 object HexenRubiFileParser {
 
@@ -76,7 +78,16 @@ object HexenRubiFileParser {
         } yield values
       valuesToBeInserted
     }).flatten.toList
-    meteoService.insertMeteoDataCR1000(allRowsToBeInserted)
+
+    val aggregatedLinesWithTimestamp = allRowsToBeInserted.map(al => {
+      (StringToDate.formatOzoneDate.parseDateTime(al.meteoDataRow.dateReceived.stripPrefix("to_date('").replaceAll("'", "").stripSuffix(", DD.MM.YYYY HH24:MI:SS)")), al)
+    })
+    val maximumDateDataWasRead: Option[DateTime] = meteoService.findMaxMeasurementDateForAStation(stationNr).headOption.map(maxDate => StringToDate.formatOzoneDate.parseDateTime(maxDate.stripPrefix("to_date('").replaceAll("'", "").stripSuffix(", DD.MM.YYYY HH24:MI:SS)")))
+    val filteredAggregatedLinesToInsert: immutable.Iterable[MeteoDataRowTableInfo] = maximumDateDataWasRead match {
+      case None => allRowsToBeInserted
+      case Some(maxDate) => aggregatedLinesWithTimestamp.filter(_._1.isAfter(maxDate)).map(_._2)
+    }
+    meteoService.insertMeteoDataCR1000(filteredAggregatedLinesToInsert.toList)
   }
 
   private def getMappingOfFolgeNrToMessArt(confForStation: List[MeteoStationConfiguration]) = {

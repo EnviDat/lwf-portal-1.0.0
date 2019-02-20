@@ -7,11 +7,11 @@ import javax.inject.{Inject, Singleton}
 
 import akka.actor.Actor
 import models.services._
-import models.util.{CurrentSysDateInSimpleFormat, DirectoryCompressor, FtpConnector}
+import models.util.{CurrentSysDateInSimpleFormat, DirectoryCompressor, FtpConnector, StringToDate}
 import org.apache.commons.io.FileUtils
 import play.api.{Configuration, Logger}
 import jcifs.smb.{SmbException, _}
-import org.joda.time.DateTime
+import org.joda.time.{DateTime, Days}
 
 import scala.concurrent.ExecutionContext
 
@@ -20,7 +20,7 @@ class SchedulerActorHexenRubi @Inject()(configuration: Configuration, meteoServi
   override def receive: Receive = {
     case "processFile" =>  {
       val config = ConfigurationLoader.loadHexenRubiConfiguration(configuration)
-      //processFile(config)
+      processFile(config)
       //readFile(config)
     }
   }
@@ -49,17 +49,20 @@ class SchedulerActorHexenRubi @Inject()(configuration: Configuration, meteoServi
 
     for(f <- sFile) {
       if (f.getName.startsWith(config.dataFileNameHexenRubi) && (f.getName.endsWith(".dat") || f.getName.endsWith(".Dat") || f.getName.endsWith(".DAT"))) {
-       //val lastModifiedTime = new DateTime(f.getLastModified)
-        val content = readFileContent(f).toList
-        val caughtExceptions = HexenRubiFileParser.parseAndSaveData(content, meteoService, f.getName, config.stationNrHexenRubi, config.projectNrHexenRubi, config.periodeHexenRubi)
-        caughtExceptions match {
-          case None => {
-            EmailService.sendEmail("HexenRubi File Processor", "CR1000_Data_Processing@klaros.wsl.ch", emailList, emailList, "Hexenrubi File Processing Report OK", s"file Processed Report${f.getName}. \n PS: ***If there is any change in  wind direction and wind speed parameter, please contact Database Manager LWF to change in DB and Akka config.}")
-          }
+        val lastModifiedTime = new DateTime(f.getLastModified)
+        val diffInSysdate = Days.daysBetween(lastModifiedTime, new org.joda.time.DateTime()).getDays
+        if (diffInSysdate <= 31) {
+          val content = readFileContent(f).toList
+          val caughtExceptions = HexenRubiFileParser.parseAndSaveData(content, meteoService, f.getName, config.stationNrHexenRubi, config.projectNrHexenRubi, config.periodeHexenRubi)
+          caughtExceptions match {
+            case None => {
+              EmailService.sendEmail("HexenRubi File Processor", "CR1000_Data_Processing@klaros.wsl.ch", emailList, emailList, "Hexenrubi File Processing Report OK", s"file Processed Report${f.getName}. \n PS: ***If there is any change in  wind direction and wind speed parameter, please contact Database Manager LWF to change in DB and Akka config.}")
+            }
             case Some(_)
             => EmailService.sendEmail("HexenRubi File Processor", "CR1000_Data_Processing@klaros.wsl.ch", emailList, emailList, "Hexenrubi File Processing Report With errors", s"file Processed Report${f.getName}. \n PS: ***If there is any change in  wind direction and wind speed parameter, please contact Database Manager LWF to change in DB and Akka config.}}")
           }
-            //Logger.info(s"Last timestamp when file was changed:${f.getName} time: ${lastModifiedTime}")
+          //Logger.info(s"Last timestamp when file was changed:${f.getName} time: ${lastModifiedTime}")
+        }
       }
     }
     /*val sfos = new SmbFileOutputStream(sFile)
