@@ -80,7 +80,7 @@ object HexenRubiFileParser {
     }).flatten.toList
 
     val aggregatedLinesWithTimestamp = allRowsToBeInserted.map(al => {
-      (StringToDate.formatOzoneDate.parseDateTime(al.meteoDataRow.dateReceived.stripPrefix("to_date('").replaceAll("'", "").stripSuffix(", DD.MM.YYYY HH24:MI:SS)")), al)
+      (StringToDate.formatOzoneDate.withZoneUTC().parseDateTime(al.meteoDataRow.dateReceived.stripPrefix("to_date('").replaceAll("'", "").stripSuffix(", DD.MM.YYYY HH24:MI:SS)")), al)
     })
     val maximumDateDataWasRead: Option[DateTime] = meteoService.findMaxMeasurementDateForAStation(stationNr).headOption.map(maxDate => StringToDate.formatOzoneDate.parseDateTime(maxDate.stripPrefix("to_date('").replaceAll("'", "").stripSuffix(", DD.MM.YYYY HH24:MI:SS)")))
     val filteredAggregatedLinesToInsert: immutable.Iterable[MeteoDataRowTableInfo] = maximumDateDataWasRead match {

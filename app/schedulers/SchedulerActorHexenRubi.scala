@@ -11,6 +11,7 @@ import models.util.{CurrentSysDateInSimpleFormat, DirectoryCompressor, FtpConnec
 import org.apache.commons.io.FileUtils
 import play.api.{Configuration, Logger}
 import jcifs.smb.{SmbException, _}
+import models.domain.CR1000OracleError
 import org.joda.time.{DateTime, Days}
 
 import scala.concurrent.ExecutionContext
@@ -53,7 +54,7 @@ class SchedulerActorHexenRubi @Inject()(configuration: Configuration, meteoServi
         val diffInSysdate = Days.daysBetween(lastModifiedTime, new org.joda.time.DateTime()).getDays
         if (diffInSysdate <= 31) {
           val content = readFileContent(f).toList
-          val caughtExceptions = HexenRubiFileParser.parseAndSaveData(content, meteoService, f.getName, config.stationNrHexenRubi, config.projectNrHexenRubi, config.periodeHexenRubi)
+          val caughtExceptions = HexenRubiFileParser.parseAndSaveData(content, meteoService, f.getName + "_" + lastModifiedTime.toString, config.stationNrHexenRubi, config.projectNrHexenRubi, config.periodeHexenRubi)
           caughtExceptions match {
             case None => {
               EmailService.sendEmail("HexenRubi File Processor", "CR1000_Data_Processing@klaros.wsl.ch", emailList, emailList, "Hexenrubi File Processing Report OK", s"file Processed Report${f.getName}. \n PS: ***If there is any change in  wind direction and wind speed parameter, please contact Database Manager LWF to change in DB and Akka config.}")
