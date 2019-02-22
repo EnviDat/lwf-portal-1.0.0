@@ -22,6 +22,8 @@ libraryDependencies += "commons-io" % "commons-io" % "2.5"
 libraryDependencies += "org.apache.commons" % "commons-compress" % "1.9"
 libraryDependencies += "org.apache.commons" % "commons-email" % "1.5"
 libraryDependencies += "jcifs" % "jcifs" % "1.3.17"
+//libraryDependencies += "org.samba.jcifs" % "jcifs" % "1.3.17-kohsuke-1"
+
 
 
 libraryDependencies += specs2 % Test

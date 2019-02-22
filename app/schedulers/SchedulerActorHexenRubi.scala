@@ -3,6 +3,7 @@ package schedulers
 import java.io._
 import java.net.MalformedURLException
 import java.sql.Date
+import java.util
 import javax.inject.{Inject, Singleton}
 
 import akka.actor.Actor
@@ -44,27 +45,37 @@ class SchedulerActorHexenRubi @Inject()(configuration: Configuration, meteoServi
 
     val userName= config.userNameHexenRubi
     val password = config.passwordHexenRubi
-    val auth = new NtlmPasswordAuthentication("wsl.ch" , userName , password)
-    val sFile = new SmbFile(pathInputFile, auth).listFiles()
+    try {
+    val auth: NtlmPasswordAuthentication = new NtlmPasswordAuthentication("wsl.ch" , userName , password)
+    val sFile = new SmbFile(pathInputFile, auth)
     val emailList = config.emailUserListHexenRubi.split(";").toSeq
 
-    for(f <- sFile) {
-      if (f.getName.startsWith(config.dataFileNameHexenRubi) && (f.getName.endsWith(".dat") || f.getName.endsWith(".Dat") || f.getName.endsWith(".DAT"))) {
-        val lastModifiedTime = new DateTime(f.getLastModified)
-        val diffInSysdate = Days.daysBetween(lastModifiedTime, new org.joda.time.DateTime()).getDays
-        if (diffInSysdate <= 31) {
-          val content = readFileContent(f).toList
-          val caughtExceptions = HexenRubiFileParser.parseAndSaveData(content, meteoService, f.getName + "_" + lastModifiedTime.toString, config.stationNrHexenRubi, config.projectNrHexenRubi, config.periodeHexenRubi)
-          caughtExceptions match {
-            case None => {
-              EmailService.sendEmail("HexenRubi File Processor", "CR1000_Data_Processing@klaros.wsl.ch", emailList, emailList, "Hexenrubi File Processing Report OK", s"file Processed Report${f.getName}. \n PS: ***If there is any change in  wind direction and wind speed parameter, please contact Database Manager LWF to change in DB and Akka config.}")
+
+    if(sFile.isDirectory()) {
+     val files = sFile.listFiles()
+      for(f <- files) {
+        if (f.isFile()) {
+          if (f.getName.startsWith(config.dataFileNameHexenRubi) && (f.getName.endsWith(".dat") || f.getName.endsWith(".Dat") || f.getName.endsWith(".DAT"))) {
+            val lastModifiedTime = new DateTime(f.getLastModified)
+            val diffInSysdate = Days.daysBetween(lastModifiedTime, new org.joda.time.DateTime()).getDays
+            if (diffInSysdate <= 31) {
+              val content = readFileContent(f).toList
+              val caughtExceptions = HexenRubiFileParser.parseAndSaveData(content, meteoService, f.getName + "_" + lastModifiedTime.toString, config.stationNrHexenRubi, config.projectNrHexenRubi, config.periodeHexenRubi)
+              caughtExceptions match {
+                case None => {
+                  EmailService.sendEmail("HexenRubi File Processor", "CR1000_Data_Processing@klaros.wsl.ch", emailList, emailList, "Hexenrubi File Processing Report OK", s"file Processed Report${f.getName}. \n PS: ***If there is any change in  wind direction and wind speed parameter, please contact Database Manager LWF to change in DB and Akka config.}")
+                }
+                case Some(_) => EmailService.sendEmail("HexenRubi File Processor", "CR1000_Data_Processing@klaros.wsl.ch", emailList, emailList, "Hexenrubi File Processing Report With errors", s"file Processed Report${f.getName}. \n PS: ***If there is any change in  wind direction and wind speed parameter, please contact Database Manager LWF to change in DB and Akka config.}}")
+              }
+              //Logger.info(s"Last timestamp when file was changed:${f.getName} time: ${lastModifiedTime}")
             }
-            case Some(_)
-            => EmailService.sendEmail("HexenRubi File Processor", "CR1000_Data_Processing@klaros.wsl.ch", emailList, emailList, "Hexenrubi File Processing Report With errors", s"file Processed Report${f.getName}. \n PS: ***If there is any change in  wind direction and wind speed parameter, please contact Database Manager LWF to change in DB and Akka config.}}")
           }
-          //Logger.info(s"Last timestamp when file was changed:${f.getName} time: ${lastModifiedTime}")
         }
       }
+    }
+    } catch { case ex =>
+      Logger.info(s"smb connection problem:${ex}")
+      Seq()
     }
     /*val sfos = new SmbFileOutputStream(sFile)
     sfos.write("Test".getBytes)*/
