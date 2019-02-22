@@ -75,13 +75,17 @@ class SchedulerActorHexenRubi @Inject()(configuration: Configuration, meteoServi
   private def  readFileContent( sFile: SmbFile):   Seq[String]= {
     var reader: BufferedReader  = null
     try {
-      reader = new BufferedReader(new InputStreamReader(new SmbFileInputStream(sFile)))
+      val inStream = new SmbFileInputStream(sFile)
+      val inStreamReader = new InputStreamReader(inStream)
+      reader = new BufferedReader(inStreamReader)
       val linesParsed: Seq[String] = Stream.continually(reader.readLine()).takeWhile(_ != null).toList
       Logger.info("lines read")
+      inStream.close()
+      inStreamReader.close()
       linesParsed
     } catch {
       case ex =>
-      Logger.debug(s"smb exception:${ex}")
+      Logger.info(s"smb exception:${ex}")
         Seq()
     }
   }
