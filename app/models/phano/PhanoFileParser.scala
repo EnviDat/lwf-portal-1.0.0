@@ -4,7 +4,7 @@ import models.domain.Ozone.{OzoneKeysConfig, PassSammData}
 import models.domain._
 import models.domain.pheno.PhanoGrowthData
 import models.ozone.WSOzoneFileValidator.validateDateFormat
-import models.services.MeteoService
+import models.services.{MeteoService, PhanoService}
 import models.util.StringToDate.formatOzoneDate
 import models.util.{CurrentSysDateInSimpleFormat, NumberParser, StringToDate}
 import org.joda.time.DateTimeZone
@@ -13,15 +13,15 @@ import play.Logger
 
 object PhanoFileParser {
 
-  def parseAndSaveData(phanoData: String, meteoService: MeteoService, valid: Boolean, stationNr: Integer, personNr: Integer, invnr: Integer, typeCode: Integer) = {
-    /*Logger.info(s"validating the line ${ozoneData}")
+  def parseAndSaveData(phanoData: String, meteoService: PhanoService, valid: Boolean, stationNr: Integer, personNr: Integer, invnr: Integer, typeCode: Integer) = {
+    Logger.info(s"validating the line ${ozoneData}")
 
     try {
         val words = phanoData.split(";")
 
-        val notSufficentValues: Option[PhanoNotSufficientParameters] = if (words.length == 1) Some(PhanoNotSufficientParameters(7, s"Only one value there in this line${line}")) else None
+        val notSufficentValues: Option[PhanoNotSufficientParameters] = if (words.length == 1) Some(PhanoNotSufficientParameters(7, s"Only one value there in this line${phanoData}")) else None
         val plaId = validatePlaId(words(0))
-        val brusthöhen = getActualOrDummyValueFromString(words(1))
+        val bhdUmfangcm = getActualOrDummyValueFromString(words(1))
         val baumhohen = getActualOrDummyValueFromString(words(2))
         val socialStellung = NumberParser.parseNumber(words(3))
         val dateOfMeasurement = getActualOrDummyDate(OzoneKeysConfig.convert8DigitDateTo10Digit(words(4)))
@@ -128,7 +128,7 @@ object PhanoFileParser {
         Some(OzoneNotSufficientParameters(999, "File was either empty or contained lines with error values"))
       case error : Throwable =>
        Some(OzoneFileError(-1, error.toString))
-    }*/
+    }
 
   }
 

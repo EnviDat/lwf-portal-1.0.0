@@ -243,8 +243,8 @@ object FtpConnector {
 
 
   @throws[Exception]
-  def readPhanoCSVFileFromFtp(userNameFtp: String, passwordFtp: String, pathForFtpFolder: String, ftpUrl: String, emailUserList: String, meteoService: MeteoService, pathForArchiveFiles: String): Unit = {
-   /* val jsch = new JSch
+  def readPhanoCSVFileFromFtp(userNameFtp: String, passwordFtp: String, pathForFtpFolder: String, ftpUrl: String, emailUserList: String, meteoService: PhanoService, pathForArchiveFiles: String): Unit = {
+   val jsch = new JSch
     try {
       val session = jsch.getSession(userNameFtp, ftpUrl, 22)
       session.setPassword(passwordFtp)
@@ -279,44 +279,47 @@ object FtpConnector {
           val fileLevelConfig: PhanoFileLevelInfo = PhanoPlotKeysConfig.preparePhanoFileLevelInfo(validFileHeaderLines, entry.getFilename)
           val personNr = meteoService.getPhanoPersonId(fileLevelConfig.beobachterName)
           val stationNr = meteoService.getPhanoStationId(fileLevelConfig.stationName)
-          val besuchDatumInfos = fileLevelConfig.besuchDatums.map(BesuchInfo(stationNr, invnr, personNr, _))
-          if (stationNr > 0) {
-          val errorsWhilesavingFileInfo = meteoService.insertPhanoPlotBesuchDatums(besuchDatumInfos, CurrentSysDateInSimpleFormat.sysdateDateInOracleformat)
+          val besuchDatumInfos = fileLevelConfig.besuchDatums.map(BesuchInfo(stationNr, invnr, personNr, _, fileLevelConfig.comments))
+          val speciesId = meteoService.getSpeciesId(fileLevelConfig.speciesName)
 
-            validDataLines.map(line => {
+           if (stationNr > 0) {
+          val errorsWhilesavingFileInfo = meteoService.insertBesuchInfo(besuchDatumInfos)
+
+          validDataLines.map(line => {
             PhanoFileParser.parseAndSaveData(line, meteoService, true, stationNr, personNr, invnr, typeCode)
 
 
             val missingInfoErrors: List[OzoneFileLevelInfoMissingError] = if (fileLevelConfig.missingInfo == true) List(OzoneFileLevelInfoMissingError(100, "Missing important File level parameters.")) else List()
-            val missingParametersErrors: Seq[OzoneNotSufficientParameters] = if (errorList.nonEmpty) List(OzoneNotSufficientParameters(100,"Missing some values for the Data.")) else List()
-            OzoneErrorFileInfo(entry.getFilename, (missingParametersErrors.toList ::: suspiciousKommentLines ::: missingInfoErrors) )
-          }
+            OzoneErrorFileInfo(entry.getFilename,  missingInfoErrors )
+          })
+
           }else {
             val missingInfoErrors: List[OzoneFileLevelInfoMissingError] = if (fileLevelConfig.missingInfo == true) List(OzoneFileLevelInfoMissingError(100, "Missing important File level parameters.")) else List()
-            OzoneErrorFileInfo(entry.getFilename, List(errorsWhilesavingFileInfo.get) ::: missingInfoErrors)
+            OzoneErrorFileInfo(entry.getFilename, missingInfoErrors)
           }
         }).toList
 
       val infoAboutFileProcessed =
         listOfErrors.map(err => {
-          if(err.errors.nonEmpty) {
-            val errorstring = s"File not processed: ${err.fileName} \n" + FormatMessage.formatOzoneErrorMessage(err.errors)
+          if(listOfErrors.nonEmpty) {
+            val errorstring = s"File not processed"
+            /*val errorstring = s"File not processed: ${err.fileName} \n" + FormatMessage.formatOzoneErrorMessage(err.errors)
             sftpChannel.get(err.fileName, pathForArchiveFiles + err.fileName)
-            sftpChannel.rm(err.fileName)
+            sftpChannel.rm(err.fileName)*/
             (errorstring,Some(errorstring))
           }
           else {
-            sftpChannel.rm(err.fileName)
-            (s"File was processed successfully: ${err.fileName} \n ",None)
+            //sftpChannel.rm(err.fileName)
+            (s"File was processed successfully")
           }
 
         })
 
       val emailList = emailUserList.split(";").toSeq
       if(infoAboutFileProcessed.nonEmpty) {
-        EmailService.sendEmail("Ozone File Processor", "simpal.kumar@wsl.ch", emailList, emailList, "Ozone File Processing Report With Errors", s"${infoAboutFileProcessed.flatMap(_._2).mkString("\n")}")
+        EmailService.sendEmail("Ozone File Processor", "simpal.kumar@wsl.ch", emailList, emailList, "Ozone File Processing Report With Errors", s"")
       }
-      Logger.info(s"list of files received: ${infoAboutFileProcessed.map(_._2).mkString("\n")}")
+      Logger.info(s"list of files received:")
 
       sftpChannel.exit()
       session.disconnect()
@@ -325,7 +328,7 @@ object FtpConnector {
         e.printStackTrace()
       case e: SftpException =>
         e.printStackTrace()
-    }*/
+    }
   }
 
 

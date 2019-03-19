@@ -8,9 +8,9 @@ import models.util.NumberParser
 
 case class PhanoPlot(plotName: String, abbrePlot: String, clnrPlot: BigDecimal, statnr: Integer, codePlot: String, icpPlotCode: Int)
 
-case class PhanoFileLevelInfo(fileName: String, stationName: String, beobachterName: String, comments: String, besuchDatums: List[String], missingInfo: Boolean)
+case class PhanoFileLevelInfo(fileName: String, stationName: String, beobachterName: String, comments: String, besuchDatums: List[String], missingInfo: Boolean, speciesName: String)
 
-case class BesuchInfo(statnr: Integer, invnr: Integer, persnr: Integer, besuchDatum: String)
+case class BesuchInfo(statnr: Integer, invnr: Integer, persnr: Integer, besuchDatum: String, comments: String)
 
 case class PhanoGrowthData(invnr: Integer,
                                stationNr: Integer,
@@ -29,20 +29,23 @@ object PhanoPlotKeysConfig {
   def defaultPlotConfigs = ???
 
   def defaultValidKeywords = List("Stationsname", "Beobachtungsjahr", "Beobachter Name","Meereshöhe m ü. M.:", "Exposition","Hangneigung:","Art","Daten der Beobachtungsgänge","Bemerkungen")
-  def defaultInvalidLinesPrefix = List( "Phänologische Beobachtungen",
-                                        "Nr."
+  def defaultInvalidLinesPrefix = List( "Phänologische Beobachtungen", "Nr.;"
                                         )
 
   def preparePhanoFileLevelInfo(validLines: Seq[String], fileName : String) = {
 
     val stationNameLine: Option[String] = validLines.filter(_.startsWith("Stationsname")).headOption
-    val beobachterNameLine: Option[String] = validLines.filter(_.contains("BeobachterName")).headOption
+    val beobachterNameLine: Option[String] = validLines.filter(_.contains("Beobachter Name")).headOption
     val bemerkungLine = validLines.filter(_.contains("Bemerkungen")).headOption
     val besuchDatumLine = validLines.filter(_.contains("Daten der Beobachtungsgänge")).headOption
+    val speciesNameLine: Option[String] = validLines.filter(_.startsWith("Art")).headOption
+
     val stationName = getStationNameValue(stationNameLine)
     val beobachterName = getBeobachterValue(beobachterNameLine)
     val besuchDatums = getBesuchDatums(besuchDatumLine)
     val comments = bemerkungLine.mkString(",") replaceAll(";", "")
+    val speciesName = getSpeciesNameValue(speciesNameLine)
+
     val validComments = if(comments.size > 6) comments else ""
 
     val missingValue = stationName.isEmpty || beobachterName.isEmpty || besuchDatums.isEmpty
@@ -52,7 +55,8 @@ object PhanoPlotKeysConfig {
       beobachterName.getOrElse("undefined"),
       validComments,
       besuchDatums.getOrElse(List()),
-      missingValue
+      missingValue,
+      speciesName
     )
 
   }
@@ -65,10 +69,18 @@ object PhanoPlotKeysConfig {
     })
   }
 
+  def getSpeciesNameValue(sammelMethodeLine: Option[String]): String = {
+    sammelMethodeLine.map( line => {
+      val index = line.indexOfSlice("Art")
+      val speciesName = line.stripPrefix("Art").trim.replaceAll("\\;","")
+      if (speciesName.nonEmpty) speciesName else "unknown"
+    })
+  }
+
 
   def getBeobachterValue(sammelMethodeLine: Option[String]): Option[String] = {
     sammelMethodeLine.map( line => {
-     val beobachterName = line.stripPrefix("BeobachterName;").trim
+     val beobachterName = line.stripPrefix("Beobachter Name;").trim.replaceAll("\\;","").toUpperCase.sorted
       if (beobachterName.nonEmpty) beobachterName else "unknown"
     })
   }

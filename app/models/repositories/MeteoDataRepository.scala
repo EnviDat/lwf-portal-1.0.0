@@ -538,53 +538,10 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
 
   }
 
-  def getPhanoPersonId(nachName: String, vorName: String) = db.withConnection { implicit connection =>
-    SQL("select persnr from PERSON where name like '%{nachName}' and vorname like '%{vorName}'").on("nachName" -> nachName, "vorName" -> vorName).as(SqlParser.int("persnr").single)
-  }
-
-  def getPhanoStationId(stationName: String) = db.withConnection { implicit connection =>
-    SQL("select statcode from STATION where statname like '%{stationName}'").on("stationName" -> stationName).as(SqlParser.int("statcode").single)
-  }
 
 
 
 
-  def insertPhanoPlotBesuchDatums(besuchInfo: List[BesuchInfo], einfdat: String): Option[OzoneOracleError] = {
-   /* val conn = db.getConnection()
-    try {
-      conn.setAutoCommit(false)
-
-      besuchInfo.map( besuch => {
-        val stmt: Statement = conn.createStatement()
-        val analysenDatum = s"to_date('${StringToDate.oracleDateNoTimeFormat.print(StringToDate.formatOzoneDateWithNoTime.withZone(DateTimeZone.UTC).parseDateTime(fileLevelConfig.analysenDatum))}', 'DD.MM.YYYY')"
-        val farrbreagens = s"to_date('${StringToDate.oracleDateNoTimeFormat.print(StringToDate.formatOzoneDateWithNoTime.withZone(DateTimeZone.UTC).parseDateTime(fileLevelConfig.farrbreagens))}', 'DD.MM.YYYY')"
-        val probenEingang = s"to_date('${StringToDate.oracleDateNoTimeFormat.print(StringToDate.formatOzoneDateWithNoTime.withZone(DateTimeZone.UTC).parseDateTime(fileLevelConfig.probenEingang))}', 'DD.MM.YYYY')"
-        val insertStatement = s"insert into passivesamfileinfo (analysid, firmenid, stsnr, probeeingdat, analysedatum, einfdat, analysemethode, sammel, blindwert, farbreagens, calfactor, filename, nachweisgrenze, bemerk) values(PASSANALYSEID_SEQ.NEXTVAL,1,149," +
-          s" ${probenEingang}, ${analysenDatum}, ${einfdat}, '${fileLevelConfig.anaylysenMethode}', '${fileLevelConfig.sammelMethode}', " +
-          s"${fileLevelConfig.blindwert},${farrbreagens}, ${fileLevelConfig.calFactor}, '${fileLevelConfig.fileName}', ${fileLevelConfig.nachweisgrenze}, '${fileLevelConfig.remarks}')"
-        Logger.info(s"statement to be executed: ${insertStatement}")
-        stmt.executeUpdate(insertStatement)
-        stmt.close()
-      })
-
-      conn.commit()
-      conn.close()
-      None
-    } catch {
-      case ex: SQLException => {
-        if(ex.getErrorCode() == 1){
-          Logger.info(s"Data was already read. Primary key violation ${ex}")
-          conn.rollback()
-          conn.close()
-          None
-        } else {
-          conn.close()
-          Some(OzoneOracleError(8, s"Oracle Exception: ${ex}"))
-        }
-      }
-    }*/
-    None
-  }
 
 }
 

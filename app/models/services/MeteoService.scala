@@ -113,23 +113,9 @@ class MeteoService @Inject()(meteoRepo: MeteoDataRepository) {
   def getAllMessartsForOrgFixedFormat() = meteoRepo.findAllMessartsForOrgFixedFormat()
   def getAllMessartsForOrgFixedAggFormat = meteoRepo.findAllMessartsForOrgFixedAggFormat()
 
-  def insertPhanoPlotBesuchDatums(besuchInfo: List[BesuchInfo], einfdat: String) = meteoRepo.insertPhanoPlotBesuchDatums(besuchInfo, einfdat)
 
   def getAllEinfdates(stationNumber: Int, fromTime: DateTime, toTime: DateTime, fromMessart: Int, toMessart: Int, partitionNameMD: String, partitionNameMDat: String) = meteoRepo.findAllEinfdatesOfStationForTimePeriodDaily(stationNumber, fromTime, toTime, fromMessart, toMessart, partitionNameMD, partitionNameMDat)
 
-  def getPhanoPersonId(name: String) = {
-    val names = name.split(";")
-    val nachName = names(0)
-    val vorName = names(1)
-    meteoRepo.getPhanoPersonId(nachName, vorName)
-  }
-
   def getAllDaysBetweenDates(fromTime: DateTime, toTime: DateTime) = meteoRepo.findAllDaysBetweenDates(fromTime, toTime)
-
-  def getPhanoStationId(stationName: String) = meteoRepo.getPhanoStationId(stationName)
-
-
-
-
 
 }

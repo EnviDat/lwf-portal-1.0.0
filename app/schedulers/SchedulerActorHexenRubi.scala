@@ -22,7 +22,7 @@ class SchedulerActorHexenRubi @Inject()(configuration: Configuration, meteoServi
   override def receive: Receive = {
     case "processFile" =>  {
       val config = ConfigurationLoader.loadHexenRubiConfiguration(configuration)
-      processFile(config)
+      //processFile(config)
       //readFile(config)
     }
   }

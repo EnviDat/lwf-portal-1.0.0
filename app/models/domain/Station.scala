@@ -541,3 +541,14 @@ case class BodenDataRow(profilNr: Int,
                         valueOfMeasurement: BigDecimal,
                         valid: Int,
                         valVersion: Int)
+
+
+case class PhanoPersonsDataRow(personNr: Int, personName: String)
+object PhanoPersonsData {
+  val parser: RowParser[PhanoPersonsDataRow] = {
+    get[Int]("persnr") ~
+      get[String]("personname") map {
+      case persnr ~ personname => PhanoPersonsDataRow(persnr, personname)
+    }
+  }
+}

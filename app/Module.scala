@@ -54,6 +54,9 @@ class Module extends AbstractModule with AkkaGuiceSupport {
     bindActor[SchedulerActorBodenSpa]("scheduler-actor-bodenspa")
     bind(classOf[SchedulerBodenSpa]).asEagerSingleton()
 
+    bindActor[SchedulerActorPhano]("scheduler-actor-phano")
+    bind(classOf[SchedulerPhano]).asEagerSingleton()
+
 
   }
 
