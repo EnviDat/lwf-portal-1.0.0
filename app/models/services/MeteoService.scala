@@ -96,7 +96,7 @@ class MeteoService @Inject()(meteoRepo: MeteoDataRepository) {
 
   def insertLogInformation(meteoLogInfos: List[MeteoDataFileLogInfo]) = meteoRepo.insertLogInfoForFilesSent(meteoLogInfos)
 
-  def insertMeteoDataCR1000(meteoData: Seq[MeteoDataRowTableInfo]) = meteoRepo.insertCR1000MeteoDataForFilesSent(meteoData)
+  def insertMeteoDataCR1000(meteoData: Seq[MeteoDataRowTableInfo]) = if (meteoData.size < 10) meteoRepo.insertCR1000MeteoDataForFilesSent(meteoData) else meteoRepo.insertCR1000MeteoDataForLargeFilesSent(meteoData)
 
   def insertOzoneData(passSammelenData: PassSammData, analyseId: Int) = meteoRepo.insertOzoneDataForFilesSent(passSammelenData, analyseId)
 

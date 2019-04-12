@@ -16,7 +16,7 @@ class SchedulerActorPhano @Inject()(configuration: Configuration, meteoService: 
     case "processPhanoFile" =>  {
 
       val config = ConfigurationLoader.loadPhanoConfiguration(configuration)
-      processFile(config)
+      //processFile(config)
       //writeFile(config)
       //writeICPSubmissionAQPFile(config)
       //writeICPSubmissionAQBFile(config)

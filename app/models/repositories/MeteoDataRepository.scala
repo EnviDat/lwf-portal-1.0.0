@@ -136,7 +136,7 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
 
   def getLastOneDayOttPulvioDataForStation(stationNr: Int, messart: Int) = db.withConnection { implicit connection => {
     SQL(
-      """select sum(messwert) as summessart,count(*) as countval  from meteodat  where STATNR = {stationNr} and messart = {messart} and messdat >= sysdate - 1  - (1 / 24)""".stripMargin).on("stationNr" -> stationNr, "messart" -> messart).as(OttPulvioData.parser *)
+      """select sum(messwert) as summessart,count(*) as countval  from meteodat  where STATNR = {stationNr} and messart = {messart} and messdat >= sysdate - 1  - (2 / 24)""".stripMargin).on("stationNr" -> stationNr, "messart" -> messart).as(OttPulvioData.parser *)
       }
   }
 
@@ -246,6 +246,74 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
 
   }
   }
+
+  def insertCR1000MeteoDataForLargeFilesSent(meteoData: Seq[MeteoDataRowTableInfo]): Option[CR1000OracleError] = db.withConnection { implicit conn => {
+    try {
+      val exceptionsInsertingDataRows = meteoData.flatMap(m => {
+        try {
+          //val conn = db.getConnection()
+          conn.setAutoCommit(true)
+          val stmt: Statement = conn.createStatement()
+
+          val ml = m.meteoDataRow
+          //code that throws sql exception
+
+          m.multi match {
+            case Some(1) => {
+              val insertStatement = s"INSERT INTO METEODAT  (statnr, messart, konfnr, messdat, messwert, ursprung, valstat, einfdat) values(" +
+                s"${ml.station}, ${ml.messArt}, ${ml.configuration}, ${ml.dateReceived}, ${ml.valueOfMeasurement}, ${ml.methodApplied}, ${ml.status.getOrElse(0)},${ml.dateOfInsertion})"
+              //Logger.info(s"statement to be executed: ${insertStatement}")
+              stmt.executeUpdate(insertStatement)
+            }
+            case Some(2) => {
+              val insertStatement = s"INSERT INTO MDAT  (statnr, messart, konfnr, messdat, messwert, ursprung, valstat, einfdat) values(" +
+                s"${ml.station}, ${ml.messArt}, ${ml.configuration}, ${ml.dateReceived}, ${ml.valueOfMeasurement}, ${ml.methodApplied}, ${ml.status.getOrElse(0)},${ml.dateOfInsertion})"
+              //Logger.info(s"statement to be executed: ${insertStatement}")
+              stmt.executeUpdate(insertStatement)
+
+            }
+            case _ => None
+          }
+          //Insert information into MetaBlag
+          //insertInfoIntoMetablag(meteoData, stmt)
+          stmt.close()
+          conn.commit()
+          //conn.close()
+          None
+        } catch {
+          case ex: SQLException => {
+            if (ex.getErrorCode() == 1) {
+              Logger.info(s"Data was already read. Primary key violation ${ex} ${m.meteoDataRow.toString}")
+              //conn.rollback()
+              None
+            } else {
+              Some(CR1000OracleError(8, s"Oracle Exception: ${ex}"))
+            }
+
+          }
+        }
+
+      }).headOption
+      val metablagException = if (exceptionsInsertingDataRows.isEmpty) insertInfoIntoMetablag(meteoData) else None
+      exceptionsInsertingDataRows match {
+        case Some(x) => Some(x)
+        case None => metablagException
+      }} catch {
+      case ex: SQLException => {
+        if (ex.getErrorCode() == 1) {
+          Logger.info(s"Data was already read. Primary key violation ${ex} ")
+          //conn.rollback()
+          None
+        } else {
+          Some(CR1000OracleError(8, s"Oracle Exception: ${ex}"))
+        }
+
+      }
+    }
+
+  }
+  }
+
 
   def insertInfoIntoMetablag(meteoData: Seq[MeteoDataRowTableInfo]) = db.withConnection { implicit conn => {
     try {

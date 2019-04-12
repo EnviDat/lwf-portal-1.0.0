@@ -19,7 +19,7 @@ class SchedulerActorBodenSpa @Inject()(configuration: Configuration, meteoServic
   override def receive: Receive = {
     case "processFile" =>  {
       val config = ConfigurationLoader.loadBodenSpaConfiguration(configuration)
-      //processFile(config)
+      processFile(config)
       //readFile(config)
     }
   }
@@ -43,11 +43,11 @@ class SchedulerActorBodenSpa @Inject()(configuration: Configuration, meteoServic
     val inputFiles = new File(pathInputFile).listFiles().filter(_.getName.startsWith(config.dataFileNameBodenSpa))
     inputFiles.map(inFile => {
       val br = new BufferedReader(new InputStreamReader(new FileInputStream(inFile)))
-      val linesToParse = Stream.continually(br.readLine()).takeWhile(_ != null).toList.filterNot(l => l.contains("PROFILNR") || l.startsWith(";;"))
+      val linesToParse = Stream.continually(br.readLine()).takeWhile(_ != null).toList.filterNot(l => l.contains(";PROFIL_NR") || l.startsWith(";;"))
     val linesToSave = linesToParse.flatMap(lineToStore => {
         val dataColumns = lineToStore.split(";")
-        val profileId = NumberParser.parseNumber(dataColumns(1))
-        val profilKonfId = NumberParser.parseNumber(dataColumns(2))
+        val profileId = NumberParser.parseBigInt(dataColumns(1))
+        val profilKonfId = NumberParser.parseBigInt(dataColumns(2))
         val measurementDate = getActualOrDummyDate(dataColumns(3))
         val measurementValue = NumberParser.parseBigDecimal(dataColumns(4))
         val validity = 1
@@ -69,6 +69,6 @@ class SchedulerActorBodenSpa @Inject()(configuration: Configuration, meteoServic
   }
 
   def getActualOrDummyDate(dateInString: String) = {
-    s"to_date('${StringToDate.oracleDateFormat.print(formatOzoneDate.withZone(DateTimeZone.UTC).parseDateTime(dateInString))}', 'DD.MM.YYYY HH24:MI:SS')"
+    s"to_date('${StringToDate.oracleDateFormat.print(formatOzoneDate.withZone(DateTimeZone.forID("UTC")).parseDateTime(dateInString))}', 'DD.MM.YYYY HH24:MI:SS')"
   }
 }

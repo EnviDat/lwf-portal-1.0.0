@@ -92,14 +92,10 @@ class MeteorologyDataRepository  @Inject() (dbapi: DBApi) {
       conn.setAutoCommit(false)
       val stmt: Statement = conn.createStatement()
       meteoData.map(m => {
-
          //code that throws sql exception
-
-
             val insertStatement = s"insert into measurements (profil_nr, profil_konf_id, meas_date, value, valid, val_version) values ( ${m.profilNr}, ${m.profilKonfId}, ${m.measurementDate}, ${m.valueOfMeasurement}, ${m.valid}, ${m.valVersion})"
             Logger.info(s"statement to be executed: ${insertStatement}")
             stmt.executeUpdate(insertStatement)
-
 
       })
       stmt.close()

@@ -535,8 +535,8 @@ object MeteoDataRow {
   }
 }
 
-case class BodenDataRow(profilNr: Int,
-                        profilKonfId: Int,
+case class BodenDataRow(profilNr: BigInt,
+                        profilKonfId: BigInt,
                         measurementDate: String,
                         valueOfMeasurement: BigDecimal,
                         valid: Int,

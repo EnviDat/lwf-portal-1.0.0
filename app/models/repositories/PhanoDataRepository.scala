@@ -5,7 +5,7 @@ import javax.inject.Inject
 
 import anorm.{SQL, SqlParser}
 import models.domain._
-import models.domain.pheno.BesuchInfo
+import models.domain.pheno.{AufnEreig, BesuchInfo, PhanoGrowthData, PhanoPFLA}
 import models.ozone.OzoneOracleError
 import models.util.StringToDate
 import org.joda.time.DateTimeZone
@@ -139,7 +139,98 @@ class PhanoDataRepository  @Inject()(dbapi: DBApi) {
       val stmt: Statement = conn.createStatement()
       val onDate = s"to_date('${StringToDate.oracleDateNoTimeFormat.print(StringToDate.formatOzoneDateWithNoTime.withZone(DateTimeZone.UTC).parseDateTime(besuchData.besuchDatum))}', 'DD.MM.YYYY')"
 
-      val insertStatement = s"insert into besuch (persnr, invnr, statcode, besdatum, bemerkun) values ( ${besuchData.persnr}, ${besuchData.invnr}, ${besuchData.statnr}, ${onDate}, ${besuchData.comments})"
+      val insertStatement = s"insert into besuch (persnr, invnr, statcode, besdatum, bemerkun) values ( ${besuchData.persnr}, ${besuchData.invnr}, ${besuchData.statnr}, ${onDate}, '${besuchData.comments}')"
+      Logger.info(s"statement to be executed: ${insertStatement}")
+      stmt.executeUpdate(insertStatement)
+      stmt.close()
+      conn.commit()
+      conn.close()
+      None
+    } catch {
+      case ex: SQLException => {
+        if(ex.getErrorCode() == 1){
+          Logger.info(s"Data was already read. Primary key violation ${ex}")
+          conn.rollback()
+          conn.close()
+
+          None
+        } else {
+          conn.close()
+          Some(CR1000OracleError(8, s"Oracle Exception: ${ex}"))
+        }
+
+      }
+    }
+  }
+
+  def insertPhanoPFLA(phanoPfla: PhanoPFLA): Option[CR1000OracleError] = {
+    val conn = db.getConnection()
+    try {
+      conn.setAutoCommit(false)
+      val stmt: Statement = conn.createStatement()
+      val insertStatement = s"insert into phaeno_pfla (statcode, typcode, statucode, art, sprache, invnr, pfla_id, b_einf, d_einf) values ( ${phanoPfla.stationNr}, ${phanoPfla.typCode}, ${phanoPfla.statusCode}, ${phanoPfla.species}, '${phanoPfla.sprache}',${phanoPfla.invnr},${phanoPfla.pflaId},'automatic insert',${phanoPfla.einfdat})"
+      Logger.info(s"statement to be executed: ${insertStatement}")
+      stmt.executeUpdate(insertStatement)
+      stmt.close()
+      conn.commit()
+      conn.close()
+      None
+    } catch {
+      case ex: SQLException => {
+        if(ex.getErrorCode() == 1){
+          Logger.info(s"Data was already read. Primary key violation ${ex}")
+          conn.rollback()
+          conn.close()
+
+          None
+        } else {
+          conn.close()
+          Some(CR1000OracleError(8, s"Oracle Exception: ${ex}"))
+        }
+
+      }
+    }
+  }
+
+
+  def insertPhanoPFLAParameter(phanoPflaParam: PhanoGrowthData) : Option[CR1000OracleError] = {
+    val conn = db.getConnection()
+    try {
+      conn.setAutoCommit(false)
+      val stmt: Statement = conn.createStatement()
+      //val onDate = s"to_date('${StringToDate.oracleDateNoTimeFormat.print(StringToDate.formatOzoneDateWithNoTime.withZone(DateTimeZone.UTC).parseDateTime(phanoPflaParam.messdat))}', 'DD.MM.YYYY')"
+      val insertStatement = s"insert into pfla_param (invnr, statcode, typcode, messdat, sozcode, bhoehe, bumfang, bemerkungen, pfla_id) values ( ${phanoPflaParam.invnr}, ${phanoPflaParam.stationNr}, ${phanoPflaParam.typeCode}, ${phanoPflaParam.messdat}, ${phanoPflaParam.social},${phanoPflaParam.height},${phanoPflaParam.umfang},'${phanoPflaParam.bemerkung}', ${phanoPflaParam.pflaId})"
+      Logger.info(s"statement to be executed: ${insertStatement}")
+      stmt.executeUpdate(insertStatement)
+      stmt.close()
+      conn.commit()
+      conn.close()
+      None
+    } catch {
+      case ex: SQLException => {
+        if(ex.getErrorCode() == 1){
+          Logger.info(s"Data was already read. Primary key violation ${ex}")
+          conn.rollback()
+          conn.close()
+
+          None
+        } else {
+          conn.close()
+          Some(CR1000OracleError(8, s"Oracle Exception: ${ex}"))
+        }
+
+      }
+    }
+  }
+
+
+  def insertPhanoAufnEreigParameter(phanoPflaAufnEreig: AufnEreig) : Option[CR1000OracleError] = {
+    val conn = db.getConnection()
+    try {
+      conn.setAutoCommit(false)
+      val stmt: Statement = conn.createStatement()
+      //val onDate = s"to_date('${StringToDate.oracleDateNoTimeFormat.print(StringToDate.formatOzoneDateWithNoTime.withZone(DateTimeZone.UTC).parseDateTime(phanoPflaAufnEreig.ereignisDate))}', 'DD.MM.YYYY')"
+      val insertStatement = s"insert into aufn_ereig (statcode, typcode, invnr, ereigniscode, ereignisdatum, persnr, intcode, pfla_id) values ( ${phanoPflaAufnEreig.stationNr}, ${phanoPflaAufnEreig.typCode}, ${phanoPflaAufnEreig.invnr}, ${phanoPflaAufnEreig.ereignisCode}, ${phanoPflaAufnEreig.ereignisDate},${phanoPflaAufnEreig.persNr},${phanoPflaAufnEreig.intensityCode},${phanoPflaAufnEreig.pflaId})"
       Logger.info(s"statement to be executed: ${insertStatement}")
       stmt.executeUpdate(insertStatement)
       stmt.close()

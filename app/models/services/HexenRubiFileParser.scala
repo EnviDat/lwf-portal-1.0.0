@@ -18,7 +18,7 @@ object HexenRubiFileParser {
   def parseAndSaveData(cr100FileData: List[String], meteoService: MeteoService, fileName: String, stationNr: Int, projectNr: Int, duration: Int): Option[CR1000OracleError] = {
     val allMessWerts: Seq[MessArtRow] = meteoService.getAllMessArts
     val allStationConfigs: List[MeteoStationConfiguration] = meteoService.getStatKonfForStation().filter(sk => allMessWerts.map(_.code).contains( sk.messArt))
-
+    val dtz = DateTimeZone.forID("CET")
     val allRowsToBeInserted = cr100FileData.par.flatMap(line => {
       val words = line.split(",")
       val dayOfYear = words(2).toInt
@@ -39,9 +39,14 @@ object HexenRubiFileParser {
       //Logger.info(s"line parsed: ${line}")
 
       //val dateTimeFromDataLine = ZonedDateTime.of(dateFromDayOfYear.getYear,dateFromDayOfYear.getMonth.getValue,dateFromDayOfYear.getDayOfMonth,hrs,mins,0,0, ZoneId.of("UTC")).toInstant
-     //val dateInstance = dateTimeFromDataLine.withZoneSameInstant(ZoneId.of("UTC")).toInstant
+      //val dateInstance = dateTimeFromDataLine.withZoneSameInstant(ZoneId.of("UTC")).toInstant
       //val messDatum = Date.from(dateTimeFromDataLine)
-      val messDatum = dateFromDayOfYear.getDayOfMonth.toString  + "." + dateFromDayOfYear.getMonth.getValue.toString + "." + dateFromDayOfYear.getYear.toString + " " + hrs.toString  + ":" + mins.toString + ":00"
+
+
+     val localMessDatum = new org.joda.time.LocalDateTime(dtz).withYear(dateFromDayOfYear.getYear).withMonthOfYear(dateFromDayOfYear.getMonth.getValue).withDayOfMonth(dateFromDayOfYear.getDayOfMonth)
+       .withHourOfDay(hrs).withMinuteOfHour(mins)
+      val messDatum = if( dtz.isLocalDateTimeGap(localMessDatum)) dateFromDayOfYear.getDayOfMonth.toString  + "." + dateFromDayOfYear.getMonth.getValue.toString + "." + dateFromDayOfYear.getYear.toString + " " + (hrs + 1) .toString  + ":" + mins.toString + ":00"
+      else dateFromDayOfYear.getDayOfMonth.toString  + "." + dateFromDayOfYear.getMonth.getValue.toString + "." + dateFromDayOfYear.getYear.toString + " " + hrs.toString  + ":" + mins.toString + ":00"
 
       val stationNumber =  Some(stationNr)
       val projectNumber =  Some(projectNr)
@@ -80,9 +85,9 @@ object HexenRubiFileParser {
     }).flatten.toList
 
     val aggregatedLinesWithTimestamp = allRowsToBeInserted.map(al => {
-      (StringToDate.formatOzoneDate.withZoneUTC().parseDateTime(al.meteoDataRow.dateReceived.stripPrefix("to_date('").replaceAll("'", "").stripSuffix(", DD.MM.YYYY HH24:MI:SS)")), al)
+      (StringToDate.formatOzoneDate.withOffsetParsed.parseDateTime(al.meteoDataRow.dateReceived.stripPrefix("to_date('").replaceAll("'", "").stripSuffix(", DD.MM.YYYY HH24:MI:SS)")), al)
     })
-    val maximumDateDataWasRead: Option[DateTime] = meteoService.findMaxMeasurementDateForAStation(stationNr).headOption.map(maxDate => StringToDate.formatOzoneDate.parseDateTime(maxDate.stripPrefix("to_date('").replaceAll("'", "").stripSuffix(", DD.MM.YYYY HH24:MI:SS)")))
+    val maximumDateDataWasRead: Option[DateTime] = meteoService.findMaxMeasurementDateForAStation(stationNr).headOption.map(maxDate => StringToDate.formatOzoneDate.withZoneUTC().parseDateTime(maxDate.stripPrefix("to_date('").replaceAll("'", "").stripSuffix(", DD.MM.YYYY HH24:MI:SS)")))
     val filteredAggregatedLinesToInsert: immutable.Iterable[MeteoDataRowTableInfo] = maximumDateDataWasRead match {
       case None => allRowsToBeInserted
       case Some(maxDate) => aggregatedLinesWithTimestamp.filter(_._1.isAfter(maxDate)).map(_._2)

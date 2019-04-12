@@ -41,14 +41,14 @@ class SchedulerActorHexenRubi @Inject()(configuration: Configuration, meteoServi
     val pathInputFile = config.pathForIncomingFileHexenRubi
 
     val pathForArchivedFiles = config.pathForArchivedFiles
-    Logger.info("looking into network drive task running")
+    Logger.info("looking into network drive for Hexenrubi File")
+    val emailList = config.emailUserListHexenRubi.split(";").toSeq
 
     val userName= config.userNameHexenRubi
     val password = config.passwordHexenRubi
     try {
     val auth: NtlmPasswordAuthentication = new NtlmPasswordAuthentication("wsl.ch" , userName , password)
     val sFile = new SmbFile(pathInputFile, auth)
-    val emailList = config.emailUserListHexenRubi.split(";").toSeq
 
 
     if(sFile.isDirectory()) {
@@ -56,9 +56,12 @@ class SchedulerActorHexenRubi @Inject()(configuration: Configuration, meteoServi
       for(f <- files) {
         if (f.isFile()) {
           if (f.getName.startsWith(config.dataFileNameHexenRubi) && (f.getName.endsWith(".dat") || f.getName.endsWith(".Dat") || f.getName.endsWith(".DAT"))) {
+            Logger.info(s"File found on network drive for Hexenrubi ${f.getName} ")
+
             val lastModifiedTime = new DateTime(f.getLastModified)
             val diffInSysdate = Days.daysBetween(lastModifiedTime, new org.joda.time.DateTime()).getDays
             if (diffInSysdate <= 31) {
+
               val content = readFileContent(f).toList
               val caughtExceptions = HexenRubiFileParser.parseAndSaveData(content, meteoService, f.getName + "_" + lastModifiedTime.toString, config.stationNrHexenRubi, config.projectNrHexenRubi, config.periodeHexenRubi)
               caughtExceptions match {
@@ -69,12 +72,16 @@ class SchedulerActorHexenRubi @Inject()(configuration: Configuration, meteoServi
               }
               //Logger.info(s"Last timestamp when file was changed:${f.getName} time: ${lastModifiedTime}")
             }
+            else {
+              Logger.info("No new data found for Hexenrubi")
+            }
           }
         }
       }
     }
     } catch { case ex =>
       Logger.info(s"smb connection problem:${ex}")
+      EmailService.sendEmail("HexenRubi File Processor", "CR1000_Data_Processing@klaros.wsl.ch", emailList, emailList, "Hexenrubi File Processing Report With errors", s"file Processed Report. \n PS: ***If there is any change in  wind direction and wind speed parameter, please contact Database Manager LWF to change in DB and Akka config.}}")
       Seq()
     }
     /*val sfos = new SmbFileOutputStream(sFile)

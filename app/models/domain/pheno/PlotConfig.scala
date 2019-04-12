@@ -2,7 +2,8 @@ package models.domain.pheno
 
 import anorm.SqlParser.get
 import anorm.{RowParser, ~}
-import models.ozone.{OzoneSuspiciousDataLineError, WSOzoneFileParser}
+import models.domain.CR1000Exceptions
+import models.ozone.{OzoneExceptions, OzoneSuspiciousDataLineError, WSOzoneFileParser}
 import models.util.NumberParser
 
 
@@ -23,40 +24,70 @@ case class PhanoGrowthData(invnr: Integer,
                                bemerkung: String
 )
 
+case class PhanoPFLA(stationNr: Integer,
+                    typCode: Int,
+                    statusCode: Int,
+                    species: Int,
+                    sprache: String,
+                    invnr: Int,
+                    pflaId: Int,
+                    einfdat: String
+                    )
+
+case class AufnEreig(stationNr: Integer,
+                    typCode: Int,
+                    invnr: Int,
+                    ereignisCode: Int,
+                    ereignisDate: String,
+                    persNr: Int,
+                    intensityCode: Int,
+                    pflaId: Int
+                    )
+
 
 object PhanoPlotKeysConfig {
 
   def defaultPlotConfigs = ???
 
-  def defaultValidKeywords = List("Stationsname", "Beobachtungsjahr", "Beobachter Name","Meereshöhe m ü. M.:", "Exposition","Hangneigung:","Art","Daten der Beobachtungsgänge","Bemerkungen")
+  def defaultValidKeywords = List("Stationsname", "Beobachtungsjahr", "Beobachter Name","Beobachter Vorname","Meereshöhe m ü. M.:", "Exposition","Hangneigung:","Art","Daten der Beobachtungsgange","Bemerkungen")
   def defaultInvalidLinesPrefix = List( "Phänologische Beobachtungen", "Nr.;"
                                         )
 
   def preparePhanoFileLevelInfo(validLines: Seq[String], fileName : String) = {
 
     val stationNameLine: Option[String] = validLines.filter(_.startsWith("Stationsname")).headOption
-    val beobachterNameLine: Option[String] = validLines.filter(_.contains("Beobachter Name")).headOption
+    val beobachterNachNameLine: Option[String] = validLines.filter(_.contains("Beobachter Name")).headOption
+    val beobachterVorNameLine: Option[String] = validLines.filter(_.contains("Beobachter Vorname")).headOption
+
     val bemerkungLine = validLines.filter(_.contains("Bemerkungen")).headOption
-    val besuchDatumLine = validLines.filter(_.contains("Daten der Beobachtungsgänge")).headOption
+    val besuchDatumLine = validLines.filter(_.contains("Daten der Beobachtungsgange")).headOption
     val speciesNameLine: Option[String] = validLines.filter(_.startsWith("Art")).headOption
 
     val stationName = getStationNameValue(stationNameLine)
-    val beobachterName = getBeobachterValue(beobachterNameLine)
+    val beobachterNachName = getBeobachterValue(beobachterNachNameLine)
+    val beobachterVorname = getBeobachterVornameValue(beobachterVorNameLine)
+    val beobachterName: String =  (beobachterNachName,beobachterVorname) match {
+      case (Some(x), Some(y)) => (x + y).toUpperCase.sorted
+      case (Some(x), None) => (x).toUpperCase.sorted
+      case (None, Some(x)) => (x).toUpperCase.sorted
+      case (None, None) => "undefined"
+      case (_,_) => "undefined"
+    }
     val besuchDatums = getBesuchDatums(besuchDatumLine)
     val comments = bemerkungLine.mkString(",") replaceAll(";", "")
     val speciesName = getSpeciesNameValue(speciesNameLine)
 
     val validComments = if(comments.size > 6) comments else ""
 
-    val missingValue = stationName.isEmpty || beobachterName.isEmpty || besuchDatums.isEmpty
+    val missingValue = stationName.isEmpty || beobachterName.isEmpty || speciesName.isEmpty
 
     PhanoFileLevelInfo(fileName,
       stationName.getOrElse("undefined"),
-      beobachterName.getOrElse("undefined"),
+      beobachterName,
       validComments,
       besuchDatums.getOrElse(List()),
       missingValue,
-      speciesName
+      speciesName.getOrElse("undefined")
     )
 
   }
@@ -69,7 +100,7 @@ object PhanoPlotKeysConfig {
     })
   }
 
-  def getSpeciesNameValue(sammelMethodeLine: Option[String]): String = {
+  def getSpeciesNameValue(sammelMethodeLine: Option[String]): Option[String] = {
     sammelMethodeLine.map( line => {
       val index = line.indexOfSlice("Art")
       val speciesName = line.stripPrefix("Art").trim.replaceAll("\\;","")
@@ -80,14 +111,22 @@ object PhanoPlotKeysConfig {
 
   def getBeobachterValue(sammelMethodeLine: Option[String]): Option[String] = {
     sammelMethodeLine.map( line => {
-     val beobachterName = line.stripPrefix("Beobachter Name;").trim.replaceAll("\\;","").toUpperCase.sorted
+     val beobachterName = line.stripPrefix("Beobachter Name;").trim.replaceAll("\\;","")
       if (beobachterName.nonEmpty) beobachterName else "unknown"
     })
   }
 
+  def getBeobachterVornameValue(sammelMethodeLine: Option[String]): Option[String] = {
+    sammelMethodeLine.map( line => {
+      val beobachterName = line.stripPrefix("Beobachter Vorname;").trim.replaceAll("\\;","")
+      if (beobachterName.nonEmpty) beobachterName else "unknown"
+    })
+  }
+
+
   def getBesuchDatums(line: Option[String]) = {
     line.map( line => {
-      val datumWithDelimiters = line.stripPrefix("Daten der Beobachtungsgänge;").trim
+      val datumWithDelimiters = line.stripPrefix("Daten der Beobachtungsgange;").trim
       val datums = datumWithDelimiters.split(";")
       datums.map(convert8DigitDateTo10Digit(_)).toList
     })
@@ -311,4 +350,4 @@ object OzoneDataRow {
 }
 
 case class OzoneFileInfo(fileName: String, header: String, ozoneData: List[String])
-
+case class PhanoErrorFileInfo(fileName: String, errors : List[CR1000Exceptions])

@@ -4,21 +4,20 @@ import java.io._
 
 import com.jcraft.jsch.{ChannelSftp, JSch, JSchException, SftpException}
 import models.domain.Ozone.{OzoneFileConfig, OzoneKeysConfig}
+import models.domain._
 import models.domain.meteorology.ethlaegeren.parser.ETHLaeFileParser
-import models.domain.meteorology.ethlaegeren.validator.ETHLaeFileValidator
-import models.domain.pheno.{BesuchInfo, PhanoFileLevelInfo, PhanoPlotKeysConfig}
-import models.domain.{CR1000ErrorFileInfo, CR1000Exceptions, CR1000OracleError, FormatMessage}
+import models.domain.pheno.{BesuchInfo, PhanoErrorFileInfo, PhanoFileLevelInfo, PhanoPlotKeysConfig}
 import models.ozone.{OzoneFileLevelInfoMissingError, _}
-import models.phano.{PhanoFileParser, PhanoFileValidator}
+import models.phano.PhanoFileParser
 import models.services._
 import models.util.StringToDate.formatCR1000Date
 import org.apache.commons.io.FileUtils
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
-import schedulers.{ETHLaegerenLoggerFileConfig, SpecialParamKonfig, StationKonfig}
+import schedulers.{ETHLaegerenLoggerFileConfig, StationKonfig}
 
+import scala.collection.immutable
 import scala.collection.parallel.ParMap
-import scala.collection.{immutable, mutable}
 
 object FtpConnector {
 
@@ -56,8 +55,9 @@ object FtpConnector {
       val infoAboutFileProcessed =
         listOfFiles.toList.map(file => {
         if(file.errors.flatMap(_._2).nonEmpty) {
-          val errorstring = FormatMessage.formatCR1000ErrorMessage(file.errors)
-          (s"File not processed: ${file.fileName} \n errors: ${errorstring} \n",Some(errorstring))
+          val nrOfErrorMessages = file.errors.size
+          val errorstring = if(nrOfErrorMessages < 5) FormatMessage.formatCR1000ErrorMessage(file.errors) else FormatMessage.formatCR1000ErrorMessage(file.errors.take(5))
+          (s"File not processed: ${file.fileName} \n errors: ${errorstring} \n",Some(errorstring), nrOfErrorMessages)
         } else {
           val caughtExceptions = CR1000FileParser.parseAndSaveData(file.linesToSave, meteoService, file.fileName)
           caughtExceptions match {
@@ -68,9 +68,9 @@ object FtpConnector {
                 sftpChannel.rm(file.fileName)
               }
               Thread.sleep(10)
-              (s"File is processed successfully: ${file.fileName}",None)
+              (s"File is processed successfully: ${file.fileName}",None, 0)
             }
-            case Some(x) => (s"File is not processed successfully: ${file.fileName} reason: ${x.errorMessage}",Some(x.errorMessage))
+            case Some(x) => (s"File is not processed successfully: ${file.fileName} reason: ${x.errorMessage}",Some(x.errorMessage),1)
           }
         }
       })
@@ -78,11 +78,16 @@ object FtpConnector {
       val emailList = emailUserList.split(";").toSeq
       if(infoAboutFileProcessed.nonEmpty) {
         if(infoAboutFileProcessed.exists(_._2.nonEmpty)) {
-          Logger.info(s"CR 1000 Processor, CR1000_Data_Processing@klaros.wsl.ch ${emailList}, CR 1000 Processing Report With Errors file Processed Report${infoAboutFileProcessed.map(_._1).mkString("\n")}")
-         EmailService.sendEmail("CR 1000 Processor", "CR1000_Data_Processing@klaros.wsl.ch", emailList, emailList, "CR 1000 Processing Report With Errors", s"file Processed Report${infoAboutFileProcessed.map(_._1).mkString("\n")}")
+          if(infoAboutFileProcessed.filter(errorsList => errorsList._3 > 10).nonEmpty || infoAboutFileProcessed.filter(errorMessage => errorMessage._1.size > 10000).nonEmpty) {
+            Logger.info(s"CR 1000 Processor, CR1000_Data_Processing@klaros.wsl.ch ${emailList}, CR 1000 Processing Report With Errors file Processed Report${infoAboutFileProcessed.map(_._1).mkString("\n")}")
+            EmailService.sendEmail("CR 1000 Processor", "CR1000_Data_Processing@klaros.wsl.ch", emailList, emailList, "CR 1000 Processing Alarm Report With Errors ", s"Big Files/large number of files with errors were detected on ftp. Please check it if its expected.\n File Processed Report${infoAboutFileProcessed.map(_._1).mkString("\n")}")
+          } else {
+            Logger.info(s"CR 1000 Processor, CR1000_Data_Processing@klaros.wsl.ch ${emailList}, CR 1000 Processing Report With Errors file Processed Report${infoAboutFileProcessed.map(_._1).mkString("\n")}")
+            EmailService.sendEmail("CR 1000 Processor", "CR1000_Data_Processing@klaros.wsl.ch", emailList, emailList, "CR 1000 Processing Report Errors", s"Files Processed Report${infoAboutFileProcessed.map(_._1).mkString("\n")}")
+          }
         } else {
           Logger.info(s"CR 1000 Processor, CR1000_Data_Processing@klaros.wsl.ch ${emailList}, CR 1000 Processing Report OK, file Processed Report${infoAboutFileProcessed.map(_._1).mkString("\n")}")
-          EmailService.sendEmail("CR 1000 Processor", "CR1000_Data_Processing@klaros.wsl.ch", emailList, emailList, "CR 1000 Processing Report OK", s"file Processed Report${infoAboutFileProcessed.map(_._1).mkString("\n")}")
+          EmailService.sendEmail("CR 1000 Processor", "CR1000_Data_Processing@klaros.wsl.ch", emailList, emailList, "CR 1000 Processing Report OK", s"File Processed Report${infoAboutFileProcessed.map(_._1).mkString("\n")}")
         }
       }
       Logger.info(s"list of files received: ${infoAboutFileProcessed.map(_._1).mkString("\n")}")
@@ -243,7 +248,7 @@ object FtpConnector {
 
 
   @throws[Exception]
-  def readPhanoCSVFileFromFtp(userNameFtp: String, passwordFtp: String, pathForFtpFolder: String, ftpUrl: String, emailUserList: String, meteoService: PhanoService, pathForArchiveFiles: String): Unit = {
+  def readPhanoCSVFileFromFtp(userNameFtp: String, passwordFtp: String, pathForFtpFolder: String, ftpUrl: String, emailUserList: String, meteoService: PhanoService, pathForArchiveFiles: String) = {
    val jsch = new JSch
     try {
       val session = jsch.getSession(userNameFtp, ftpUrl, 22)
@@ -260,7 +265,7 @@ object FtpConnector {
       import scala.collection.JavaConverters._
       val listOfErrors = sftpChannel.ls("*.csv").asScala
         .map(_.asInstanceOf[sftpChannel.LsEntry])
-        .map(entry => {
+        .map(f = entry => {
           Logger.info(s"Parsing the file ${entry.getFilename}")
 
           val stream = sftpChannel.get(entry.getFilename)
@@ -282,21 +287,20 @@ object FtpConnector {
           val besuchDatumInfos = fileLevelConfig.besuchDatums.map(BesuchInfo(stationNr, invnr, personNr, _, fileLevelConfig.comments))
           val speciesId = meteoService.getSpeciesId(fileLevelConfig.speciesName)
 
-           if (stationNr > 0) {
-          val errorsWhilesavingFileInfo = meteoService.insertBesuchInfo(besuchDatumInfos)
+          val listOfAllCaughtExceptions = if (stationNr > 0) {
+            val errorsWhilesavingFileInfo = meteoService.insertBesuchInfo(besuchDatumInfos).flatten.toList
 
-          validDataLines.map(line => {
-            PhanoFileParser.parseAndSaveData(line, meteoService, true, stationNr, personNr, invnr, typeCode)
-
-
-            val missingInfoErrors: List[OzoneFileLevelInfoMissingError] = if (fileLevelConfig.missingInfo == true) List(OzoneFileLevelInfoMissingError(100, "Missing important File level parameters.")) else List()
-            OzoneErrorFileInfo(entry.getFilename,  missingInfoErrors )
-          })
-
-          }else {
-            val missingInfoErrors: List[OzoneFileLevelInfoMissingError] = if (fileLevelConfig.missingInfo == true) List(OzoneFileLevelInfoMissingError(100, "Missing important File level parameters.")) else List()
-            OzoneErrorFileInfo(entry.getFilename, missingInfoErrors)
+            val otherExceptionsCaught = validDataLines.flatMap(line => {
+              val exceptionsCaught: List[CR1000OracleError] = PhanoFileParser.parseAndSaveData(line, meteoService, true, stationNr, personNr, invnr, typeCode, speciesId).toList
+              val missingInfoErrors: List[CR1000OracleError] = if (fileLevelConfig.missingInfo) List(CR1000OracleError(100, "Missing important File level parameters.")) else List()
+              exceptionsCaught.:::(missingInfoErrors)
+            })
+            PhanoErrorFileInfo(entry.getFilename, otherExceptionsCaught.:::(errorsWhilesavingFileInfo))
+          } else {
+            val missingInfoErrors: List[CR1000FileError] = if (fileLevelConfig.missingInfo) List(CR1000FileError(100, "Missing important File level parameters.")) else List()
+            PhanoErrorFileInfo(entry.getFilename, missingInfoErrors)
           }
+          listOfAllCaughtExceptions
         }).toList
 
       val infoAboutFileProcessed =
@@ -358,8 +362,6 @@ object FtpConnector {
       sftpChannel.cd(pathForFtpFolder)
       Logger.info(s"Logged in to ftp folder")
       import org.joda.time.Days
-      import Joda._
-
 
       import scala.collection.JavaConverters._
       val allLinesCollectedFromFiles = sftpChannel.ls("*.lwf").asScala
@@ -415,7 +417,6 @@ object FtpConnector {
 
 
   private def groupValidLinesForTimeStampsWithTenMinutes(validLines: List[String]) = {
-    import org.joda.time.Days
     import Joda._
     val allDatesInFiles = validLines.map(l => (formatCR1000Date.withZone(DateTimeZone.UTC).parseDateTime(l.split(",")(0).replace("\"", "")),l)).sortBy(_._1)
     val minDateInFile = allDatesInFiles.map(_._1).min

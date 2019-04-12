@@ -22,6 +22,23 @@ object NumberParser {
     parsedNumber
   }
 
+  def parseBigInt(word: String) = {
+    val numberTry = for {
+      statNr <- Try(BigInt.apply(word))
+    } yield {
+      statNr
+    }
+    val parsedNumber = numberTry match {
+      case Failure(thrown) => {
+        None
+      }
+      case Success(s) => {
+        Some(s)
+      }
+    }
+    parsedNumber
+  }
+
   def parseBigDecimal(word: String) = {
     val value = if (word.toUpperCase.toString == "NAN") "-9999" else word
     val numberTry = for {
@@ -31,8 +48,7 @@ object NumberParser {
     }
     val parsedNumber = numberTry match {
       case Failure(thrown) => {
-        None
-      }
+        None      }
       case Success(s) => {
         Some(s)
       }
