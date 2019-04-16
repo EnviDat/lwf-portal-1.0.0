@@ -18,7 +18,7 @@ class SchedulerActorCR1000 @Inject()(configuration: Configuration, meteoService:
     case "processFile" =>  {
 
       val config = ConfigurationLoader.loadCR1000Configuration(configuration)
-       //processFile(config)
+       processFile(config)
       //readFile(config)
     }
   }

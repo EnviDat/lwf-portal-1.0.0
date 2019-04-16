@@ -16,7 +16,7 @@ class SchedulerActor @Inject()(configuration: Configuration, meteoService: Meteo
   override def receive: Receive = {
     case "writeFile" =>  {
       val config = ConfigurationLoader.loadMeteoSchweizConfiguration(configuration)
-      //writeFile(config)
+      writeFile(config)
       //readFile(config)
     }
   }

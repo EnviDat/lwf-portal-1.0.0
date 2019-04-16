@@ -16,7 +16,7 @@ class SchedulerActorUniBasel @Inject()(configuration: Configuration, meteoServic
   override def receive: Receive = {
     case "writeFile" =>  {
       val config = ConfigurationLoader.loadUniBaselConfiguration(configuration)
-      //writeFile(config)
+      writeFile(config)
       //readFile(config)
     }
   }

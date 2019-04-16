@@ -18,7 +18,7 @@ class SchedulerActorHexenRübiFixedFormatExport @Inject()(configuration: Configu
       val configMeteoSwiss = ConfigurationLoader.loadMeteoSchweizConfiguration(configuration)
       val configHexenrubi: ConfigurationHexenrubiData = ConfigurationLoader.loadHexenRubiConfiguration(configuration)
 
-      //writeFile(configMeteoSwiss, configHexenrubi)
+      writeFile(configMeteoSwiss, configHexenrubi)
       //readFile(config)
     }
   }

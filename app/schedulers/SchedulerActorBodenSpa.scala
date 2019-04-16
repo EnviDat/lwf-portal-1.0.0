@@ -19,7 +19,7 @@ class SchedulerActorBodenSpa @Inject()(configuration: Configuration, meteoServic
   override def receive: Receive = {
     case "processFile" =>  {
       val config = ConfigurationLoader.loadBodenSpaConfiguration(configuration)
-      processFile(config)
+      //processFile(config)
       //readFile(config)
     }
   }
@@ -55,7 +55,7 @@ class SchedulerActorBodenSpa @Inject()(configuration: Configuration, meteoServic
         for {
           profil <- profileId
           konfId <- profilKonfId
-         messValue <- measurementValue
+          messValue <- measurementValue
           bodenDataRow = BodenDataRow(profil,konfId,measurementDate,messValue,validity,valVersion)
         } yield bodenDataRow
       }

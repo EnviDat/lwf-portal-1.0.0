@@ -13,5 +13,4 @@ class SchedulerCR1000 @Inject()(val system: ActorSystem, @Named("scheduler-actor
   val frequency = config.frequencyCR1000
   var actor = system.scheduler.schedule(
     0.microseconds, frequency.seconds, schedulerActor, "processFile")
-
 }

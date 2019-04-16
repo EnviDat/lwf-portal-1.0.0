@@ -25,12 +25,12 @@ class Module extends AbstractModule with AkkaGuiceSupport {
     bind(classOf[ApplicationTimer]).asEagerSingleton()
     // Set AtomicCounter as the implementation for Counter.
     bind(classOf[Counter]).to(classOf[AtomicCounter])
-    /*bindActor[SchedulerActor]("scheduler-actor")
-    bindActor[SchedulerActorCR1000]("scheduler-actor-cr1000")
+    bindActor[SchedulerActor]("scheduler-actor")
     bindActor[LogsSchedulerActor]("log-scheduler-actor")
     bind(classOf[Scheduler]).asEagerSingleton()
-    bind(classOf[SchedulerCR1000]).asEagerSingleton()
 
+    bindActor[SchedulerActorCR1000]("scheduler-actor-cr1000")
+    bind(classOf[SchedulerCR1000]).asEagerSingleton()
 
     bindActor[SchedulerActorSwissSMEX]("scheduler-actor-swissmex")
     bind(classOf[SchedulerSwissSMEX]).asEagerSingleton()
@@ -50,8 +50,8 @@ class Module extends AbstractModule with AkkaGuiceSupport {
     bindActor[SchedulerActorHexenRübiFixedFormatExport]("scheduler-actor-hexenrubi-export")
     bind(classOf[SchedulerHexenRubiExport]).asEagerSingleton()*/
 
-    bindActor[SchedulerActorBodenSpa]("scheduler-actor-bodenspa")
-    bind(classOf[SchedulerBodenSpa]).asEagerSingleton()
+    //bindActor[SchedulerActorBodenSpa]("scheduler-actor-bodenspa")
+    //bind(classOf[SchedulerBodenSpa]).asEagerSingleton()
 
     //bindActor[SchedulerActorPhano]("scheduler-actor-phano")
     //bind(classOf[SchedulerPhano]).asEagerSingleton()
