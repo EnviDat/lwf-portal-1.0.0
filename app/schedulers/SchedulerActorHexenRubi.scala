@@ -66,9 +66,9 @@ class SchedulerActorHexenRubi @Inject()(configuration: Configuration, meteoServi
               val caughtExceptions = HexenRubiFileParser.parseAndSaveData(content, meteoService, f.getName + "_" + lastModifiedTime.toString, config.stationNrHexenRubi, config.projectNrHexenRubi, config.periodeHexenRubi)
               caughtExceptions match {
                 case None => {
-                  EmailService.sendEmail("HexenRubi File Processor", "CR1000_Data_Processing@klaros.wsl.ch", emailList, emailList, "Hexenrubi File Processing Report OK", s"file Processed Report${f.getName}. \n PS: ***If there is any change in  wind direction and wind speed parameter, please contact Database Manager LWF to change in DB and Akka config.}")
+                  EmailService.sendEmail("HexenRubi File Processor", "CR1000_Data_Processing@wsl.ch", emailList, emailList, "Hexenrubi File Processing Report OK", s"file Processed Report${f.getName}. \n PS: ***If there is any change in  wind direction and wind speed parameter, please contact Database Manager LWF to change in DB and Akka config.}")
                 }
-                case Some(_) => EmailService.sendEmail("HexenRubi File Processor", "CR1000_Data_Processing@klaros.wsl.ch", emailList, emailList, "Hexenrubi File Processing Report With errors", s"file Processed Report${f.getName}. \n PS: ***If there is any change in  wind direction and wind speed parameter, please contact Database Manager LWF to change in DB and Akka config.}}")
+                case Some(_) => EmailService.sendEmail("HexenRubi File Processor", "CR1000_Data_Processing@wsl.ch", emailList, emailList, "Hexenrubi File Processing Report With errors", s"file Processed Report${f.getName}. \n PS: ***If there is any change in  wind direction and wind speed parameter, please contact Database Manager LWF to change in DB and Akka config.}}")
               }
               //Logger.info(s"Last timestamp when file was changed:${f.getName} time: ${lastModifiedTime}")
             }
@@ -81,7 +81,7 @@ class SchedulerActorHexenRubi @Inject()(configuration: Configuration, meteoServi
     }
     } catch { case ex =>
       Logger.info(s"smb connection problem:${ex}")
-      EmailService.sendEmail("HexenRubi File Processor", "CR1000_Data_Processing@klaros.wsl.ch", emailList, emailList, "Hexenrubi File Processing Report With errors", s"file Processed Report. \n PS: ***If there is any change in  wind direction and wind speed parameter, please contact Database Manager LWF to change in DB and Akka config.}}")
+      EmailService.sendEmail("HexenRubi File Processor", "CR1000_Data_Processing@wsl.ch", emailList, emailList, "Hexenrubi File Processing Report With errors", s"file Processed Report. \n PS: ***If there is any change in  wind direction and wind speed parameter, please contact Database Manager LWF to change in DB and Akka config.}}")
       Seq()
     }
     /*val sfos = new SmbFileOutputStream(sFile)

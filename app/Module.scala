@@ -44,11 +44,11 @@ class Module extends AbstractModule with AkkaGuiceSupport {
     bindActor[SchedulerActorHexenRubi]("scheduler-actor-hexenrubi")
     bind(classOf[SchedulerHexenRubi]).asEagerSingleton()
 
-    bindActor[SchedulerActorOttPluvio]("scheduler-actor-ottpluvio")
-    bind(classOf[SchedulerOttPluvio]).asEagerSingleton()
+    //bindActor[SchedulerActorOttPluvio]("scheduler-actor-ottpluvio")
+    //bind(classOf[SchedulerOttPluvio]).asEagerSingleton()
 
     bindActor[SchedulerActorHexenRübiFixedFormatExport]("scheduler-actor-hexenrubi-export")
-    bind(classOf[SchedulerHexenRubiExport]).asEagerSingleton()*/
+    bind(classOf[SchedulerHexenRubiExport]).asEagerSingleton()
 
     //bindActor[SchedulerActorBodenSpa]("scheduler-actor-bodenspa")
     //bind(classOf[SchedulerBodenSpa]).asEagerSingleton()

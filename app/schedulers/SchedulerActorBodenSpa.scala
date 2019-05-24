@@ -19,7 +19,7 @@ class SchedulerActorBodenSpa @Inject()(configuration: Configuration, meteoServic
   override def receive: Receive = {
     case "processFile" =>  {
       val config = ConfigurationLoader.loadBodenSpaConfiguration(configuration)
-      //processFile(config)
+      processFile(config)
       //readFile(config)
     }
   }

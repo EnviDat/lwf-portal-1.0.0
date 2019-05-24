@@ -16,7 +16,7 @@ import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
 import schedulers.{ETHLaegerenLoggerFileConfig, StationKonfig}
 
-import scala.collection.immutable
+import scala.collection.{immutable, mutable}
 import scala.collection.parallel.ParMap
 
 object FtpConnector {
@@ -79,15 +79,15 @@ object FtpConnector {
       if(infoAboutFileProcessed.nonEmpty) {
         if(infoAboutFileProcessed.exists(_._2.nonEmpty)) {
           if(infoAboutFileProcessed.filter(errorsList => errorsList._3 > 10).nonEmpty || infoAboutFileProcessed.filter(errorMessage => errorMessage._1.size > 10000).nonEmpty) {
-            Logger.info(s"CR 1000 Processor, CR1000_Data_Processing@klaros.wsl.ch ${emailList}, CR 1000 Processing Report With Errors file Processed Report${infoAboutFileProcessed.map(_._1).mkString("\n")}")
-            EmailService.sendEmail("CR 1000 Processor", "CR1000_Data_Processing@klaros.wsl.ch", emailList, emailList, "CR 1000 Processing Alarm Report With Errors ", s"Big Files/large number of files with errors were detected on ftp. Please check it if its expected.\n File Processed Report${infoAboutFileProcessed.map(_._1).mkString("\n")}")
+            Logger.info(s"CR 1000 Processor, CR1000_Data_Processing@wsl.ch ${emailList}, CR 1000 Processing Report With Errors file Processed Report${infoAboutFileProcessed.map(_._1).mkString("\n")}")
+            EmailService.sendEmail("CR 1000 Processor", "CR1000_Data_Processing@wsl.ch", emailList, emailList, "CR 1000 Processing Alarm Report With Errors ", s"Big Files/large number of files with errors were detected on ftp. Please check it if its expected.\n File Processed Report${infoAboutFileProcessed.map(_._1).mkString("\n")}")
           } else {
-            Logger.info(s"CR 1000 Processor, CR1000_Data_Processing@klaros.wsl.ch ${emailList}, CR 1000 Processing Report With Errors file Processed Report${infoAboutFileProcessed.map(_._1).mkString("\n")}")
-            EmailService.sendEmail("CR 1000 Processor", "CR1000_Data_Processing@klaros.wsl.ch", emailList, emailList, "CR 1000 Processing Report Errors", s"Files Processed Report${infoAboutFileProcessed.map(_._1).mkString("\n")}")
+            Logger.info(s"CR 1000 Processor, CR1000_Data_Processing@wsl.ch ${emailList}, CR 1000 Processing Report With Errors file Processed Report${infoAboutFileProcessed.map(_._1).mkString("\n")}")
+            EmailService.sendEmail("CR 1000 Processor", "CR1000_Data_Processing@wsl.ch", emailList, emailList, "CR 1000 Processing Report Errors", s"Files Processed Report${infoAboutFileProcessed.map(_._1).mkString("\n")}")
           }
         } else {
-          Logger.info(s"CR 1000 Processor, CR1000_Data_Processing@klaros.wsl.ch ${emailList}, CR 1000 Processing Report OK, file Processed Report${infoAboutFileProcessed.map(_._1).mkString("\n")}")
-          EmailService.sendEmail("CR 1000 Processor", "CR1000_Data_Processing@klaros.wsl.ch", emailList, emailList, "CR 1000 Processing Report OK", s"File Processed Report${infoAboutFileProcessed.map(_._1).mkString("\n")}")
+          Logger.info(s"CR 1000 Processor, CR1000_Data_Processing@wsl.ch ${emailList}, CR 1000 Processing Report OK, file Processed Report${infoAboutFileProcessed.map(_._1).mkString("\n")}")
+          EmailService.sendEmail("CR 1000 Processor", "CR1000_Data_Processing@wsl.ch", emailList, emailList, "CR 1000 Processing Report OK", s"File Processed Report${infoAboutFileProcessed.map(_._1).mkString("\n")}")
         }
       }
       Logger.info(s"list of files received: ${infoAboutFileProcessed.map(_._1).mkString("\n")}")
@@ -335,6 +335,82 @@ object FtpConnector {
     }
   }
 
+  @throws[Exception]
+  def readETHLaeFFFileFromFtp(config: ETHLaegerenLoggerFileConfig, meteoService: MeteoService, pathForArchiveFiles: String): Unit = {
+    val userNameFtp = config.fptUserNameETHLae
+    val passwordFtp = config.ftpPasswordETHLae
+    val pathForFtpFolder = config.ftpPathForIncomingFileETHLae
+    val ftpUrlMeteo = config.ftpUrlETHLae
+    val stationKonfigs = config.stationConfigs
+    val emailUserList = config.emailUserList
+    val headerT1_47File = config.ethHeaderLineT1_47
+    val headerPrefixT1_47 = config.ethHeaderPrefixT1_47
+    val specialParamKonfig = config.specialStationKonfNrsETHLae
+    val jsch = new JSch
+    try {
+
+      val session = jsch.getSession(userNameFtp, ftpUrlMeteo, 22)
+      session.setPassword(passwordFtp)
+      session.setConfig("StrictHostKeyChecking", "no")
+      session.setConfig("PreferredAuthentications",
+        "publickey,keyboard-interactive,password")
+      session.connect()
+      val channel = session.openChannel("sftp")
+      channel.connect()
+      val sftpChannel = channel.asInstanceOf[ChannelSftp]
+      sftpChannel.cd(pathForFtpFolder)
+      Logger.info(s"Logged in to ftp folder")
+      import org.joda.time.Days
+
+      import scala.collection.JavaConverters._
+      val allLinesCollectedFromFiles = sftpChannel.ls("*.lwf").asScala
+        .map(_.asInstanceOf[sftpChannel.LsEntry])
+        .flatMap(entry => {
+          val fileName =  entry.getFilename
+          val mapStationKonfig: Option[StationKonfig] = stationKonfigs.find(sk => fileName.startsWith(sk.fileName))
+          mapStationKonfig.map(statKonf => {
+            val stream = sftpChannel.get(fileName)
+            val fileAttributes = entry.getAttrs
+            val lastModified = fileAttributes.getMtimeString
+            val lastModifiedDate = new org.joda.time.DateTime(StringToDate.formatFromDateToStringDefaultJava.parse(lastModified))
+            val diffInSysdate = Days.daysBetween(lastModifiedDate,new org.joda.time.DateTime()).getDays
+            val validLinesToBeparsed =  if(diffInSysdate <= 31) {
+              val br = new BufferedReader(new InputStreamReader(stream))
+              val linesToParse = Stream.continually(br.readLine()).takeWhile(_ != null).toList
+              val headerLine = linesToParse.filter(l => l.contains(headerPrefixT1_47))
+              val validHeaderLine = headerLine.find(l => l.replaceAll("\"", "").contains(headerT1_47File.replaceAll("\"", "")))
+              if(validHeaderLine.isEmpty)
+                EmailService.sendEmail("Lageren Forest Floor FF File Header doesn't match", "laegeren_no_reply@wsl.ch", emailUserList.split(";").toList, emailUserList.split(";").toList, "Laegeren Forest Floor File Processing Report With Errors", s"${headerT1_47File} doesn't match in file.")
+              validHeaderLine.map(vLine => {
+                linesToParse.filter(l => CurrentSysDateInSimpleFormat.dateRegex.findFirstIn(l).nonEmpty)
+              }).getOrElse(List())
+            } else List()
+            (statKonf,validLinesToBeparsed)
+          })
+        })
+
+      val groupByConfig = allLinesCollectedFromFiles
+
+      val fileName = "MergedLaegerenDataFile_" + CurrentSysDateInSimpleFormat.dateNow
+      val errors =  allLinesCollectedFromFiles.flatMap(dataForStatKonf => {
+            EthLaeFFfileParser.parseAndSaveData(dataForStatKonf._2.toList, meteoService,  fileName, dataForStatKonf._1)
+          })
+      errors.nonEmpty match {
+        case false => {
+          EmailService.sendEmail("Lägeren ETH-EMPA Forest Floor File Processor", "LWF_Data_Processing@wsl.ch", emailUserList.split(";"), emailUserList.split(";"), "Läegeren ETH-EMPA Forest Floor File Processing Report OK", s"file Processed Successfully. \n PS: ***If there is any change in  wind direction and wind speed parameter, please contact Database Manager LWF to change in DB and Akka config.}")
+        }
+        case true =>
+          EmailService.sendEmail("Lägeren ETH-EMPA Forest Floor File Processor", "LWF_Data_Processing@wsl.ch", emailUserList.split(";"), emailUserList.split(";"), "Läegeren ETH-EMPA Forest Floor File Processing Report With errors", s"file Processed Report${errors.map(_.errorMessage).mkString(",")}. \n PS: ***If there is any change in  wind direction and wind speed parameter, please contact Database Manager LWF to change in DB and Akka config.}}")
+      }
+      sftpChannel.exit()
+      session.disconnect()
+    } catch {
+      case e: JSchException =>
+        e.printStackTrace()
+      case e: SftpException =>
+        e.printStackTrace()
+    }
+  }
 
   @throws[Exception]
   def readETHLaeFileFromFtp(config: ETHLaegerenLoggerFileConfig, meteoService: MeteoService, pathForArchiveFiles: String): Unit = {
@@ -400,10 +476,10 @@ object FtpConnector {
         })}).flatten
       errors.nonEmpty match {
         case false => {
-          EmailService.sendEmail("Lägeren ETH-EMPA Tower File Processor", "LWF_Data_Processing@klaros.wsl.ch", emailUserList.split(";"), emailUserList.split(";"), "Läegeren ETH-EMPA File Processing Report OK", s"file Processed Successfully. \n PS: ***If there is any change in  wind direction and wind speed parameter, please contact Database Manager LWF to change in DB and Akka config.}")
+          EmailService.sendEmail("Lägeren ETH-EMPA Tower File Processor", "LWF_Data_Processing@wsl.ch", emailUserList.split(";"), emailUserList.split(";"), "Läegeren ETH-EMPA File Processing Report OK", s"file Processed Successfully. \n PS: ***If there is any change in  wind direction and wind speed parameter, please contact Database Manager LWF to change in DB and Akka config.}")
         }
         case true =>
-          EmailService.sendEmail("Lägeren ETH-EMPA Tower File Processor", "LWF_Data_Processing@klaros.wsl.ch", emailUserList.split(";"), emailUserList.split(";"), "Läegeren ETH-EMPA File Processing Report With errors", s"file Processed Report${errors.map(_.errorMessage).mkString(",")}. \n PS: ***If there is any change in  wind direction and wind speed parameter, please contact Database Manager LWF to change in DB and Akka config.}}")
+          EmailService.sendEmail("Lägeren ETH-EMPA Tower File Processor", "LWF_Data_Processing@wsl.ch", emailUserList.split(";"), emailUserList.split(";"), "Läegeren ETH-EMPA File Processing Report With errors", s"file Processed Report${errors.map(_.errorMessage).mkString(",")}. \n PS: ***If there is any change in  wind direction and wind speed parameter, please contact Database Manager LWF to change in DB and Akka config.}}")
       }
       sftpChannel.exit()
       session.disconnect()

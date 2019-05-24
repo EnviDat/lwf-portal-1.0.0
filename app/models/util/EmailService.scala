@@ -31,7 +31,7 @@ package object mail {
       val commonsMail: Email = format match {
         case Plain =>  {
           val email = new SimpleEmail()
-          email.setHostName("mail.wsl.ch")
+          email.setHostName("notes.wsl.ch")
           email.setMsg(mail.message)
         }
         case Rich => new HtmlEmail().setHtmlMsg(mail.richMessage.get).setTextMsg(mail.message)

@@ -313,4 +313,46 @@ object ConfigurationLoader {
 
     ETHLaegerenLoggerFileConfig(frequencyETHLae, ftpUrlETHLae, fptUserNameETHLae, ftpPasswordETHLae, ftpPathForIncomingFileETHLae, ftpPathForETHLaeFaultyFile, ftpPathForETHLaeArchiveFiles, statKonfigs, ethLaeEmailUserList, ethHeaderLineT1_47, ethHeaderPrefixT1_47, specialStationKonfNrsETHLae)
   }
+
+
+  def loadETHLaeFFConfiguration(configuration: Configuration) = {
+    val frequencyETHLaeFF = configuration.getInt("frequencyETHLaeFF").get
+    val ftpUrlETHLaeFF = configuration.getString("ftpUrlETHLaeFF").get
+    val fptUserNameETHLaeFF = configuration.getString("fptUserNameETHLaeFF").get
+    val ftpPasswordETHLaeFF = configuration.getString("ftpPasswordETHLaeFF").get
+    val ftpPathForIncomingFileETHLaeFF = configuration.getString("ftpPathForIncomingFileETHLaeFF").get
+    val ftpPathForETHLaeFaultyFileFF = configuration.getString("ftpPathForETHLaeFaultyFileFF").get
+    val ftpPathForETHLaeArchiveFilesFF = configuration.getString("ftpPathForETHLaeArchiveFilesFF").get
+    val ethLaeEmailUserListFF = configuration.getString("etHLaeEmailUserListFF").get
+    val ethHeaderLineFF = configuration.getString("ethHeaderLineFF").get
+    val ethHeaderPrefixFF = configuration.getString("ethHeaderPrefixFF").get
+    import scala.collection.JavaConversions._
+
+    val statKonfigsFF =  configuration.getConfigList("stationConfigETH_FF").map { statKonfig =>
+      statKonfig.map(sk => {
+        val fileName = sk.getString("fileName").get
+        val stationNumber = sk.getInt("stationNumber").get
+        val params = sk.getConfigList("projectParam")
+          .map(pList => {
+            val ppList =  pList.map(pp => {
+              val projNr = pp.getInt("projNr").get
+              val numParams = pp.getInt("params").get
+              val duration = pp.getInt("duration").get
+              ParametersProject(projNr,numParams,duration)
+            }).toList
+            ppList
+          })
+
+        StationKonfig(fileName, stationNumber, params.getOrElse(List()))
+
+      }).toList
+    }.getOrElse(List())
+
+    import scala.collection.JavaConversions._
+
+    val specialStationKonfNrsETHLae: Seq[SpecialParamKonfig] = Seq()
+    Logger.info(s"Station config are: ${statKonfigsFF.mkString("\n")}")
+
+    ETHLaegerenLoggerFileConfig(frequencyETHLaeFF, ftpUrlETHLaeFF, fptUserNameETHLaeFF, ftpPasswordETHLaeFF, ftpPathForIncomingFileETHLaeFF, ftpPathForETHLaeFaultyFileFF, ftpPathForETHLaeArchiveFilesFF, statKonfigsFF, ethLaeEmailUserListFF, ethHeaderLineFF, ethHeaderPrefixFF, specialStationKonfNrsETHLae)
+  }
 }

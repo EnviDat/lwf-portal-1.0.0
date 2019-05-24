@@ -96,7 +96,9 @@ class MeteoService @Inject()(meteoRepo: MeteoDataRepository) {
 
   def insertLogInformation(meteoLogInfos: List[MeteoDataFileLogInfo]) = meteoRepo.insertLogInfoForFilesSent(meteoLogInfos)
 
-  def insertMeteoDataCR1000(meteoData: Seq[MeteoDataRowTableInfo]) = if (meteoData.size < 10) meteoRepo.insertCR1000MeteoDataForFilesSent(meteoData) else meteoRepo.insertCR1000MeteoDataForLargeFilesSent(meteoData)
+  def insertMeteoDataCR1000(meteoData: Seq[MeteoDataRowTableInfo]): Option[CR1000OracleError] =
+    if (meteoData.size < 10) meteoRepo.insertCR1000MeteoDataForFilesSent(meteoData)
+      else meteoRepo.insertCR1000MeteoDataForLargeFiles(meteoData)
 
   def insertOzoneData(passSammelenData: PassSammData, analyseId: Int) = meteoRepo.insertOzoneDataForFilesSent(passSammelenData, analyseId)
 
@@ -111,8 +113,8 @@ class MeteoService @Inject()(meteoRepo: MeteoDataRepository) {
   def getOzoneFileDataForYear(year: Int): List[String] = meteoRepo.getOzoneFileDataForTheYearSamplerOne(year) ::: meteoRepo.getOzoneFileDataForTheYearSamplerTwo(year) ::: meteoRepo.getOzoneFileDataForTheYearSamplerThree(year)
 
   def getAllMessartsForOrgFixedFormat() = meteoRepo.findAllMessartsForOrgFixedFormat()
-  def getAllMessartsForOrgFixedAggFormat = meteoRepo.findAllMessartsForOrgFixedAggFormat()
 
+  def getAllMessartsForOrgFixedAggFormat = meteoRepo.findAllMessartsForOrgFixedAggFormat()
 
   def getAllEinfdates(stationNumber: Int, fromTime: DateTime, toTime: DateTime, fromMessart: Int, toMessart: Int, partitionNameMD: String, partitionNameMDat: String) = meteoRepo.findAllEinfdatesOfStationForTimePeriodDaily(stationNumber, fromTime, toTime, fromMessart, toMessart, partitionNameMD, partitionNameMDat)
 

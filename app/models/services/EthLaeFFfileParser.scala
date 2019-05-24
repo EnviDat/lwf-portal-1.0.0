@@ -1,35 +1,37 @@
 package models.services
 
 import models.domain._
-import models.util.{NumberParser, StringToDate}
 import models.util.StringToDate.formatCR1000Date
+import models.util.{NumberParser, StringToDate}
 import org.joda.time.{DateTime, DateTimeZone}
+import schedulers.StationKonfig
 
-import scala.collection.immutable
 
+object EthLaeFFfileParser {
 
-object CR1000FileParser {
+  def parseAndSaveData(ethLaeFileDataLines: List[String], meteoService: MeteoService, fileName: String, statKonfig: StationKonfig): Option[CR1000OracleError] = {
+    val statNr = statKonfig.statNr
 
-  def parseAndSaveData(cr100FileData: List[String], meteoService: MeteoService, fileName: String): Option[CR1000OracleError] = {
-    val allMessWerts: Seq[MessArtRow] = meteoService.getAllMessArts
-    val allStationConfigs: List[MeteoStationConfiguration] = meteoService.getStatKonfForStation().filter(sk => allMessWerts.map(_.code).contains( sk.messArt))
+    val projects = statKonfig.projs.map(_.projNr)
 
-    val allRowsToBeInserted = cr100FileData.flatMap(line => {
+    val allMessWerts: Seq[MessArtRow] = meteoService.getAllMessArts.filter(mArt => mArt.messProjNr match {
+      case Some(x) => projects.contains(x)
+      case None => false
+    })
+
+    val allStationConfigs: List[MeteoStationConfiguration] = meteoService.getStatKonfForStation().filter(sk => sk.station == statKonfig.statNr).filter(sk => allMessWerts.map(_.code).contains( sk.messArt)).sortBy(_.folgeNr)
+    val allRowsToBeInserted = ethLaeFileDataLines.flatMap(line => {
       val words = line.split(",")
       val date = formatCR1000Date.withZone(DateTimeZone.UTC).parseDateTime(words(0).replace("\"", ""))
-      val recordNumber = NumberParser.parseNumber(words(1))
-      val stationNumber =  NumberParser.parseNumber(words(2))
-      val projectNumber =  NumberParser.parseNumber(words(3))
-      val periode = NumberParser.parseNumber(words(4))
 
       val valuesToBeInserted =  for {
-          statNr <- stationNumber
-          projNr <- projectNumber
-          period <- periode
+        projNr <- projects.headOption
+        statNr = statKonfig.statNr
+          period = 10
           messWerts = allMessWerts.filter(mt => mt.pDauer == period && mt.messProjNr.contains(projNr))
           statConfig = allStationConfigs.filter(sk => sk.station == statNr && messWerts.map(_.code).contains(sk.messArt)).sortBy(_.folgeNr)
           folgnr: Seq[(Option[Int], Int, Int)] =  statConfig.map(sk => (sk.folgeNr, sk.messArt,sk.configNumber))
-          elements = words.drop(5).zipWithIndex
+          elements = words.drop(2).zipWithIndex
           rangeFolgnr = List.range(1,elements.length).toSet
           sortedFolgnr = folgnr.flatMap(_._1).sorted.toSet
           missingFolgnr = rangeFolgnr diff sortedFolgnr

@@ -6,16 +6,15 @@ import javax.inject.Inject
 import anorm._
 import models.domain.Ozone._
 import models.domain.pheno.{BesuchInfo, PhanoFileLevelInfo}
-import models.domain.{MeteoDataFileLogInfo, _}
+import models.domain.{MeteoDataFileLogInfo, MeteoDataRowTableInfo, _}
 import models.ozone.OzoneOracleError
 import models.util.{CurrentSysDateInSimpleFormat, StringToDate}
 import models.util.StringToDate.formatOzoneDate
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
 import play.api.db.DBApi
-
-import anorm.{ SQL, SqlParser }, SqlParser.{ int, str }
-
+import anorm.{SQL, SqlParser}
+import SqlParser.{int, str}
 
 import scala.util.{Failure, Try}
 
@@ -46,11 +45,10 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
     def findAllMessartsForOrgFixedFormat() : Seq[OrgStationParamMapping] = db.withConnection { implicit connection =>
       SQL("select orgnr, projnr, statnr, parameterid, shortnamebyorg, columnnr, fromdate, todate, senddata, agg_method, completeness from statorgprojparamkonf where agg_method is null and completeness is null").as(OrgStationParamMappings.parser *)}
 
-  def findAllMessartsForOrgFixedAggFormat() : Seq[OrgStationParamMapping] = db.withConnection { implicit connection =>
-    SQL("select orgnr, projnr, statnr, parameterid, shortnamebyorg, columnnr, fromdate, todate, senddata, agg_method, completeness from statorgprojparamkonf where agg_method is not null and completeness is not null").as(OrgStationParamMappings.parser *)}
+    def findAllMessartsForOrgFixedAggFormat() : Seq[OrgStationParamMapping] = db.withConnection { implicit connection =>
+      SQL("select orgnr, projnr, statnr, parameterid, shortnamebyorg, columnnr, fromdate, todate, senddata, agg_method, completeness from statorgprojparamkonf where agg_method is not null and completeness is not null").as(OrgStationParamMappings.parser *)}
 
-
-  def getAllStatKonf()= db.withConnection { implicit connection =>
+    def getAllStatKonf()= db.withConnection { implicit connection =>
       SQL("SELECT STATNR, MESSART, KONFNR, SENSORNR, konfnr, to_char(ABDATUM, 'DD-MM-YYYY HH24:MI:SS') as ABDATUM , to_char(BISDATUM, 'DD-MM-YYYY HH24:MI:SS') as BISDATUM, FOLGENR, CLNR,completeness, apply_method_agg FROM STATKONF WHERE BISDATUM IS NULL ORDER BY STATNR, MESSART").as(MeteoStationConfiguration.parser *)}
 
     def getStationAbbrevations() = db.withConnection { implicit connection =>
@@ -109,7 +107,7 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
 
   def findMaxMeasurementDateForAStation(statNr: Int): Seq[String] = db.withConnection { implicit connection => {
     SQL(
-      """select to_char(max(m.messdat), 'DD.MM.YYYY HH24:MI:SS') as maxdate from meteodat m where m.messdat > sysdate -90 and m.statnr = {stationNr}""".stripMargin).on("stationNr" -> statNr).as((str("maxdate")).map(f => f)*)
+      """select to_char(max(m.messdat), 'DD.MM.YYYY HH24:MI:SS') as maxdate from meteodat m where m.messdat > sysdate -90 and m.messdat < sysdate - 1 and m.statnr = {stationNr}""".stripMargin).on("stationNr" -> statNr).as((str("maxdate")).map(f => f)*)
     }
   }
 
@@ -180,6 +178,48 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
 
   }
   }
+
+  def insertInfoIntoMetablag(meteoData: Seq[MeteoDataRowTableInfo]) = db.withConnection { implicit conn => {
+    try {
+      conn.setAutoCommit(true)
+      val stmt: Statement = conn.createStatement()
+      val groupedFiles = meteoData.groupBy(_.filename)
+      meteoData.groupBy(_.filename).map(l => {
+        val fileName = l._1
+        val einfDat = l._2.map(_.meteoDataRow.dateOfInsertion).max
+        val fromDate = l._2.map(_.meteoDataRow.dateReceived).min
+        val toDate = l._2.map(_.meteoDataRow.dateReceived).max
+        val status = 1
+        val statNr = l._2.headOption.map(_.meteoDataRow.station)
+        statNr match {
+          case Some(stationNr) => {
+            val insertStatement = s"insert into metablag (statnr, einfdat, abdat, bisdat, bemerk, datei, ablstat) values(" +
+              s"${stationNr}, ${einfDat}, ${fromDate}, ${toDate}, 'CR1000 Data', '${fileName}', ${status})"
+            Logger.info(s"statement to be executed: ${insertStatement}")
+            stmt.executeUpdate(insertStatement)
+          }
+          case _ =>
+        }
+      })
+      stmt.close()
+      conn.commit()
+      //conn.close()
+      None
+    } catch {
+      case ex: SQLException => {
+        if (ex.getErrorCode() == 1) {
+          Logger.info(s"Data was already read. Primary key violation ${ex}")
+          //conn.rollback()
+          None
+        } else {
+          Some(CR1000OracleError(8, s"Oracle Exception: ${ex}"))
+        }
+
+      }
+    }
+  }
+  }
+
   def insertCR1000MeteoDataForFilesSent(meteoData: Seq[MeteoDataRowTableInfo]): Option[CR1000OracleError] = db.withConnection { implicit conn => {
     try {
     val exceptionsInsertingDataRows = meteoData.par.flatMap(m => {
@@ -240,16 +280,12 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
           } else {
             Some(CR1000OracleError(8, s"Oracle Exception: ${ex}"))
           }
-
         }
       }
-
   }
   }
 
-  def insertCR1000MeteoDataForLargeFilesSent(meteoData: Seq[MeteoDataRowTableInfo]): Option[CR1000OracleError] = db.withConnection { implicit conn => {
-    try {
-      val exceptionsInsertingDataRows = meteoData.flatMap(m => {
+      def insertCR1000MeteoDataForLargeFilesSent(m: MeteoDataRowTableInfo): Option[CR1000OracleError] = db.withConnection { implicit conn => {
         try {
           //val conn = db.getConnection()
           conn.setAutoCommit(true)
@@ -292,13 +328,23 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
 
           }
         }
+      }
+      }
 
+
+
+  def insertCR1000MeteoDataForLargeFiles(meteoData: Seq[MeteoDataRowTableInfo]): Option[CR1000OracleError] = {
+    try {
+      val exceptionsInsertingDataRows = meteoData.flatMap(m => {
+        insertCR1000MeteoDataForLargeFilesSent(m)
       }).headOption
       val metablagException = if (exceptionsInsertingDataRows.isEmpty) insertInfoIntoMetablag(meteoData) else None
       exceptionsInsertingDataRows match {
         case Some(x) => Some(x)
         case None => metablagException
-      }} catch {
+      }
+
+    } catch {
       case ex: SQLException => {
         if (ex.getErrorCode() == 1) {
           Logger.info(s"Data was already read. Primary key violation ${ex} ")
@@ -307,53 +353,8 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
         } else {
           Some(CR1000OracleError(8, s"Oracle Exception: ${ex}"))
         }
-
       }
     }
-
-  }
-  }
-
-
-  def insertInfoIntoMetablag(meteoData: Seq[MeteoDataRowTableInfo]) = db.withConnection { implicit conn => {
-    try {
-      conn.setAutoCommit(true)
-      val stmt: Statement = conn.createStatement()
-      val groupedFiles = meteoData.groupBy(_.filename)
-      meteoData.groupBy(_.filename).map(l => {
-        val fileName = l._1
-        val einfDat = l._2.map(_.meteoDataRow.dateOfInsertion).max
-        val fromDate = l._2.map(_.meteoDataRow.dateReceived).min
-        val toDate = l._2.map(_.meteoDataRow.dateReceived).max
-        val status = 1
-        val statNr = l._2.headOption.map(_.meteoDataRow.station)
-        statNr match {
-          case Some(stationNr) => {
-            val insertStatement = s"insert into metablag (statnr, einfdat, abdat, bisdat, bemerk, datei, ablstat) values(" +
-              s"${stationNr}, ${einfDat}, ${fromDate}, ${toDate}, 'CR1000 Data', '${fileName}', ${status})"
-            Logger.info(s"statement to be executed: ${insertStatement}")
-            stmt.executeUpdate(insertStatement)
-          }
-          case _ =>
-        }
-      })
-      stmt.close()
-      conn.commit()
-      //conn.close()
-      None
-    } catch {
-      case ex: SQLException => {
-        if (ex.getErrorCode() == 1) {
-          Logger.info(s"Data was already read. Primary key violation ${ex}")
-          //conn.rollback()
-          None
-        } else {
-          Some(CR1000OracleError(8, s"Oracle Exception: ${ex}"))
-        }
-
-      }
-    }
-  }
   }
 
   def insertOzoneDataForFilesSent(ozoneData: PassSammData, analyseid: Int): Option[OzoneOracleError] = {

@@ -83,14 +83,14 @@ object ETHLaeFileParser {
         MeteoDataRowTableInfo(lineToInsert, Some(1), fileName)
       })
 
-    val aggregatedLinesWithTimestamp = aggregatedDataLinesToInsert.map(al => {
-      (StringToDate.formatOzoneDate.withZoneUTC().parseDateTime(al.meteoDataRow.dateReceived.stripPrefix("to_date('").replaceAll("'", "").stripSuffix(", DD.MM.YYYY HH24:MI:SS)")), al)
-    })
-    val maximumDateDataWasRead: Option[DateTime] = meteoService.findMaxMeasurementDateForAStation(statNr).headOption.map(maxDate => StringToDate.formatOzoneDate.withZoneUTC().parseDateTime(maxDate.stripPrefix("to_date('").replaceAll("'", "").stripSuffix(", DD.MM.YYYY HH24:MI:SS)")))
-    val filteredAggregatedLinesToInsert: immutable.Iterable[MeteoDataRowTableInfo] = maximumDateDataWasRead match {
-      case None => aggregatedDataLinesToInsert
-      case Some(maxDate) => aggregatedLinesWithTimestamp.filter(_._1.isAfter(maxDate)).map(_._2)
-    }
+     val aggregatedLinesWithTimestamp = aggregatedDataLinesToInsert.map(al => {
+       (StringToDate.formatOzoneDate.withZoneUTC().parseDateTime(al.meteoDataRow.dateReceived.stripPrefix("to_date('").replaceAll("'", "").stripSuffix(", DD.MM.YYYY HH24:MI:SS)")), al)
+     })
+     val maximumDateDataWasRead: Option[DateTime] = meteoService.findMaxMeasurementDateForAStation(statNr).headOption.map(maxDate => StringToDate.formatOzoneDate.withZoneUTC().parseDateTime(maxDate.stripPrefix("to_date('").replaceAll("'", "").stripSuffix(", DD.MM.YYYY HH24:MI:SS)")))
+     val filteredAggregatedLinesToInsert: immutable.Iterable[MeteoDataRowTableInfo] = maximumDateDataWasRead match {
+       case None => aggregatedDataLinesToInsert
+       case Some(maxDate) => aggregatedLinesWithTimestamp.filter(_._1.isAfter(maxDate)).map(_._2)
+     }
 
       meteoService.insertMeteoDataCR1000(filteredAggregatedLinesToInsert.toList)
   }
