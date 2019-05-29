@@ -40,7 +40,7 @@ object StringToDate {
 
   def stringToDateConvertCR1000(date: String, lineToValidate: String): Option[CR1000Exceptions] = {
     try {
-    formatCR1000Date.withZone(DateTimeZone.UTC).parseDateTime(date)
+    formatCR1000Date.withZone(DateTimeZone.UTC).parseDateTime(date.substring(0, 19))
     None
     }
     catch {
