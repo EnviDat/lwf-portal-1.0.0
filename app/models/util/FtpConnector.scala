@@ -392,7 +392,7 @@ object FtpConnector {
       val groupByConfig = allLinesCollectedFromFiles
 
       val fileName = "MergedLaegerenDataFile_" + CurrentSysDateInSimpleFormat.dateNow
-      val errors =  allLinesCollectedFromFiles.flatMap(dataForStatKonf => {
+      val errors =  allLinesCollectedFromFiles.filter(_._2.nonEmpty).flatMap(dataForStatKonf => {
             EthLaeFFfileParser.parseAndSaveData(dataForStatKonf._2.toList, meteoService,  fileName, dataForStatKonf._1)
           })
       errors.nonEmpty match {

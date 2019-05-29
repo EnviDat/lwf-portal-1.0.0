@@ -242,6 +242,42 @@ object ConfigurationLoader {
     CR1000LoggerFileConfig(frequencyCR1000, ftpUrlCR1000, fptUserNameCR1000, ftpPasswordCR1000, ftpPathForIncomingFileCR1000, ftpPathForCR1000FaultyFile, ftpPathForCR1000ArchiveFiles, statKonfigs, cr1000EmailUserList)
   }
 
+
+  def loadGP2LoggerConfiguration(configuration: Configuration) = {
+    val frequencyGP2Logger = configuration.getInt("frequencyGP2Logger").get
+    val ftpUrlGP2Logger = configuration.getString("ftpUrlGP2Logger").get
+    val fptUserNameGP2Logger = configuration.getString("fptUserNameGP2Logger").get
+    val ftpPasswordGP2Logger = configuration.getString("ftpPasswordGP2Logger").get
+    val ftpPathForIncomingFileGP2Logger = configuration.getString("ftpPathForIncomingFileGP2Logger").get
+    val ftpPathForGP2LoggerFaultyFile = configuration.getString("ftpPathForGP2LoggerFaultyFile").get
+    val ftpPathForGP2LoggerArchiveFiles = configuration.getString("ftpPathForGP2LoggerArchiveFiles").get
+    val gp2LoggerEmailUserList = configuration.getString("gp2LoggerEmailUserList").get
+    import scala.collection.JavaConversions._
+
+    val statKonfigs =  configuration.getConfigList("stationConfig").map { statKonfig =>
+      statKonfig.map(sk => {
+        val fileName = sk.getString("fileName").get
+        val stationNumber = sk.getInt("stationNumber").get
+        val params = sk.getConfigList("projectParam")
+          .map(pList => {
+            val ppList =  pList.map(pp => {
+              val projNr = pp.getInt("projNr").get
+              val numParams = pp.getInt("params").get
+              val duration = pp.getInt("duration").get
+              ParametersProject(projNr,numParams,duration)
+            }).toList
+            ppList
+          })
+
+        StationKonfig(fileName, stationNumber, params.getOrElse(List()))
+
+      }).toList
+    }.getOrElse(List())
+    Logger.info(s"Station config are: ${statKonfigs.mkString("\n")}")
+
+    CR1000LoggerFileConfig(frequencyGP2Logger, ftpUrlGP2Logger, fptUserNameGP2Logger, ftpPasswordGP2Logger, ftpPathForIncomingFileGP2Logger, ftpPathForGP2LoggerFaultyFile, ftpPathForGP2LoggerArchiveFiles, statKonfigs, gp2LoggerEmailUserList)
+  }
+
   def loadOzoneConfiguration(configuration: Configuration) = {
     val frequencyOzone = configuration.getInt("frequencyOzone").get
     val ftpUrlOzone = configuration.getString("ftpUrlOzone").get

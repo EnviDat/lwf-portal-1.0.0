@@ -60,6 +60,7 @@ class SchedulerActorBodenSpa @Inject()(configuration: Configuration, meteoServic
         } yield bodenDataRow
       }
       )
+
       val exceptions = meteoService.insertSoilBodenSpaData(linesToSave)
       exceptions
     })

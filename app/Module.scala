@@ -24,18 +24,21 @@ class Module extends AbstractModule with AkkaGuiceSupport {
     // application starts.
     bind(classOf[ApplicationTimer]).asEagerSingleton()
     // Set AtomicCounter as the implementation for Counter.
-    /*bind(classOf[Counter]).to(classOf[AtomicCounter])
+    bind(classOf[Counter]).to(classOf[AtomicCounter])
     bindActor[SchedulerActor]("scheduler-actor")
     bindActor[LogsSchedulerActor]("log-scheduler-actor")
     bind(classOf[Scheduler]).asEagerSingleton()
 
     bindActor[SchedulerActorCR1000]("scheduler-actor-cr1000")
-    bind(classOf[SchedulerCR1000]).asEagerSingleton()*/
+    bind(classOf[SchedulerCR1000]).asEagerSingleton()
+
+    bindActor[SchedulerActorGP2Logger]("scheduler-actor-gp2logger")
+    bind(classOf[SchedulerGP2Logger]).asEagerSingleton()
 
     bindActor[SchedulerActorETHFFLaegeren]("scheduler-actor-ethlae-ff")
     bind(classOf[SchedulerETHLaegerenFF]).asEagerSingleton()
 
-    /*bindActor[SchedulerActorSwissSMEX]("scheduler-actor-swissmex")
+    bindActor[SchedulerActorSwissSMEX]("scheduler-actor-swissmex")
     bind(classOf[SchedulerSwissSMEX]).asEagerSingleton()
 
     bindActor[SchedulerActorUniBasel]("scheduler-actor-unibasel")
@@ -45,13 +48,13 @@ class Module extends AbstractModule with AkkaGuiceSupport {
     bind(classOf[SchedulerETHLaegeren]).asEagerSingleton()
 
     bindActor[SchedulerActorHexenRubi]("scheduler-actor-hexenrubi")
-    bind(classOf[SchedulerHexenRubi]).asEagerSingleton()*/
+    bind(classOf[SchedulerHexenRubi]).asEagerSingleton()
+
+    bindActor[SchedulerActorHexenRübiFixedFormatExport]("scheduler-actor-hexenrubi-export")
+    bind(classOf[SchedulerHexenRubiExport]).asEagerSingleton()
 
     //bindActor[SchedulerActorOttPluvio]("scheduler-actor-ottpluvio")
     //bind(classOf[SchedulerOttPluvio]).asEagerSingleton()
-
-    //bindActor[SchedulerActorHexenRübiFixedFormatExport]("scheduler-actor-hexenrubi-export")
-    //bind(classOf[SchedulerHexenRubiExport]).asEagerSingleton()
 
     //bindActor[SchedulerActorBodenSpa]("scheduler-actor-bodenspa")
     //bind(classOf[SchedulerBodenSpa]).asEagerSingleton()
@@ -61,8 +64,6 @@ class Module extends AbstractModule with AkkaGuiceSupport {
 
     //bindActor[SchedulerActorOzone]("scheduler-actor-ozone")
     //bind(classOf[SchedulerOzone]).asEagerSingleton()
-
-
 
   }
 
