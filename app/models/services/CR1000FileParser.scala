@@ -16,7 +16,7 @@ object CR1000FileParser {
 
     val allRowsToBeInserted = cr100FileData.flatMap(line => {
       val words = line.split(",")
-      val date = formatCR1000Date.withZone(DateTimeZone.UTC).parseDateTime(words(0).replace("\"", ""))
+      val date = formatCR1000Date.withZone(DateTimeZone.UTC).parseDateTime(words(0).replace("\"", "").substring(0, 19))
       val recordNumber = NumberParser.parseNumber(words(1))
       val stationNumber =  NumberParser.parseNumber(words(2))
       val projectNumber =  NumberParser.parseNumber(words(3))
