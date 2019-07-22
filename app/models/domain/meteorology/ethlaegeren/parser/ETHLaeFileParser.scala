@@ -17,7 +17,7 @@ object ETHLaeFileParser {
 
     val statNr = statKonfig.statNr
 
-    val projects = statKonfig.projs.map(_.projNr)
+    val projects: Seq[Int] = statKonfig.projs.map(_.projNr)
 
     val allMessWerts: Seq[MessArtRow] = meteoService.getAllMessArts.filter(mArt => mArt.messProjNr match {
       case Some(x) => projects.contains(x)
@@ -86,13 +86,15 @@ object ETHLaeFileParser {
      val aggregatedLinesWithTimestamp = aggregatedDataLinesToInsert.map(al => {
        (StringToDate.formatOzoneDate.withZoneUTC().parseDateTime(al.meteoDataRow.dateReceived.stripPrefix("to_date('").replaceAll("'", "").stripSuffix(", DD.MM.YYYY HH24:MI:SS)")), al)
      })
+
      val maximumDateDataWasRead: Option[DateTime] = meteoService.findMaxMeasurementDateForAStation(statNr).headOption.map(maxDate => StringToDate.formatOzoneDate.withZoneUTC().parseDateTime(maxDate.stripPrefix("to_date('").replaceAll("'", "").stripSuffix(", DD.MM.YYYY HH24:MI:SS)")))
      val filteredAggregatedLinesToInsert: immutable.Iterable[MeteoDataRowTableInfo] = maximumDateDataWasRead match {
        case None => aggregatedDataLinesToInsert
        case Some(maxDate) => aggregatedLinesWithTimestamp.filter(_._1.isAfter(maxDate)).map(_._2)
      }
 
-      meteoService.insertMeteoDataCR1000(filteredAggregatedLinesToInsert.toList)
+      meteoService.insertMeteoDataCR1000(filteredAggregatedLinesToInsert.toSeq)
+    //meteoService.insertMeteoDataCR1000(aggregatedLinesWithTimestamp.map(_._2).toSeq)
   }
 
   private def getMappingOfFolgeNrToMessArt(confForStation: List[MeteoStationConfiguration]) = {

@@ -107,7 +107,7 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
 
   def findMaxMeasurementDateForAStation(statNr: Int): Seq[String] = db.withConnection { implicit connection => {
     SQL(
-      """select to_char(max(m.messdat), 'DD.MM.YYYY HH24:MI:SS') as maxdate from meteodat m where m.messdat > sysdate -90 and m.messdat < sysdate - 1 and m.statnr = {stationNr}""".stripMargin).on("stationNr" -> statNr).as((str("maxdate")).map(f => f)*)
+      """select to_char(max(m.messdat), 'DD.MM.YYYY HH24:MI:SS') as maxdate from meteodat m where m.messdat > sysdate -90 and m.messdat < sysdate - 7 and m.statnr = {stationNr}""".stripMargin).on("stationNr" -> statNr).as((str("maxdate")).map(f => f)*)
     }
   }
 

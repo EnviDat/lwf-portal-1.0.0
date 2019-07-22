@@ -19,26 +19,27 @@ class Module extends AbstractModule with AkkaGuiceSupport {
 
   override def configure() = {
     // Use the system clock as the default implementation of Clock
-    bind(classOf[Clock]).toInstance(Clock.systemDefaultZone)
-    // Ask Guice to create an instance of ApplicationTimer when the
-    // application starts.
-    bind(classOf[ApplicationTimer]).asEagerSingleton()
-    // Set AtomicCounter as the implementation for Counter.
-    bind(classOf[Counter]).to(classOf[AtomicCounter])
-    bindActor[SchedulerActor]("scheduler-actor")
-    bindActor[LogsSchedulerActor]("log-scheduler-actor")
-    bind(classOf[Scheduler]).asEagerSingleton()
+     bind(classOf[Clock]).toInstance(Clock.systemDefaultZone)
+     // Ask Guice to create an instance of ApplicationTimer when the
+     // application starts.
+     bind(classOf[ApplicationTimer]).asEagerSingleton()
+     // Set AtomicCounter as the implementation for Counter.
+     bind(classOf[Counter]).to(classOf[AtomicCounter])
+     /*bindActor[LogsSchedulerActor]("log-scheduler-actor")
 
-    bindActor[SchedulerActorCR1000]("scheduler-actor-cr1000")
-    bind(classOf[SchedulerCR1000]).asEagerSingleton()
+     bind(classOf[Scheduler]).asEagerSingleton()
+     bindActor[SchedulerActor]("scheduler-actor")
 
-    bindActor[SchedulerActorGP2Logger]("scheduler-actor-gp2logger")
-    bind(classOf[SchedulerGP2Logger]).asEagerSingleton()
+     bindActor[SchedulerActorCR1000]("scheduler-actor-cr1000")
+     bind(classOf[SchedulerCR1000]).asEagerSingleton()
 
-    bindActor[SchedulerActorETHFFLaegeren]("scheduler-actor-ethlae-ff")
-    bind(classOf[SchedulerETHLaegerenFF]).asEagerSingleton()
+     bindActor[SchedulerActorGP2Logger]("scheduler-actor-gp2logger")
+     bind(classOf[SchedulerGP2Logger]).asEagerSingleton()*/
 
-    bindActor[SchedulerActorSwissSMEX]("scheduler-actor-swissmex")
+    //bindActor[SchedulerActorETHFFLaegeren]("scheduler-actor-ethlae-ff")
+    //bind(classOf[SchedulerETHLaegerenFF]).asEagerSingleton()
+
+    /*bindActor[SchedulerActorSwissSMEX]("scheduler-actor-swissmex")
     bind(classOf[SchedulerSwissSMEX]).asEagerSingleton()
 
     bindActor[SchedulerActorUniBasel]("scheduler-actor-unibasel")
@@ -53,11 +54,11 @@ class Module extends AbstractModule with AkkaGuiceSupport {
     bindActor[SchedulerActorHexenRübiFixedFormatExport]("scheduler-actor-hexenrubi-export")
     bind(classOf[SchedulerHexenRubiExport]).asEagerSingleton()
 
-    //bindActor[SchedulerActorOttPluvio]("scheduler-actor-ottpluvio")
-    //bind(classOf[SchedulerOttPluvio]).asEagerSingleton()
+    bindActor[SchedulerActorOttPluvio]("scheduler-actor-ottpluvio")
+    bind(classOf[SchedulerOttPluvio]).asEagerSingleton()*/
 
-    //bindActor[SchedulerActorBodenSpa]("scheduler-actor-bodenspa")
-    //bind(classOf[SchedulerBodenSpa]).asEagerSingleton()
+    bindActor[SchedulerActorBodenSpa]("scheduler-actor-bodenspa")
+    bind(classOf[SchedulerBodenSpa]).asEagerSingleton()
 
     //bindActor[SchedulerActorPhano]("scheduler-actor-phano")
     //bind(classOf[SchedulerPhano]).asEagerSingleton()
