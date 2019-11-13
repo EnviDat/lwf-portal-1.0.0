@@ -476,6 +476,18 @@ object OttPulvioData {
   }
 }
 
+case class WeeklyPreciVordemwaldDataRow(tag: String, measdate: String, sumPrecipitation: BigDecimal, countValues: BigDecimal)
+object WeeklyPreciVordemwaldData {
+  val parser: RowParser[WeeklyPreciVordemwaldDataRow] = {
+    get[String]("tag") ~
+      get[String]("measdate") ~
+        get[BigDecimal]("summessart") ~
+          get[BigDecimal]("countval") map {
+      case tag ~ measdate ~ summessart ~ countval => WeeklyPreciVordemwaldDataRow(tag, measdate, summessart, countval)
+    }
+  }
+}
+
 
 case class MeteoData(station: Station,
                      messArt: MessArt,

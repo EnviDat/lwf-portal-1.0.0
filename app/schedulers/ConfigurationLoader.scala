@@ -69,6 +69,9 @@ case class ConfigurationBodenSpaData(frequencyBodenSpa :Int,
 
 case class ConfigurationOttPluvioData(frequencyOttPluvio: Int, stationNrOttPluvio: Int, messartOttPluvio: Int, emailUserListOttPluvio: String, startTimeForOttPulvio: String)
 
+case class ConfigurationPreciVordemwaldData(frequencyPreciVordemwald: Int, stationNrPreciVordemwaldF: Int, stationNrPreciVordemwaldB: Int, messartPreciVordemwald: Int, emailUserListPreciVordemwald: String, startTimeForPreciVordemwald: String)
+
+
 case class CR1000LoggerFileConfig(frequencyCR1000 :Int,
                                   ftpUrlCR1000 :String,
                                   fptUserNameCR1000 :String,
@@ -204,6 +207,16 @@ object ConfigurationLoader {
     val emailUserListOttPluvio = configuration.getString("emailUserListOttPluvio").get
     val startTimeForOttPulvio = configuration.getString("startTimeForOttPulvio").get
     ConfigurationOttPluvioData(frequencyOttPluvio, stationNrOttPluvio, messartOttPluvio, emailUserListOttPluvio, startTimeForOttPulvio)
+  }
+
+  def loadPreciVordemwaldConfiguration(configuration: Configuration) = {
+    val frequencyPreciVordemwald = configuration.getInt("frequencyPreciVordemwald").get
+    val stationNrPreciVordemwaldF = configuration.getInt("stationNrPreciVordemwaldF").get
+    val stationNrPreciVordemwaldB = configuration.getInt("stationNrPreciVordemwaldB").get
+    val messartPreciVordemwald = configuration.getInt("messartPreciVordemwald").get
+    val emailUserListPreciVordemwald = configuration.getString("emailUserListPreciVordemwald").get
+    val startTimeForPreciVordemwald = configuration.getString("startTimeForPreciVordemwald").get
+    ConfigurationPreciVordemwaldData(frequencyPreciVordemwald, stationNrPreciVordemwaldF, stationNrPreciVordemwaldB, messartPreciVordemwald, emailUserListPreciVordemwald, startTimeForPreciVordemwald)
   }
 
 

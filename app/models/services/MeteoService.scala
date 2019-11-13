@@ -78,6 +78,9 @@ class MeteoService @Inject()(meteoRepo: MeteoDataRepository) {
 
   def getLastOneDayOttPulvioDataForStation(stationNr : Int, messart: Int) = meteoRepo.getLastOneDayOttPulvioDataForStation(stationNr, messart)
 
+  def getLastOneWeekDataForStation(stationNr : Int, messart: Int) = meteoRepo.getLastOneWeekDataForStation(stationNr, messart)
+
+
   def getStatKonfForStation() = meteoRepo.getAllStatKonf()
 
   def getAllStatAbbrevations() = meteoRepo.getStationAbbrevations()

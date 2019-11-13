@@ -11,7 +11,7 @@ class OttPluvioService(config: ConfigurationOttPluvioData, meteoService: MeteoSe
   def getAndSendDataForLastOneDay() = {
    val ottPulvioMeasurement: Seq[OttPulvioDataRow] = meteoService.getLastOneDayOttPulvioDataForStation(config.stationNrOttPluvio, config.messartOttPluvio)
     val emailList = config.emailUserListOttPluvio.split(";").toSeq
-      EmailService.sendEmail("OttPluvio measurements", "LWF_Data_Processing@wsl.ch", emailList, emailList, "Niederschlag UIF", s"${CurrentSysDateInSimpleFormat.dateNowOnlyDay}: ${ottPulvioMeasurement.map(o => "Niderschlagssumme: " + o.sumPrecipitation.toString() + " mm, Anzahl Messungen: " + o.countValues.toString() + " = " + ((o.countValues + 1)/145 *100).setScale(2,RoundingMode.HALF_UP) + "%.").mkString("\n")} \n Bei Fragen: meteo@wsl.ch oder simpal.kumar@wsl.ch")
+      EmailService.sendEmail("OttPluvio measurements", "LWF_Data_Processing@wsl.ch", emailList, emailList, "Niederschlag UIF", s"${CurrentSysDateInSimpleFormat.dateNowOnlyDay}: ${ottPulvioMeasurement.map(o => "Niederschlagssumme: " + o.sumPrecipitation.toString() + " mm, Anzahl Messungen: " + o.countValues.toString() + " = " + ((o.countValues + 1)/145 *100).setScale(2,RoundingMode.HALF_UP) + "%.").mkString("\n")} \nBei Fragen: meteo@wsl.ch oder simpal.kumar@wsl.ch")
     }
 
   def getAndSendDataForLast15Days() = {

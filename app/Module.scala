@@ -25,21 +25,21 @@ class Module extends AbstractModule with AkkaGuiceSupport {
      bind(classOf[ApplicationTimer]).asEagerSingleton()
      // Set AtomicCounter as the implementation for Counter.
      bind(classOf[Counter]).to(classOf[AtomicCounter])
-     /*bindActor[LogsSchedulerActor]("log-scheduler-actor")
+    bindActor[LogsSchedulerActor]("log-scheduler-actor")
 
-     bind(classOf[Scheduler]).asEagerSingleton()
-     bindActor[SchedulerActor]("scheduler-actor")
+    bind(classOf[Scheduler]).asEagerSingleton()
+    bindActor[SchedulerActor]("scheduler-actor")
 
      bindActor[SchedulerActorCR1000]("scheduler-actor-cr1000")
      bind(classOf[SchedulerCR1000]).asEagerSingleton()
 
      bindActor[SchedulerActorGP2Logger]("scheduler-actor-gp2logger")
-     bind(classOf[SchedulerGP2Logger]).asEagerSingleton()*/
+     bind(classOf[SchedulerGP2Logger]).asEagerSingleton()
 
-    //bindActor[SchedulerActorETHFFLaegeren]("scheduler-actor-ethlae-ff")
+    //bindActor[SchedulerActorETHLaegeren]("scheduler-actor-ethlae-ff")
     //bind(classOf[SchedulerETHLaegerenFF]).asEagerSingleton()
 
-    /*bindActor[SchedulerActorSwissSMEX]("scheduler-actor-swissmex")
+    bindActor[SchedulerActorSwissSMEX]("scheduler-actor-swissmex")
     bind(classOf[SchedulerSwissSMEX]).asEagerSingleton()
 
     bindActor[SchedulerActorUniBasel]("scheduler-actor-unibasel")
@@ -55,16 +55,20 @@ class Module extends AbstractModule with AkkaGuiceSupport {
     bind(classOf[SchedulerHexenRubiExport]).asEagerSingleton()
 
     bindActor[SchedulerActorOttPluvio]("scheduler-actor-ottpluvio")
-    bind(classOf[SchedulerOttPluvio]).asEagerSingleton()*/
+    bind(classOf[SchedulerOttPluvio]).asEagerSingleton()
 
-    bindActor[SchedulerActorBodenSpa]("scheduler-actor-bodenspa")
-    bind(classOf[SchedulerBodenSpa]).asEagerSingleton()
+    bindActor[SchedulerActorWeeklyPrecipVOR]("scheduler-actor-weekly-precip")
+    bind(classOf[SchedulerWeeklyPrecipVOR]).asEagerSingleton()
+
+
+    //bindActor[SchedulerActorBodenSpa]("scheduler-actor-bodenspa")
+    //bind(classOf[SchedulerBodenSpa]).asEagerSingleton()
 
     //bindActor[SchedulerActorPhano]("scheduler-actor-phano")
     //bind(classOf[SchedulerPhano]).asEagerSingleton()
 
     //bindActor[SchedulerActorOzone]("scheduler-actor-ozone")
-    //bind(classOf[SchedulerOzone]).asEagerSingleton()
+    //bind(classOf[SchedulerOzone]).asEagerSingleton()*/
 
   }
 

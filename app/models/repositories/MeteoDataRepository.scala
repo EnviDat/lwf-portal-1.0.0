@@ -134,10 +134,20 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
 
   def getLastOneDayOttPulvioDataForStation(stationNr: Int, messart: Int) = db.withConnection { implicit connection => {
     SQL(
-      """select sum(messwert) as summessart,count(*) as countval  from meteodat  where STATNR = {stationNr} and messart = {messart} and messdat >= sysdate - 1  - (2 / 24)""".stripMargin).on("stationNr" -> stationNr, "messart" -> messart).as(OttPulvioData.parser *)
+      """select sum(messwert) as summessart,count(*) as countval  from meteodat  where STATNR = {stationNr} and messart = {messart} and messdat >= sysdate - 1  - (1 / 24)""".stripMargin).on("stationNr" -> stationNr, "messart" -> messart).as(OttPulvioData.parser *)
       }
   }
 
+  def getLastOneWeekDataForStation(stationNr: Int, messart: Int) = db.withConnection { implicit connection => {
+    SQL(
+      """select TO_CHAR(messdat, 'DAY') as tag, to_char(messdat, 'dd.mm.yyyy') as measdate, sum(messwert) as summessart,count(*) as countval  from meteodat
+        |where STATNR = {stationNr}
+        |and messart = {messart}
+        |and to_date(messdat, 'dd.mm.yyyy') between to_date(sysdate-8, 'dd.mm.yyyy') and to_date(sysdate-1, 'dd.mm.yyyy')
+        |group by TO_CHAR(messdat, 'DAY') , to_char(messdat, 'dd.mm.yyyy')
+        |order by to_char(messdat, 'dd.mm.yyyy'), TO_CHAR(messdat, 'DAY')""".stripMargin).on("stationNr" -> stationNr, "messart" -> messart).as(WeeklyPreciVordemwaldData.parser *)
+    }
+  }
 
 
   def findLastAnalyseIdForOzoneFile(filename: String, einfdat: String) = db.withConnection{ implicit connection =>
