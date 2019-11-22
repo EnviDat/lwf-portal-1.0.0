@@ -14,11 +14,11 @@ import scala.concurrent.duration._
 
 class SchedulerWeeklyPrecipVOR @Inject()(val system: ActorSystem, @Named("scheduler-actor-weekly-precip") val schedulerActor: ActorRef, configuration: Configuration)(implicit ec: ExecutionContext) {
   val config = ConfigurationLoader.loadPreciVordemwaldConfiguration(configuration)
-  val nextMonday = LocalDate.now() `with` TemporalAdjusters.nextOrSame(DayOfWeek.MONDAY)
-  val nextMondayMillis = nextMonday.toEpochDay * 24 * 60 * 60 * 1000
+  val nextWednesday = LocalDate.now() `with` TemporalAdjusters.nextOrSame(DayOfWeek.MONDAY)
+  val nextWednesdayMillis = ((nextWednesday.toEpochDay * 24 * 60 * 60 * 1000) - System.currentTimeMillis()).millis
   val frequency = config.frequencyPreciVordemwald
-  var actor = system.scheduler.schedule(
-    (calculateInitialDelay + (nextMondayMillis - System.currentTimeMillis())).milliseconds,  7.days, schedulerActor, "sendWeeklyMeasurementEmail")
+  val weekDays = 7.days
+  var actor = system.scheduler.schedule(nextWednesdayMillis ,  7.days, schedulerActor, "sendWeeklyMeasurementEmail")
 
   def calculateInitialDelay(): Long = {
     val now = new Date()

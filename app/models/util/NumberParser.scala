@@ -40,7 +40,7 @@ object NumberParser {
   }
 
   def parseBigDecimal(word: String) = {
-    val value = if (word.toUpperCase.toString == "NAN") "-9999" else word
+    val value = if (word.toUpperCase.replaceAll("^\"|\"$", "") == "NAN") "-9999" else word
     val numberTry = for {
       statNr <- Try(BigDecimal.apply(value))
     } yield {
