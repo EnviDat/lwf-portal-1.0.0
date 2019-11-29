@@ -36,8 +36,8 @@ class Module extends AbstractModule with AkkaGuiceSupport {
      bindActor[SchedulerActorGP2Logger]("scheduler-actor-gp2logger")
      bind(classOf[SchedulerGP2Logger]).asEagerSingleton()
 
-    //bindActor[SchedulerActorETHLaegeren]("scheduler-actor-ethlae-ff")
-    //bind(classOf[SchedulerETHLaegerenFF]).asEagerSingleton()
+     //bindActor[SchedulerActorETHFFLaegeren]("scheduler-actor-ethlae-ff")
+     //bind(classOf[SchedulerETHLaegerenFF]).asEagerSingleton()
 
     bindActor[SchedulerActorSwissSMEX]("scheduler-actor-swissmex")
     bind(classOf[SchedulerSwissSMEX]).asEagerSingleton()

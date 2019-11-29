@@ -18,7 +18,7 @@ class WeeklyPrecipitationService(config: ConfigurationPreciVordemwaldData, meteo
   def getAndSendDataForLastWeekVORF() = {
     val ottPulvioMeasurement: Seq[WeeklyPreciVordemwaldDataRow] = meteoService.getLastOneWeekDataForStation(config.stationNrPreciVordemwaldF, config.messartPreciVordemwald)
     val emailList = config.emailUserListPreciVordemwald.split(";").toSeq
-    EmailService.sendEmail("Vordemwald Freiland measurements", "LWF_Data_Processing@wsl.ch", emailList, emailList, "Niederschlag VOR F", s"${CurrentSysDateInSimpleFormat.dateNowOnlyDay}: ${ottPulvioMeasurement.map(o => o.tag + "," + o.measdate + ": Niederschlagssumme: " + o.sumPrecipitation.toString() + " mm, Anzahl Messungen: " + o.countValues.toString() + " = " + ((o.countValues)/144 *100).setScale(2,RoundingMode.HALF_UP) + "%.").mkString("\n")} \n " +
+    EmailService.sendEmail("Vordemwald Freiland measurements", "LWF_Data_Processing@wsl.ch", emailList, emailList, "Niederschlag VOR F", s"${ottPulvioMeasurement.map(o => o.tag + "," + o.measdate + ": Niederschlagssumme: " + o.sumPrecipitation.toString() + " mm, Anzahl Messungen: " + o.countValues.toString() + " = " + ((o.countValues)/144 *100).setScale(2,RoundingMode.HALF_UP) + "%.").mkString("\n")} \n " +
       s"Für jedes Datum wurde der Niederschlag von Mitternacht (00:00) bis 23:59 Uhr aufsummiert. Bei Fragen: meteo@wsl.ch oder simpal.kumar@wsl.ch")
   }
 }
