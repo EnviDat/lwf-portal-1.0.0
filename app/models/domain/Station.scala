@@ -430,7 +430,8 @@ case class MeteoStationConfiguration(station: Int,
                                      folgeNr: Option[Int],
                                      clusterNr: Option[Int],
                                      completeness: Option[Int],
-                                     methode: Option[String]
+                                     methode: Option[String],
+                                     substatNr: Int
                                     )
 
 object MeteoStationConfiguration {
@@ -444,8 +445,9 @@ object MeteoStationConfiguration {
                 get[Option[Int]]("FOLGENR") ~
                   get[Option[Int]]("CLNR")~
                     get[Option[Int]]("completeness")~
-                      get[Option[String]]("apply_method_agg") map {
-                    case station ~ messart ~ confnr ~ sensor ~ abdatum ~ bisdatum ~ folgnr ~ clnr ~ completeness ~ method => MeteoStationConfiguration(station, messart, confnr, sensor, abdatum, bisdatum, folgnr, clnr, completeness, method)
+                      get[Option[String]]("apply_method_agg") ~
+                        get[Int]("SUBSTATNR") map {
+                    case station ~ messart ~ confnr ~ sensor ~ abdatum ~ bisdatum ~ folgnr ~ clnr ~ completeness ~ method ~ substr => MeteoStationConfiguration(station, messart, confnr, sensor, abdatum, bisdatum, folgnr, clnr, completeness, method, substr)
     }
   }
 }
@@ -524,7 +526,8 @@ case class MeteoDataRow(station: Int,
                         valueOfMeasurement: BigDecimal,
                         dateOfInsertion: String,
                         methodApplied: Int,
-                        status: Option[Int])
+                        status: Option[Int],
+                        subStatNr: Int = 1)
 
 
 case class MeteoDataRowTableInfo(meteoDataRow: MeteoDataRow, multi: Option[Int],filename: String)
@@ -538,10 +541,11 @@ object MeteoDataRow {
       get[BigDecimal]("MESSWERT") ~
       get[String]("EINFDATE") ~
       get[Int]("URSPRUNG") ~
-      get[Option[Int]]("MANVAL") map {
-      case station ~ messart ~ config ~ messdate ~ messwert ~ einfdat ~ ursprung ~ status =>
+      get[Option[Int]]("MANVAL") ~
+      get[Int]("SUBSTATNR") map {
+      case station ~ messart ~ config ~ messdate ~ messwert ~ einfdat ~ ursprung ~ status ~ substatnr =>
         {
-          MeteoDataRow(station, messart, config, messdate, messwert, einfdat, ursprung, status)
+          MeteoDataRow(station, messart, config, messdate, messwert, einfdat, ursprung, status, substatnr)
         }
     }
   }

@@ -62,7 +62,7 @@ class SchedulerActorHexenRubi @Inject()(configuration: Configuration, meteoServi
             val diffInSysdate = Days.daysBetween(lastModifiedTime, new org.joda.time.DateTime()).getDays
             if (diffInSysdate <= 31) {
 
-              val content = readFileContent(f).toList
+              val content = readFileContent(f).toList.filter(_.contains(",279,"))
               val caughtExceptions = HexenRubiFileParser.parseAndSaveData(content, meteoService, f.getName + "_" + lastModifiedTime.toString, config.stationNrHexenRubi, config.projectNrHexenRubi, config.periodeHexenRubi)
               caughtExceptions match {
                 case None => {

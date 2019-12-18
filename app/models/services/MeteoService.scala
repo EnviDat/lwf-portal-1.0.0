@@ -37,7 +37,8 @@ class MeteoService @Inject()(meteoRepo: MeteoDataRepository) {
       (__ \ "messwert").read[BigDecimal] and
       (__ \ "einfdate").read[String] and
       (__ \ "ursprung").read[Int] and
-      (__ \ "manval").readNullable[Int]
+      (__ \ "manval").readNullable[Int] and
+      (__ \ "substatnr").read[Int]
     ) (MeteoDataRow.apply _)
 
   implicit val meteoDataWriter: Writes[MeteoDataRow] = (
@@ -48,7 +49,8 @@ class MeteoService @Inject()(meteoRepo: MeteoDataRepository) {
       (__ \ "messwert").write[BigDecimal] and
       (__ \ "einfdate").write[String] and
       (__ \ "ursprung").write[Int] and
-      (__ \ "manval").writeNullable[Int]
+      (__ \ "manval").writeNullable[Int] and
+      (__ \ "substatnr").write[Int]
     ) (unlift(MeteoDataRow.unapply _))
 
   def getAllStations =  meteoRepo.findAllStations().toSeq/*{
@@ -74,6 +76,9 @@ class MeteoService @Inject()(meteoRepo: MeteoDataRepository) {
   def getLatestMeteoDataToWrite(stationNr: Int, fromTime: Option[DateTime]) = meteoRepo.findLastMeteoDataForStation(stationNr, fromTime)
   def getLastMeteoDataForStationForDate(stationNr: Int, fromTime:  String) = meteoRepo.findLastMeteoDataForStationForDate(stationNr, fromTime)
   def getLastMeteoDataForStationBetweenDates(stationNr: Int, fromTime:  String, toTime: String) = meteoRepo.findLastMeteoDataForStationBetweenDates(stationNr, fromTime, toTime)
+
+  def getLastTimeDataWasSentOutMeteoSchweiz() = meteoRepo.getLastTimeDataWasSentOutMeteoSchweiz()
+
 
 
   def getLastOneDayOttPulvioDataForStation(stationNr : Int, messart: Int) = meteoRepo.getLastOneDayOttPulvioDataForStation(stationNr, messart)

@@ -49,25 +49,25 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
       SQL("select orgnr, projnr, statnr, parameterid, shortnamebyorg, columnnr, fromdate, todate, senddata, agg_method, completeness from statorgprojparamkonf where agg_method is not null and completeness is not null").as(OrgStationParamMappings.parser *)}
 
     def getAllStatKonf()= db.withConnection { implicit connection =>
-      SQL("SELECT STATNR, MESSART, KONFNR, SENSORNR, konfnr, to_char(ABDATUM, 'DD-MM-YYYY HH24:MI:SS') as ABDATUM , to_char(BISDATUM, 'DD-MM-YYYY HH24:MI:SS') as BISDATUM, FOLGENR, CLNR,completeness, apply_method_agg FROM STATKONF WHERE BISDATUM IS NULL ORDER BY STATNR, MESSART").as(MeteoStationConfiguration.parser *)}
+      SQL("SELECT STATNR, MESSART, KONFNR, SENSORNR, konfnr, to_char(ABDATUM, 'DD-MM-YYYY HH24:MI:SS') as ABDATUM , to_char(BISDATUM, 'DD-MM-YYYY HH24:MI:SS') as BISDATUM, FOLGENR, CLNR,completeness, apply_method_agg, substatnr FROM STATKONF WHERE BISDATUM IS NULL ORDER BY STATNR, MESSART").as(MeteoStationConfiguration.parser *)}
 
     def getStationAbbrevations() = db.withConnection { implicit connection =>
       SQL("select distinct(statnr) as code,t.sma_name_tx as BESCHREIBUNG,t.sma_nat_abbr_tx as KURZ_BESCHR from SMA_PARAM_ZUORD t order by code").as(StationAbbrevation.parser *)}
 
     def findMeteoDataForStation(stationNumber: Int): Seq[MeteoDataRow] = db.withConnection { implicit connection =>
-      SQL("select statnr, messart, konfnr, to_char(messdat, 'DD-MM-YYYY HH24:MI:SS') as messdate, messwert, to_char(einfdat, 'DD-MM-YYYY HH24:MI:SS') as einfdate,ursprung,manval from meteodat where STATNR = {stationNr} and messdat > SYSDATE-10 AND messdat <= SYSDATE order by messdat DESC").on("stationNr" -> stationNumber).as(MeteoDataRow.parser *)}
+      SQL("select statnr, messart, konfnr, to_char(messdat, 'DD-MM-YYYY HH24:MI:SS') as messdate, messwert, to_char(einfdat, 'DD-MM-YYYY HH24:MI:SS') as einfdate,ursprung,manval,substatnr from meteodat where STATNR = {stationNr} and messdat > SYSDATE-10 AND messdat <= SYSDATE order by messdat DESC").on("stationNr" -> stationNumber).as(MeteoDataRow.parser *)}
     //SQL("SELECT * FROM METEODAT WHERE STATNR = {stationNr} and messdat >= {frmDate} and messdat <= {toDat}").on("stationNr" -> stationNumber).as(MeteoData.parser *)}
 
     def findLastestMeteoDataForStation(stationNumber: Int, messartNr: Int): Seq[MeteoDataRow] = db.withConnection { implicit connection =>
-      SQL("select statnr, messart, konfnr, to_char(messdat, 'DD-MM-YYYY HH24:MI:SS') as messdate, messwert, to_char(einfdat, 'DD-MM-YYYY HH24:MI:SS') as einfdate,ursprung,manval from meteodat where STATNR = {stationNr} and messart = {messartNr} and messdat > (sysdate-0.25) -(30/1440) order by messdat DESC").on("stationNr" -> stationNumber, "messartNr" -> messartNr).as(MeteoDataRow.parser *)}
+      SQL("select statnr, messart, konfnr, to_char(messdat, 'DD-MM-YYYY HH24:MI:SS') as messdate, messwert, to_char(einfdat, 'DD-MM-YYYY HH24:MI:SS') as einfdate,ursprung,manval,substatnr from meteodat where STATNR = {stationNr} and messart = {messartNr} and messdat > (sysdate-0.25) -(30/1440) order by messdat DESC").on("stationNr" -> stationNumber, "messartNr" -> messartNr).as(MeteoDataRow.parser *)}
 
     def findLastMeteoDataForStation(stationNumber: Int, fromTime: Option[DateTime]): Seq[MeteoDataRow] = db.withConnection { implicit connection => {
       fromTime.map(dt => {
         Logger.info(s"from Date is:${StringToDate.oracleDateFormat.print(dt)} ")
         SQL(
-          """select statnr, messart, konfnr, to_char(messdat, 'DD-MM-YYYY HH24:MI:SS') as messdate, messwert, to_char(einfdat, 'DD-MM-YYYY HH24:MI:SS') as einfdate,ursprung,manval from meteodat   where STATNR = {stationNr} and einfdat >  to_date({fromDate}, 'DD.MM.YYYY HH24:MI:SS')
+          """select statnr, messart, konfnr, to_char(messdat, 'DD-MM-YYYY HH24:MI:SS') as messdate, messwert, to_char(einfdat, 'DD-MM-YYYY HH24:MI:SS') as einfdate,ursprung,manval,substatnr from meteodat   where STATNR = {stationNr} and einfdat >  to_date({fromDate}, 'DD.MM.YYYY HH24:MI:SS')
             |union
-            |select statnr, messart, konfnr, to_char(messdat, 'DD-MM-YYYY HH24:MI:SS') as messdate, messwert, to_char(einfdat, 'DD-MM-YYYY HH24:MI:SS') as einfdate,ursprung,manval from mdat where STATNR = {stationNr} and einfdat >  to_date({fromDate}, 'DD.MM.YYYY HH24:MI:SS')
+            |select statnr, messart, konfnr, to_char(messdat, 'DD-MM-YYYY HH24:MI:SS') as messdate, messwert, to_char(einfdat, 'DD-MM-YYYY HH24:MI:SS') as einfdate,ursprung,manval,substatnr from mdat where STATNR = {stationNr} and einfdat >  to_date({fromDate}, 'DD.MM.YYYY HH24:MI:SS')
             |order by messdate DESC""".stripMargin).on("stationNr" -> stationNumber, "fromDate" -> StringToDate.oracleDateFormat.print(dt)).as(MeteoDataRow.parser *)
       }).getOrElse(Seq())
 
@@ -115,9 +115,9 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
   def findLastMeteoDataForStationForDate(stationNumber: Int, fromTime: String): Seq[MeteoDataRow] = db.withConnection { implicit connection => {
     Logger.info(s"${fromTime}")
       SQL(
-        """select statnr, messart, konfnr, to_char(messdat, 'DD-MM-YYYY HH24:MI:SS') as messdate, messwert, to_char(einfdat, 'DD-MM-YYYY HH24:MI:SS') as einfdate,ursprung,manval from meteodat  where STATNR = {stationNr} and einfdat =  to_timestamp({fromDate}, 'DD.MM.YYYY HH24:MI:SS.FF')
+        """select statnr, messart, konfnr, to_char(messdat, 'DD-MM-YYYY HH24:MI:SS') as messdate, messwert, to_char(einfdat, 'DD-MM-YYYY HH24:MI:SS') as einfdate,ursprung,manval,substatnr from meteodat  where STATNR = {stationNr} and einfdat =  to_timestamp({fromDate}, 'DD.MM.YYYY HH24:MI:SS.FF')
           |union
-          |select statnr, messart, konfnr, to_char(messdat, 'DD-MM-YYYY HH24:MI:SS') as messdate, messwert, to_char(einfdat, 'DD-MM-YYYY HH24:MI:SS') as einfdate,ursprung,manval from mdat  where STATNR = {stationNr} and einfdat =  to_timestamp({fromDate}, 'DD.MM.YYYY HH24:MI:SS.FF')
+          |select statnr, messart, konfnr, to_char(messdat, 'DD-MM-YYYY HH24:MI:SS') as messdate, messwert, to_char(einfdat, 'DD-MM-YYYY HH24:MI:SS') as einfdate,ursprung,manval,substatnr from mdat  where STATNR = {stationNr} and einfdat =  to_timestamp({fromDate}, 'DD.MM.YYYY HH24:MI:SS.FF')
           |order by messdate DESC""".stripMargin).on("stationNr" -> stationNumber, "fromDate" -> fromTime).as(MeteoDataRow.parser *)
     }
   }
@@ -125,9 +125,9 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
   def findLastMeteoDataForStationBetweenDates(stationNumber: Int, fromTime: String, toTime: String): Seq[MeteoDataRow] = db.withConnection { implicit connection => {
     Logger.info(s"${fromTime}")
     SQL(
-      """select statnr, messart, konfnr, to_char(messdat, 'DD-MM-YYYY HH24:MI:SS') as messdate, messwert, to_char(einfdat, 'DD-MM-YYYY HH24:MI:SS') as einfdate,ursprung,manval from meteodat   where STATNR = {stationNr} and einfdat >=  to_timestamp({fromTime}, 'DD.MM.YYYY HH24:MI:SS') and einfdat <  to_timestamp({toTime}, 'DD.MM.YYYY HH24:MI:SS')
+      """select statnr, messart, konfnr, to_char(messdat, 'DD-MM-YYYY HH24:MI:SS') as messdate, messwert, to_char(einfdat, 'DD-MM-YYYY HH24:MI:SS') as einfdate,ursprung,manval,substatnr from meteodat   where STATNR = {stationNr} and einfdat >=  to_timestamp({fromTime}, 'DD.MM.YYYY HH24:MI:SS') and einfdat <  to_timestamp({toTime}, 'DD.MM.YYYY HH24:MI:SS')
         |union
-        |select statnr, messart, konfnr, to_char(messdat, 'DD-MM-YYYY HH24:MI:SS') as messdate, messwert, to_char(einfdat, 'DD-MM-YYYY HH24:MI:SS') as einfdate,ursprung,manval from mdat  where STATNR = {stationNr} and einfdat >=  to_timestamp({fromTime}, 'DD.MM.YYYY HH24:MI:SS') and einfdat <  to_timestamp({toTime}, 'DD.MM.YYYY HH24:MI:SS')
+        |select statnr, messart, konfnr, to_char(messdat, 'DD-MM-YYYY HH24:MI:SS') as messdate, messwert, to_char(einfdat, 'DD-MM-YYYY HH24:MI:SS') as einfdate,ursprung,manval,substatnr from mdat  where STATNR = {stationNr} and einfdat >=  to_timestamp({fromTime}, 'DD.MM.YYYY HH24:MI:SS') and einfdat <  to_timestamp({toTime}, 'DD.MM.YYYY HH24:MI:SS')
         |order by messdate DESC""".stripMargin).on("stationNr" -> stationNumber, "fromTime" -> fromTime, "toTime" -> toTime).as(MeteoDataRow.parser *)
     }
   }
@@ -145,9 +145,26 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
         |and messart = {messart}
         |and to_date(messdat, 'dd.mm.yyyy') between to_date(sysdate-8, 'dd.mm.yyyy') and to_date(sysdate-2, 'dd.mm.yyyy')
         |group by TO_CHAR(messdat, 'DAY') , to_char(messdat, 'dd.mm.yyyy')
-        |order by to_char(messdat, 'dd.mm.yyyy'), TO_CHAR(messdat, 'DAY')""".stripMargin).on("stationNr" -> stationNr, "messart" -> messart).as(WeeklyPreciVordemwaldData.parser *)
+        |union
+        |select TO_CHAR(messdat, 'DAY') as tag, to_char(messdat, 'dd.mm.yyyy') as measdate, sum(messwert) as summessart,count(*) as countval  from mdat
+        |where STATNR = {stationNr}
+        |and messart = {messart}
+        |and to_date(messdat, 'dd.mm.yyyy') between to_date(sysdate-8, 'dd.mm.yyyy') and to_date(sysdate-2, 'dd.mm.yyyy')
+        |group by TO_CHAR(messdat, 'DAY') , to_char(messdat, 'dd.mm.yyyy')
+        |order by measdate,tag
+        |""".stripMargin).on("stationNr" -> stationNr, "messart" -> messart).as(WeeklyPreciVordemwaldData.parser *)
     }
   }
+
+  def getLastTimeDataWasSentOutMeteoSchweiz():Seq[MeteoDataFileLogInfo] = db.withConnection{ implicit connection =>
+    SQL("""SELECT statnr, orgnr, to_char(vondatum, 'DD-MM-YYYY HH24:MI:SS') as vondatum, to_char(bisdatum, 'DD-MM-YYYY HH24:MI:SS') as bisdatum, dateiname,reihegesendet, to_char(lasteinfdat, 'DD-MM-YYYY HH24:MI:SS') as lasteinfdat, lasteinfdat as lastdat
+          |FROM METEODATALOGINFO
+          |where (statnr,orgnr,lasteinfdat ) in
+          |(select ml.statnr,ml.orgnr,max(ml.lasteinfdat)
+          |from METEODATALOGINFO ml group by ml.statnr,ml.orgnr)
+          |and dateiname <> 'RAWDATA'
+          |AND ORGNR = 1
+          |ORDER BY STATNR,lastdat DESC""".stripMargin).as(MeteoDataFileLogsInfo.parser *)}
 
 
   def findLastAnalyseIdForOzoneFile(filename: String, einfdat: String) = db.withConnection{ implicit connection =>
@@ -188,6 +205,7 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
 
   }
   }
+
 
   def insertInfoIntoMetablag(meteoData: Seq[MeteoDataRowTableInfo]) = db.withConnection { implicit conn => {
     try {
@@ -243,14 +261,14 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
 
         m.multi match {
           case Some(1) => {
-            val insertStatement = s"INSERT INTO METEODAT  (statnr, messart, konfnr, messdat, messwert, ursprung, valstat, einfdat) values(" +
-              s"${ml.station}, ${ml.messArt}, ${ml.configuration}, ${ml.dateReceived}, ${ml.valueOfMeasurement}, ${ml.methodApplied}, ${ml.status.getOrElse(0)},${ml.dateOfInsertion})"
+            val insertStatement = s"INSERT INTO METEODAT  (statnr, messart, konfnr, messdat, messwert, ursprung, valstat, einfdat, substatnr) values(" +
+              s"${ml.station}, ${ml.messArt}, ${ml.configuration}, ${ml.dateReceived}, ${ml.valueOfMeasurement}, ${ml.methodApplied}, ${ml.status.getOrElse(0)}, ${ml.dateOfInsertion}, ${ml.subStatNr})"
             //Logger.info(s"statement to be executed: ${insertStatement}")
             stmt.executeUpdate(insertStatement)
           }
           case Some(2) => {
-            val insertStatement = s"INSERT INTO MDAT  (statnr, messart, konfnr, messdat, messwert, ursprung, valstat, einfdat) values(" +
-              s"${ml.station}, ${ml.messArt}, ${ml.configuration}, ${ml.dateReceived}, ${ml.valueOfMeasurement}, ${ml.methodApplied}, ${ml.status.getOrElse(0)},${ml.dateOfInsertion})"
+            val insertStatement = s"INSERT INTO MDAT  (statnr, messart, konfnr, messdat, messwert, ursprung, valstat, einfdat, substatnr) values(" +
+              s"${ml.station}, ${ml.messArt}, ${ml.configuration}, ${ml.dateReceived}, ${ml.valueOfMeasurement}, ${ml.methodApplied}, ${ml.status.getOrElse(0)},${ml.dateOfInsertion}, ${ml.subStatNr})"
             //Logger.info(s"statement to be executed: ${insertStatement}")
             stmt.executeUpdate(insertStatement)
 
@@ -306,14 +324,14 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
 
           m.multi match {
             case Some(1) => {
-              val insertStatement = s"INSERT INTO METEODAT  (statnr, messart, konfnr, messdat, messwert, ursprung, valstat, einfdat) values(" +
-                s"${ml.station}, ${ml.messArt}, ${ml.configuration}, ${ml.dateReceived}, ${ml.valueOfMeasurement}, ${ml.methodApplied}, ${ml.status.getOrElse(0)},${ml.dateOfInsertion})"
+              val insertStatement = s"INSERT INTO METEODAT  (statnr, messart, konfnr, messdat, messwert, ursprung, valstat, einfdat, substatnr) values(" +
+                s"${ml.station}, ${ml.messArt}, ${ml.configuration}, ${ml.dateReceived}, ${ml.valueOfMeasurement}, ${ml.methodApplied}, ${ml.status.getOrElse(0)},${ml.dateOfInsertion}, ${ml.subStatNr})"
               //Logger.info(s"statement to be executed: ${insertStatement}")
               stmt.executeUpdate(insertStatement)
             }
             case Some(2) => {
-              val insertStatement = s"INSERT INTO MDAT  (statnr, messart, konfnr, messdat, messwert, ursprung, valstat, einfdat) values(" +
-                s"${ml.station}, ${ml.messArt}, ${ml.configuration}, ${ml.dateReceived}, ${ml.valueOfMeasurement}, ${ml.methodApplied}, ${ml.status.getOrElse(0)},${ml.dateOfInsertion})"
+              val insertStatement = s"INSERT INTO MDAT  (statnr, messart, konfnr, messdat, messwert, ursprung, valstat, einfdat, substatnr) values(" +
+                s"${ml.station}, ${ml.messArt}, ${ml.configuration}, ${ml.dateReceived}, ${ml.valueOfMeasurement}, ${ml.methodApplied}, ${ml.status.getOrElse(0)},${ml.dateOfInsertion}, ${ml.subStatNr})"
               //Logger.info(s"statement to be executed: ${insertStatement}")
               stmt.executeUpdate(insertStatement)
 

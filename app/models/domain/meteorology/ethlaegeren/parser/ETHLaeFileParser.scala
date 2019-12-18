@@ -103,11 +103,18 @@ object ETHLaeFileParser {
 
   private def aggregateAccordingToMethod(method: String, measurements: List[BigDecimal], windSpeedValues: scala.collection.immutable.Iterable[((String, Int), BigDecimal)], windSpeedKonf: Int, windDirectionKonf: Int): BigDecimal = {
     method match {
-      case "avg" => (measurements.sum/measurements.size)
+      case "avg" =>{
+        val sumOfMeasurements = measurements.sum
+        if(sumOfMeasurements != BigDecimal(0)) (sumOfMeasurements/ measurements.size).setScale(5, BigDecimal.RoundingMode.HALF_UP) else BigDecimal(0)
+      }
       case "sum" => measurements.sum
       case "windFormula" => computeWindDirectionFromMeasurements(measurements, windSpeedValues, windSpeedKonf, windDirectionKonf)
       case "max" => measurements.max
-      case _ => (measurements.sum/measurements.size)    }
+      case _ => {
+        val sumOfMeasurements = measurements.sum
+        if(sumOfMeasurements != BigDecimal(0)) (sumOfMeasurements/ measurements.size).setScale(5, BigDecimal.RoundingMode.HALF_UP) else BigDecimal(0)
+      }
+    }
   }
 
   private def computeWindDirectionFromMeasurements(measurements: List[BigDecimal], windSpeedValues: scala.collection.immutable.Iterable[((String, Int), BigDecimal)], windSpeedKonf: Int, windDirectionKonf: Int): BigDecimal = {

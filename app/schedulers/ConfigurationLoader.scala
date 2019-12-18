@@ -69,7 +69,10 @@ case class ConfigurationBodenSpaData(frequencyBodenSpa :Int,
 
 case class ConfigurationOttPluvioData(frequencyOttPluvio: Int, stationNrOttPluvio: Int, messartOttPluvio: Int, emailUserListOttPluvio: String, startTimeForOttPulvio: String)
 
-case class ConfigurationPreciVordemwaldData(frequencyPreciVordemwald: Int, stationNrPreciVordemwaldF: Int, stationNrPreciVordemwaldB: Int, messartPreciVordemwald: Int, emailUserListPreciVordemwald: String, startTimeForPreciVordemwald: String)
+case class ConfigurationMeteoSchweizReportData(frequencyMeteoSchweizMonitoring: Int, emailListMeteoSchweizMonitoring: String, startTimeForMeteoSchweizMonitoring: String)
+
+
+case class ConfigurationPreciVordemwaldData(frequencyPreciVordemwald: Int, stationNrPreciVordemwaldF: Int, stationNrPreciVordemwaldB: Int, messartPreciVordemwaldB: Int, messartPreciVordemwaldF: Int, emailUserListPreciVordemwald: String, startTimeForPreciVordemwald: String)
 
 
 case class CR1000LoggerFileConfig(frequencyCR1000 :Int,
@@ -117,6 +120,20 @@ case class ETHLaegerenLoggerFileConfig(frequencyETHLae :Int,
                                        ethHeaderPrefixT1_47: String,
                                        specialStationKonfNrsETHLae: Seq[SpecialParamKonfig]
                                  )
+
+case class ETHDavosLoggerFileConfig(frequencyETHDav :Int,
+                                       ftpUrlETHDav :String,
+                                       fptUserNameETHDav :String,
+                                       ftpPasswordETHDav :String,
+                                       ftpPathForIncomingFileETHDav :String,
+                                       ftpPathForETHDavFaultyFile :String,
+                                       ftpPathForETHDavArchiveFiles :String,
+                                       stationConfigs: List[StationKonfig],
+                                       emailUserList: String,
+                                       ethHeaderLineDav: String,
+                                       ethHeaderPrefixDav: String,
+                                       specialStationKonfNrsETHDav: Seq[SpecialParamKonfig]
+                                      )
 
 object ConfigurationLoader {
 
@@ -209,14 +226,24 @@ object ConfigurationLoader {
     ConfigurationOttPluvioData(frequencyOttPluvio, stationNrOttPluvio, messartOttPluvio, emailUserListOttPluvio, startTimeForOttPulvio)
   }
 
+
+  def loadMeteoSchweizMonitorConfiguration(configuration: Configuration) = {
+    val frequencyMeteoSchweizMonitoring = configuration.getInt("frequencyMeteoSchweizMonitoring").get
+    val emailListMeteoSchweizMonitoring = configuration.getString("emailListMeteoSchweizMonitoring").get
+    val startTimeForMeteoSchweizMonitoring = configuration.getString("startTimeForMeteoSchweizMonitoring").get
+    ConfigurationMeteoSchweizReportData(frequencyMeteoSchweizMonitoring, emailListMeteoSchweizMonitoring, startTimeForMeteoSchweizMonitoring)
+  }
+
   def loadPreciVordemwaldConfiguration(configuration: Configuration) = {
     val frequencyPreciVordemwald = configuration.getInt("frequencyPreciVordemwald").get
     val stationNrPreciVordemwaldF = configuration.getInt("stationNrPreciVordemwaldF").get
     val stationNrPreciVordemwaldB = configuration.getInt("stationNrPreciVordemwaldB").get
-    val messartPreciVordemwald = configuration.getInt("messartPreciVordemwald").get
+    val messartPreciVordemwaldB = configuration.getInt("messartPreciVordemwaldB").get
+    val messartPreciVordemwaldF = configuration.getInt("messartPreciVordemwaldF").get
+
     val emailUserListPreciVordemwald = configuration.getString("emailUserListPreciVordemwald").get
     val startTimeForPreciVordemwald = configuration.getString("startTimeForPreciVordemwald").get
-    ConfigurationPreciVordemwaldData(frequencyPreciVordemwald, stationNrPreciVordemwaldF, stationNrPreciVordemwaldB, messartPreciVordemwald, emailUserListPreciVordemwald, startTimeForPreciVordemwald)
+    ConfigurationPreciVordemwaldData(frequencyPreciVordemwald, stationNrPreciVordemwaldF, stationNrPreciVordemwaldB, messartPreciVordemwaldB, messartPreciVordemwaldF, emailUserListPreciVordemwald, startTimeForPreciVordemwald)
   }
 
 
@@ -404,4 +431,46 @@ object ConfigurationLoader {
 
     ETHLaegerenLoggerFileConfig(frequencyETHLaeFF, ftpUrlETHLaeFF, fptUserNameETHLaeFF, ftpPasswordETHLaeFF, ftpPathForIncomingFileETHLaeFF, ftpPathForETHLaeFaultyFileFF, ftpPathForETHLaeArchiveFilesFF, statKonfigsFF, ethLaeEmailUserListFF, ethHeaderLineFF, ethHeaderPrefixFF, specialStationKonfNrsETHLae)
   }
+
+  def loadETHDavTConfiguration(configuration: Configuration) = {
+    val frequencyETHDavT = configuration.getInt("frequencyETHDavT").get
+    val ftpUrlETHDavT = configuration.getString("ftpUrlETHDavT").get
+    val fptUserNameETHDavT = configuration.getString("fptUserNameETHDavT").get
+    val ftpPasswordETHDavT = configuration.getString("ftpPasswordETHDavT").get
+    val ftpPathForIncomingFileETHDavT = configuration.getString("ftpPathForIncomingFileETHDavT").get
+    val ftpPathForETHFaultyFileDavT = configuration.getString("ftpPathForETHFaultyFileDavT").get
+    val ftpPathForETHArchiveFilesDavT = configuration.getString("ftpPathForETHArchiveFilesDavT").get
+    val etHEmailUserListDavT = configuration.getString("etHEmailUserListDavT").get
+    val ethHeaderLineDavT = configuration.getString("ethHeaderLineDavT").get
+    val ethHeaderPrefixDavT = configuration.getString("ethHeaderPrefixDavT").get
+    import scala.collection.JavaConversions._
+
+    val statKonfigsFF =  configuration.getConfigList("stationConfigETH_DAV_T").map { statKonfig =>
+      statKonfig.map(sk => {
+        val fileName = sk.getString("fileName").get
+        val stationNumber = sk.getInt("stationNumber").get
+        val params = sk.getConfigList("projectParam")
+          .map(pList => {
+            val ppList =  pList.map(pp => {
+              val projNr = pp.getInt("projNr").get
+              val numParams = pp.getInt("params").get
+              val duration = pp.getInt("duration").get
+              ParametersProject(projNr,numParams,duration)
+            }).toList
+            ppList
+          })
+
+        StationKonfig(fileName, stationNumber, params.getOrElse(List()))
+
+      }).toList
+    }.getOrElse(List())
+
+    import scala.collection.JavaConversions._
+
+    val specialStationKonfNrsETHDav: Seq[SpecialParamKonfig] = Seq()
+    Logger.info(s"Station config are: ${statKonfigsFF.mkString("\n")}")
+
+    ETHDavosLoggerFileConfig(frequencyETHDavT, ftpUrlETHDavT, fptUserNameETHDavT, ftpPasswordETHDavT, ftpPathForIncomingFileETHDavT, ftpPathForETHFaultyFileDavT, ftpPathForETHArchiveFilesDavT, statKonfigsFF, etHEmailUserListDavT, ethHeaderLineDavT, ethHeaderPrefixDavT, specialStationKonfNrsETHDav)
+  }
+
 }
