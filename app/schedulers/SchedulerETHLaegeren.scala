@@ -12,7 +12,7 @@ class SchedulerETHLaegeren @Inject()(val system: ActorSystem, @Named("scheduler-
   val config = ConfigurationLoader.loadETHLaeConfiguration(configuration)
   val frequency = config.frequencyETHLae
   var actor = system.scheduler.schedule(
-    0.microseconds, frequency.seconds, schedulerActor, "processEthLaeFile")
+    1000.seconds, frequency.seconds, schedulerActor, "processEthLaeFile")
 
 }
 

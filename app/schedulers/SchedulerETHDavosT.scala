@@ -11,6 +11,6 @@ class SchedulerETHDavosT @Inject()(val system: ActorSystem, @Named("scheduler-ac
   val config = ConfigurationLoader.loadETHDavTConfiguration(configuration)
   val frequency = config.frequencyETHDav
   var actor = system.scheduler.schedule(
-    600.microseconds, frequency.seconds, schedulerActor, "processEthDavosTFile")
+    1500.seconds, frequency.seconds, schedulerActor, "processEthDavosTFile")
 
 }

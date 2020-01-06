@@ -462,7 +462,7 @@ object FtpConnector {
             val lastModified = fileAttributes.getMtimeString
             val lastModifiedDate = new org.joda.time.DateTime(StringToDate.formatFromDateToStringDefaultJava.parse(lastModified))
             val diffInSysdate = Days.daysBetween(lastModifiedDate,new org.joda.time.DateTime()).getDays
-            val validLinesToBeparsed =  if(diffInSysdate <= 300 && diffInSysdate >= 200 ) {
+            val validLinesToBeparsed =  if(diffInSysdate <= 31 ) {
               val br = new BufferedReader(new InputStreamReader(stream))
               val linesToParse = Stream.continually(br.readLine()).takeWhile(_ != null).toList
               val headerLine = linesToParse.filter(l => l.contains(headerPrefixDavT))

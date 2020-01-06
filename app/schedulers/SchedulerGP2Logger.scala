@@ -12,5 +12,5 @@ class SchedulerGP2Logger @Inject()(val system: ActorSystem, @Named("scheduler-ac
   val config = ConfigurationLoader.loadGP2LoggerConfiguration(configuration)
   val frequency = config.frequencyCR1000
   var actor = system.scheduler.schedule(
-    600.seconds, frequency.seconds, schedulerActor, "processGP2LoggerFile")
+    6000.seconds, frequency.seconds, schedulerActor, "processGP2LoggerFile")
 }
