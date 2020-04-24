@@ -16,9 +16,9 @@ class SchedulerActorHexenRübiFixedFormatExport @Inject()(configuration: Configu
   override def receive: Receive = {
     case "writeFile" =>  {
       val configMeteoSwiss = ConfigurationLoader.loadMeteoSchweizConfiguration(configuration)
-      val configHexenrubi: ConfigurationHexenrubiData = ConfigurationLoader.loadHexenRubiConfiguration(configuration)
+      val configHexenrubi: ConfigurationCR10XData = ConfigurationLoader.loadCR10XConfiguration(configuration)
 
-      writeFile(configMeteoSwiss, configHexenrubi)
+      //writeFile(configMeteoSwiss, configHexenrubi)
       //readFile(config)
     }
   }
@@ -34,7 +34,8 @@ class SchedulerActorHexenRübiFixedFormatExport @Inject()(configuration: Configu
     Logger.info(pathInputFile)
   }
 
-  def writeFile(configMeteoSwiss: ConfigurationMeteoSchweizData, configHexenrubi: ConfigurationHexenrubiData): Unit ={
+  //Obsolete at the moement
+  /*def writeFile(configMeteoSwiss: ConfigurationMeteoSchweizData, configHexenrubi: ConfigurationCR10XData): Unit ={
     val pathInputFile = configMeteoSwiss.pathInputFile
     val userNameFtp = configMeteoSwiss.userNameFtp
     val passwordFtp = configMeteoSwiss.passwordFtp
@@ -65,5 +66,5 @@ class SchedulerActorHexenRübiFixedFormatExport @Inject()(configuration: Configu
     fileGenerator.saveLogInfoOfGeneratedFiles(logInformation)
     FileUtils.cleanDirectory(source)
     Logger.info("writing data task finished")
-  }
+  }*/
 }

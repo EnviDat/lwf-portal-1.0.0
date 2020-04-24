@@ -55,7 +55,7 @@ object FtpConnector {
         .toList
       val infoAboutFileProcessed =
         listOfFiles.toList.map(file => {
-        if(file.errors.flatMap(_._2).nonEmpty) {
+        if(file.errors.exists(_._2.nonEmpty)) {
           val nrOfErrorMessages = file.errors.size
           val errorstring = if(nrOfErrorMessages < 5) FormatMessage.formatCR1000ErrorMessage(file.errors) else FormatMessage.formatCR1000ErrorMessage(file.errors.take(5))
           (s"File not processed: ${file.fileName} \n errors: ${errorstring} \n",Some(errorstring), nrOfErrorMessages)
@@ -616,4 +616,5 @@ object FtpConnector {
 
       //.getOrElse(Map.empty[((DateTime, DateTime), Int), List[String]])
   }
+
 }

@@ -43,7 +43,7 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
       SQL("SELECT MT.CODE AS CODE, MT.TEXT  AS TEXT, MT.PERIODE AS PERIODE, MT.MPROJNR AS MPROJNR, P.PDAUER AS PDAUER, MT.MULTI AS MULTI, e.text as einheit FROM MESSART MT, PERIODE P , einheit e WHERE MT.PERIODE = P.CODE and mt.einheit = e.code ORDER BY P.PDAUER").as(MessArtRow.parser *)}
 
     def findAllMessartsForOrgFixedFormat() : Seq[OrgStationParamMapping] = db.withConnection { implicit connection =>
-      SQL("select orgnr, projnr, statnr, parameterid, shortnamebyorg, columnnr, fromdate, todate, senddata, agg_method, completeness from statorgprojparamkonf where agg_method is null and completeness is null").as(OrgStationParamMappings.parser *)}
+      SQL("select orgnr, projnr, statnr, parameterid, shortnamebyorg, columnnr, fromdate, todate, senddata, agg_method, completeness from statorgprojparamkonf where agg_method is null and completeness is null and todate is null ").as(OrgStationParamMappings.parser *)}
 
     def findAllMessartsForOrgFixedAggFormat() : Seq[OrgStationParamMapping] = db.withConnection { implicit connection =>
       SQL("select orgnr, projnr, statnr, parameterid, shortnamebyorg, columnnr, fromdate, todate, senddata, agg_method, completeness from statorgprojparamkonf where agg_method is not null and completeness is not null").as(OrgStationParamMappings.parser *)}
@@ -134,7 +134,7 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
 
   def getLastOneDayOttPulvioDataForStation(stationNr: Int, messart: Int) = db.withConnection { implicit connection => {
     SQL(
-      """select sum(messwert) as summessart,count(*) as countval  from meteodat  where STATNR = {stationNr} and messart = {messart} and messdat >= sysdate - 1  - (1 / 24)""".stripMargin).on("stationNr" -> stationNr, "messart" -> messart).as(OttPulvioData.parser *)
+      """select sum(messwert) as summessart,count(*) as countval  from meteodat  where STATNR = {stationNr} and messart = {messart} and messdat >= sysdate - 1  - (2 / 24)""".stripMargin).on("stationNr" -> stationNr, "messart" -> messart).as(OttPulvioData.parser *)
       }
   }
 
@@ -342,15 +342,19 @@ class MeteoDataRepository  @Inject() (dbapi: DBApi) {
           //insertInfoIntoMetablag(meteoData, stmt)
           stmt.close()
           conn.commit()
+          Logger.info(s"INSERTED ONE ROW")
+
           //conn.close()
           None
         } catch {
           case ex: SQLException => {
             if (ex.getErrorCode() == 1) {
-              Logger.info(s"Data was already read. Primary key violation ${ex} ${m.meteoDataRow.toString}")
+              //Logger.info(s"Data was already read. Primary key violation ${ex} ${m.meteoDataRow.toString}")
               //conn.rollback()
               None
             } else {
+              Logger.info(s"Oracle Exception detected ${ex} ${m.meteoDataRow.toString}")
+
               Some(CR1000OracleError(8, s"Oracle Exception: ${ex}"))
             }
 

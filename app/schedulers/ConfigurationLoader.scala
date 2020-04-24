@@ -50,17 +50,17 @@ case class ConfigurationUniBaselData(frequency :Int,
                                      pathForArchivedLogFiles :String,
                                      pathForTempFiles: String)
 
-case class ConfigurationHexenrubiData(frequency :Int,
-                                      userNameHexenRubi :String,
-                                      passwordHexenRubi :String,
-                                      pathForIncomingFileHexenRubi :String,
-                                      pathForArchivedFiles :String,
-                                      dataFileNameHexenRubi :String,
-                                      stationNrHexenRubi :Int,
-                                      projectNrHexenRubi : Int,
-                                      periodeHexenRubi: Int,
-                                      emailUserListHexenRubi: String,
-                                      specialStationKonfNrsHexenRubi: Seq[SpecialParamKonfig]
+case class ConfigurationCR10XData(frequency :Int,
+                                  ftpUrlCR10X: String,
+                                  userNameHexenRubi :String,
+                                  passwordHexenRubi :String,
+                                  pathForIncomingFileHexenRubi :String,
+                                  pathForArchivedFiles :String,
+                                  dataFileNameHexenRubi :String,
+                                  stationNrHexenRubi :Int,
+                                  projectNrHexenRubi : Int,
+                                  periodeHexenRubi: Int,
+                                  emailUserListHexenRubi: String
                                      )
 case class ConfigurationBodenSpaData(frequencyBodenSpa :Int,
                                      pathForIncomingFileBodenSpa :String,
@@ -185,26 +185,22 @@ object ConfigurationLoader {
     ConfigurationUniBaselData(frequency, userNameFtp, passwordFtp, pathForFtpFolder, ftpUrlMeteo, pathInputFile, pathForLocalWrittenFiles, pathForArchivedFiles, pathForLogFiles, pathForArchivedLogFiles, pathForTempFiles)
   }
 
-  def loadHexenRubiConfiguration(configuration: Configuration) = {
-    val frequency = configuration.getInt("frequencyHexenRubi").get
-    val userNameHexenRubi = configuration.getString("userNameHexenRubi").get
-    val passwordHexenRubi = configuration.getString("passwordHexenRubi").get
-    val pathForIncomingFileHexenRubi = configuration.getString("pathForIncomingFileHexenRubi").get
+  def loadCR10XConfiguration(configuration: Configuration) = {
+    val frequency = configuration.getInt("frequencyCR10X").get
+    val ftpUrlCR10X = configuration.getString("ftpUrlCR10X").get
+    val userNameHexenRubi = configuration.getString("userNameCR10X").get
+    val passwordHexenRubi = configuration.getString("passwordCR10X").get
+    val pathForIncomingFileHexenRubi = configuration.getString("pathForIncomingFileCR10X").get
     val pathForArchivedFiles = configuration.getString("pathForArchivedFiles").get
-    val dataFileNameHexenRubi = configuration.getString("dataFileNameHexenRubi").get
-    val stationNrHexenRubi = configuration.getInt("stationNrHexenRubi").get
-    val projectNrHexenRubi = configuration.getInt("projectNrHexenRubi").get
-    val periodeHexenRubi = configuration.getInt("periodeHexenRubi").get
-    val emailUserListHexenRubi = configuration.getString("emailUserListHexenRubi").get
+    val dataFileNameHexenRubi = configuration.getString("dataFileNameCR10X").get
+    val stationNrHexenRubi = configuration.getInt("stationNrCR10X").get
+    val projectNrHexenRubi = configuration.getInt("projectNrCR10X").get
+    val periodeHexenRubi = configuration.getInt("periodeCR10X").get
+    val emailUserListHexenRubi = configuration.getString("emailUserListCR10X").get
     import scala.collection.JavaConversions._
 
-    val specialStationKonfNrsHexenRubi: Seq[SpecialParamKonfig] =  configuration.getConfigList("specialStationKonfNrsHexenRubi").map { specialStatKonfig =>
-      specialStatKonfig.flatMap(sk => {
-        val windSpeed = sk.getInt("windSpeed").get
-        val windDirection = sk.getInt("windDirection").get
-        List(SpecialParamKonfig("windSpeed", windSpeed),SpecialParamKonfig("windDirection", windDirection))
-      })}.toList.flatten
-    ConfigurationHexenrubiData(frequency, userNameHexenRubi, passwordHexenRubi, pathForIncomingFileHexenRubi, pathForArchivedFiles, dataFileNameHexenRubi ,stationNrHexenRubi, projectNrHexenRubi, periodeHexenRubi, emailUserListHexenRubi, specialStationKonfNrsHexenRubi )
+
+    ConfigurationCR10XData(frequency, ftpUrlCR10X, userNameHexenRubi, passwordHexenRubi, pathForIncomingFileHexenRubi, pathForArchivedFiles, dataFileNameHexenRubi ,stationNrHexenRubi, projectNrHexenRubi, periodeHexenRubi, emailUserListHexenRubi )
   }
 
   def loadBodenSpaConfiguration(configuration: Configuration) = {

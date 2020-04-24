@@ -24,7 +24,7 @@ class SchedulerActorBodenSpa @Inject()(configuration: Configuration, meteoServic
     }
   }
 
-  def readFile(config: ConfigurationHexenrubiData): Unit ={
+  def readFile(config: ConfigurationCR10XData): Unit ={
     val pathInputFile = config.pathForIncomingFileHexenRubi
     val userNameFtp = config.userNameHexenRubi
     val passwordFtp = config.passwordHexenRubi
@@ -48,7 +48,7 @@ class SchedulerActorBodenSpa @Inject()(configuration: Configuration, meteoServic
         val dataColumns = lineToStore.split(";")
         val profileId = NumberParser.parseBigInt(dataColumns(1))
         val profilKonfId = NumberParser.parseBigInt(dataColumns(2))
-        val measurementDate = getActualOrDummyDate(dataColumns(3) ) // + ":00"
+        val measurementDate = getActualOrDummyDate(dataColumns(3) + ":00" ) // + ":00"
         val measurementValue = NumberParser.parseBigDecimal(dataColumns(4))
         val validity = 1
         val valVersion = 1
